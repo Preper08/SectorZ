@@ -18,7 +18,7 @@
     const sp = Gn.playerSpawn;
     const p = S.player = {
       x: sp[0], y: sp[1], ang: 1, aimAng: 1, hp: 100, food: 82, water: 78, stamina: 100, energy: 90, infection: 0, bleed: 0, broken: false, dead: false, driving: null,
-      pose: { arms: 'walk', af: 0, legs: 'idle', lf: 0 }, look: {}, heldDef: null, lightDef: null, lightOn: false, lightFlick: 0, flash: 0, hurt: 0, muzzle: 0, moving: false, running: false, aiming: false, sneak: false, strength: 0,
+      pose: { arms: 'walk', af: 0, legs: 'idle', lf: 0 }, look: {}, heldDef: null, lightDef: null, lightOn: false, lightFlick: 0, flash: 0, hurt: 0, muzzle: 0, moving: false, running: false, aiming: false, sneak: false, crouch: false, strength: 0,
       inv: Inv.newPlayer(), ph: 0, atk: 0, atkT: 0, atkDone: true, cool: 0, reload: 0, stepT: 0, use: null, sprite: null, vx: 0, vy: 0, speed: 0
     };
     // starter kit
@@ -298,7 +298,7 @@
       if (In.pressed('KeyG')) Game.refuelNearby(S);
       if (c.engineOn) { A.engine(true, Math.min(1, Math.abs(c.speed) / 12 + (k.thr ? 0.18 : 0.05)), 1); if (c.fuel <= 0) c.engineOn = false; } else A.engine(false);
       if (In.pressed('KeyE') && !ui.blockKeys()) Game.exitCar(S);
-      p.x = c.x; p.y = c.y; p.moving = false; p.pose.legs = 'idle'; S.stats.distance += Math.abs(c.speed) * dt / 1000; return;
+      p.x = c.x; p.y = c.y; p.moving = false; p.crouch = false; p.pose.crouch = false; p.pose.legs = 'idle'; S.stats.distance += Math.abs(c.speed) * dt / 1000; return;
     }
     // ---- movement
     let ix = (In.down('KeyD') || In.down('ArrowRight') ? 1 : 0) - (In.down('KeyA') || In.down('ArrowLeft') ? 1 : 0), iy = (In.down('KeyS') || In.down('ArrowDown') ? 1 : 0) - (In.down('KeyW') || In.down('ArrowUp') ? 1 : 0);
@@ -306,7 +306,9 @@
     let mx = 0, my = 0; const il = Math.hypot(ix, iy);
     if (il > 0) { ix /= il; iy /= il; mx = ix / 64 + iy / 32; my = iy / 32 - ix / 64; const l = Math.hypot(mx, my); mx /= l; my /= l; }
     p.sneak = In.down('ControlLeft') || In.down('KeyZ');
-    const wantRun = In.down('ShiftLeft') && il > 0 && p.stamina > 4 && !p.sneak && !p.broken;
+    // crouch: hold C (walk speed and collision radius are unchanged; only the pose gets lower)
+    p.crouch = In.down('KeyC') && !ui.blockKeys();
+    const wantRun = In.down('ShiftLeft') && il > 0 && p.stamina > 4 && !p.sneak && !p.crouch && !p.broken;
     p.running = wantRun;
     let spd = p.running ? 4.8 : (p.sneak ? 1.5 : 2.6);
     if (p.broken) spd *= 0.5; if (p.use) spd *= 0.6; if (p.atkT > 0) spd *= 0.65; if (p.stamina < 12) spd *= 0.8;
@@ -319,7 +321,7 @@
     p.ph += sp * dt * 5.3;
     // ---- pose
     const gun = p.heldDef && p.heldDef.type === 'gun', mel = p.heldDef && p.heldDef.type === 'melee';
-    p.pose.legs = p.moving ? (p.running ? 'run' : 'walk') : 'idle'; p.pose.lf = Math.floor(p.ph) & 7;
+    p.pose.legs = p.moving ? (p.running ? 'run' : 'walk') : 'idle'; p.pose.lf = Math.floor(p.ph) & 7; p.pose.crouch = p.crouch;
     if (p.atkT > 0 && mel) { p.pose.arms = 'swing'; p.pose.af = Math.min(4, Math.floor((1 - p.atkT / p.atkTotal) * 5)); }
     else if (gun) { p.pose.arms = 'aim'; p.pose.af = 0; } else if (P.equip.light && p.lightOn && !mel) { p.pose.arms = 'light'; } else if (mel && p.aiming) { p.pose.arms = 'walk'; } else p.pose.arms = 'walk';
     // ---- hotbar select

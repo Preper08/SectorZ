@@ -314,7 +314,7 @@
     row('Film grain', tog('grain')); row('Bloom', tog('bloom')); row('UI blur', tog('blur', () => document.body.classList.toggle('noblur', !s.blur))); row('Show FPS', tog('showFps', () => els.fps.classList.toggle('hidden', !s.showFps)));
   }
   function buildControls() {
-    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Ctrl', 'Sneak'], ['E', 'Interact · search · open · enter car'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];
+    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Ctrl', 'Sneak'], ['C', 'Crouch (hold)'], ['E', 'Interact · search · open · enter car'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['V', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];
     els.ctlbody.innerHTML = '<div class="ctl">' + rows.map(r => '<b>' + r[0] + '</b><span>' + r[1] + '</span>').join('') + '</div>';
   }
 
@@ -330,7 +330,7 @@
         if (In.pressed('Escape')) { if (UI.drag) cancelDrag(); else if (UI.open.map) UI.closeMap(); else if (UI.open.win) UI.closeWin(); else if (S.build.active) { DSZ.Game.setBuild(S, false); } else UI.toggleMenu(); }
         else if (!UI.open.menu) {
           if (In.pressed('Tab') || In.pressed('KeyI')) UI.toggleWin('inv');
-          if (In.pressed('KeyC')) UI.toggleWin('craft');
+          if (In.pressed('KeyV')) UI.toggleWin('craft');
           if (In.pressed('KeyM')) { if (UI.open.map) UI.closeMap(); else UI.openMap(); }
           if (In.pressed('KeyB') && !p.driving) { if (UI.open.win) UI.closeWin(); DSZ.Game.setBuild(S, !S.build.active); A.play('click'); }
           if (UI.drag && In.pressed('KeyR')) { UI.drag.it.rot = !UI.drag.it.rot; sizeGhost(); }

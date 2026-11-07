@@ -33,6 +33,9 @@
     let pz = 0.93, lean = 0.03, A = 0, lift = 0.12;
     if (legs === 'walk') { A = 0.24; } else if (legs === 'run') { A = 0.4; lift = 0.2; lean = 0.2; } else if (legs === 'zwalk') { A = 0.17; lean = 0.13; lift = 0.07; } else if (legs === 'zrun') { A = 0.38; lean = 0.3; lift = 0.18; }
     const moving = legs !== 'idle' && legs !== 'crawl' && legs !== 'dead';
+    // crouch: drop the pelvis and lean the torso forward (feet stay planted on the ground)
+    const crouch = (P.crouch && legs !== 'dead' && legs !== 'crawl') ? 1 : 0;
+    if (crouch) { pz -= 0.37; lean += 0.36; }
     if (moving) pz -= Math.abs(Math.sin(ph)) * 0.025 * (run ? 2 : 1);
     if (arms === 'zatk') lean += 0.1 + 0.12 * Math.sin(af / 4 * Math.PI);
     if (arms === 'swing') lean += 0.04;
@@ -47,6 +50,8 @@
       fL = [sL, -0.1, Math.max(0, Math.cos(ph + Math.PI)) * lift * (legs === 'zwalk' && (P.limp ? 0.3 : 1))]; fR = [sR, 0.1, Math.max(0, Math.cos(ph)) * lift];
       if (P.limp && legs === 'zwalk') fL[0] *= 0.4;
     } else if (legs === 'idle') { fL = [0.03, -0.12, 0]; fR = [-0.03, 0.12, 0]; }
+    // crouch: feet move slightly forward and keep their ground contact, so the knees bend
+    if (crouch) { fL = [fL[0] * 0.55 + 0.17, fL[1] - 0.03, Math.max(fL[2], 0.02)]; fR = [fR[0] * 0.55 + 0.17, fR[1] + 0.03, Math.max(fR[2], 0.02)]; }
     let kL = ik(J.hipL, fL, 0.47, 0.47, [1, 0, 0.1]), kR = ik(J.hipR, fR, 0.47, 0.47, [1, 0, 0.1]);
     J.kneeL = kL.knee; J.footL = kL.end; J.kneeR = kR.knee; J.footR = kR.end;
     // arms
@@ -186,7 +191,7 @@
   const cache = new Map();
   Fig.get = function (spec, ang, P) {
     const n = Fig.NANG, ai = ((Math.round(ang / (Math.PI * 2) * n) % n) + n) % n;
-    const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '');
+    const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '') + (P.crouch ? 'c' : '');
     let s = cache.get(key);
     if (!s) { s = render(spec, ai / n * Math.PI * 2, P); cache.set(key, s); }
     return s;
