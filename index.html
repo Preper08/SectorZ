@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dead SectorZ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div id="vitals" class="panel">
+    <div class="vrow" data-k="hp"><span class="vico">+</span><div class="vbar"><i></i></div><b>100</b></div>
+    <div class="vrow" data-k="food"><span class="vico">F</span><div class="vbar"><i></i></div><b>100</b></div>
+    <div class="vrow" data-k="water"><span class="vico">W</span><div class="vbar"><i></i></div><b>100</b></div>
+    <div class="vrow" data-k="stamina"><span class="vico">S</span><div class="vbar"><i></i></div><b>100</b></div>
+    <div class="vrow" data-k="energy"><span class="vico">Z</span><div class="vbar"><i></i></div><b>100</b></div>
+    <div id="status"></div>
+  </div>
+  <div id="topright">
+    <div id="clock" class="panel"><b id="clk">17:12</b><span id="dayl">DAY 1</span><span id="wx"></span></div>
+    <div id="minimap" class="panel"><canvas id="mm" width="200" height="200"></canvas></div>
+  </div>
+  <div id="toasts"></div>
+  <div id="prompt" class="panel hidden"></div>
+  <div id="progress" class="panel hidden"><span id="proglabel">Searching</span><div class="pbar"><i></i></div></div>
+  <div id="hotbar" class="panel"></div>
+  <div id="hintbar">TAB inventory &nbsp;·&nbsp; C crafting &nbsp;·&nbsp; B build &nbsp;·&nbsp; E interact &nbsp;·&nbsp; F light &nbsp;·&nbsp; R reload &nbsp;·&nbsp; M map</div>
+  <div id="buildbar" class="panel hidden"></div>
+  <div id="fps" class="hidden"></div>
+</div>
+
+<!-- ============ INVENTORY / CRAFTING WINDOW ============ -->
+<div id="win" class="win hidden">
+  <div class="whead">
+    <div class="tabs"><button data-tab="inv" class="on">Inventory</button><button data-tab="craft">Crafting</button></div>
+    <button class="x" id="winx">✕</button>
+  </div>
+  <div id="tab-inv" class="wbody">
+    <div class="col" id="eqcol">
+      <h4>Equipment</h4>
+      <div id="equip"></div>
+      <h4>Condition</h4>
+      <div id="condition"></div>
+    </div>
+    <div class="col" id="gridcol">
+      <h4>Pockets</h4><div id="g-pockets" class="grid"></div>
+      <h4 id="bagtitle">Backpack</h4><div id="g-bag" class="grid"></div>
+    </div>
+    <div class="col hidden" id="lootcol">
+      <h4 id="loottitle">Container</h4><div id="g-loot" class="grid"></div>
+      <button id="takeall" class="btn">Take all</button>
+    </div>
+  </div>
+  <div id="tab-craft" class="wbody hidden">
+    <div class="col" id="crafttabs"></div>
+    <div class="col" id="craftlist"></div>
+    <div class="col" id="craftdetail"></div>
+  </div>
+</div>
+<div id="tip" class="panel hidden"></div>
+<div id="dragghost" class="hidden"></div>
+
+<!-- ============ MAP ============ -->
+<div id="mapwin" class="win hidden">
+  <div class="whead"><div class="tabs"><button class="on">Town map</button></div><button class="x" id="mapx">✕</button></div>
+  <div class="wbody" style="padding:10px"><canvas id="bigmap" width="704" height="704"></canvas></div>
+</div>
+
+<!-- ============ MENUS ============ -->
+<div id="pause" class="overlay hidden">
+  <div class="win menu">
+    <div class="whead"><div class="tabs"><button class="on">Paused</button></div></div>
+    <div class="mbody">
+      <button class="btn big" id="m-resume">Resume</button>
+      <button class="btn big" id="m-save">Save game</button>
+      <button class="btn big" id="m-settings">Settings</button>
+      <button class="btn big" id="m-quit">Quit to title</button>
+    </div>
+  </div>
+</div>
+<div id="settings" class="overlay hidden">
+  <div class="win menu wide">
+    <div class="whead"><div class="tabs"><button class="on">Settings</button></div><button class="x" id="set-x">✕</button></div>
+    <div class="mbody" id="setbody"></div>
+  </div>
+</div>
+<div id="controls" class="overlay hidden">
+  <div class="win menu wide">
+    <div class="whead"><div class="tabs"><button class="on">Controls</button></div><button class="x" id="ctl-x">✕</button></div>
+    <div class="mbody" id="ctlbody"></div>
+  </div>
+</div>
+<div id="death" class="overlay hidden dark">
+  <div class="deathbox">
+    <h1>YOU DIED</h1>
+    <p id="deathwhy"></p>
+    <div id="deathstats"></div>
+    <div class="row"><button class="btn big" id="d-again">Try again</button><button class="btn big" id="d-title">Main menu</button></div>
+  </div>
+</div>
+<div id="title" class="overlay hidden title">
+  <div class="titlebox">
+    <div class="logo"><span class="l1">DEAD</span><span class="l2">SECTOR<i>Z</i></span></div>
+    <div class="sub">A SURVIVAL SANDBOX · ALPHA <span id="ver"></span></div>
+    <div class="tmenu">
+      <button class="btn big" id="t-continue">Continue</button>
+      <button class="btn big" id="t-new">New game</button>
+      <button class="btn big" id="t-controls">Controls</button>
+      <button class="btn big" id="t-settings">Settings</button>
+    </div>
+  </div>
+  <div class="tfoot">Runs entirely in your browser · progress is saved locally</div>
+</div>
+<div id="loading" class="overlay">
+  <div class="loadbox"><div class="logo small"><span class="l1">DEAD</span><span class="l2">SECTOR<i>Z</i></span></div><div class="lbar"><i id="lbar"></i></div><div id="ltxt">Starting…</div></div>
+</div>
+<div id="cursor" class="hidden"></div>
+<div id="vignetteTop"></div>
+
+<script src="js/core.js"></script>
+<script src="js/input.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/tex.js"></script>
+<script src="js/walls.js"></script>
+<script src="js/world.js"></script>
+<script src="js/bld.js"></script>
+<script src="js/gen.js"></script>
+<script src="js/items.js"></script>
+<script src="js/gfx3d.js"></script>
+<script src="js/carart.js"></script>
+<script src="js/figures.js"></script>
+<script src="js/props.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/render.js"></script>
+<script src="js/inv.js"></script>
+<script src="js/ents.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
