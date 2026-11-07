@@ -21,13 +21,12 @@
       pose: { arms: 'walk', af: 0, legs: 'idle', lf: 0 }, look: {}, heldDef: null, lightDef: null, lightOn: false, lightFlick: 0, flash: 0, hurt: 0, muzzle: 0, moving: false, running: false, aiming: false, sneak: false, crouch: false, strength: 0,
       inv: Inv.newPlayer(), ph: 0, atk: 0, atkT: 0, atkDone: true, cool: 0, reload: 0, stepT: 0, use: null, sprite: null, vx: 0, vy: 0, speed: 0
     };
-    // starter kit
+    // starter kit (bare hands: the bat is a world pickup now)
     const P = p.inv;
     Inv.equip(P, Inv.make('fannypack'));
     P.equip.light = Inv.make('flashlight', 1, { bat: 100 });
-    P.hot[0] = Inv.make('bat'); P.hot[0].dur = 55;
     Inv.give(P, Inv.make('hammer')); Inv.give(P, Inv.make('bandage', 2)); Inv.give(P, Inv.make('water')); Inv.give(P, Inv.make('beans'));
-    P.sel = 0;
+    P.sel = -1;
     // world population
     for (const z of Gn.zombieSpawns) E.spawnZombie(S, z[0], z[1], z[2]);
     for (const c of Gn.carSpecs) E.spawnCar(S, c);
@@ -38,6 +37,9 @@
     S.cam.x = p.x; S.cam.y = p.y;
     Game.refreshEquipVisuals(S);
     if (saved) Game.applySave(S, saved);
+    // new games start bare-handed: the bat lies on the floor near the spawn.
+    // Loaded saves keep whatever the player already has (no duplicates, no extra spawns).
+    else Game.placeStarterBat(S);
     Game.toast(S, 'Find supplies. Stay quiet. Survive the night.');
     DSZ.emit('newgame', S);
     return S;
@@ -46,6 +48,37 @@
   Game.toast = function (S, text, kind) { S = S || Game.S; if (!S) return; S.toasts.push({ text, kind: kind || '', t: 4.5 }); if (S.toasts.length > 6) S.toasts.shift(); };
   Game.dropItem = function (S, x, y, item) { S.drops.push({ x: x + (Math.random() - 0.5) * 0.6, y: y + (Math.random() - 0.5) * 0.6, item }); };
   Game.dropFn = S => it => Game.dropItem(S, S.player.x, S.player.y, it);
+  // Put the starting baseball bat on the floor near the player spawn. Skipped when the
+  // player already owns one or one is already lying in the world (old saves / reloads).
+  Game.placeStarterBat = function (S) {
+    const p = S.player;
+    if (Inv.has(p.inv, 'bat')) return;
+    if (S.drops.some(d => d.item && d.item.id === 'bat')) return;
+    const bx = Math.floor(p.x), by = Math.floor(p.y), inHouse = W.insideBuilding(p.x, p.y);
+    let spot = null;
+    for (const r of [2, 3, 1, 4]) {
+      for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const tx = bx + dx, ty = by + dy;
+        if (!W.inb(tx, ty) || W.isSolid(tx, ty)) continue;
+        if (inHouse && !W.insideBuilding(tx + 0.5, ty + 0.5)) continue;
+        spot = [tx + 0.5, ty + 0.5];
+      }
+      if (spot) break;
+    }
+    if (!spot) spot = [p.x, p.y];
+    Game.dropItem(S, spot[0], spot[1], Inv.make('bat', 1, { dur: 55 }));
+  };
+  // a just-picked weapon goes straight into the hotbar so it is ready to use
+  Game.equipPicked = function (S, it) {
+    const P = S.player.inv;
+    const at = P.hot.indexOf(it);
+    if (at >= 0) { P.sel = at; return; }
+    const slot = P.hot.indexOf(null);
+    if (slot < 0) return; // hotbar full - it stays in the inventory
+    Inv.removeItem(P, it);
+    P.hot[slot] = it; P.sel = slot;
+  };
 
   // ---------------------------------------------------------------- equipment visuals
   const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], vest: [58, 64, 70], helmet: [76, 86, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], fannypack: [74, 74, 82] };
@@ -216,7 +249,15 @@
   function doInteract(S) {
     const f = S.focus, p = S.player; if (!f) return;
     switch (f.kind) {
-      case 'drop': { const left = Inv.give(p.inv, f.ref.item); if (!left) { S.drops.splice(S.drops.indexOf(f.ref), 1); A.play('pickup'); Game.toast(S, 'Picked up ' + I[f.ref.item.id].name + (f.ref.item.q > 1 ? ' x' + f.ref.item.q : '')); } else { Game.toast(S, 'Not enough space'); } break; }
+      case 'drop': {
+        const it = f.ref.item, left = Inv.give(p.inv, it);
+        if (!left) {
+          S.drops.splice(S.drops.indexOf(f.ref), 1); A.play('pickup');
+          if (it.id === 'bat') Game.equipPicked(S, it); // ready to swing right away
+          Game.toast(S, 'Picked up ' + I[it.id].name + (it.q > 1 ? ' x' + it.q : ''));
+        } else { Game.toast(S, 'Not enough space'); }
+        break;
+      }
       case 'door': {
         const o = f.ref;
         if (!o.open && o.locked) {
