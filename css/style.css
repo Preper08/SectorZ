@@ -136,7 +136,7 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 .ctl { display: grid; grid-template-columns: 150px 1fr; gap: 3px 12px; font-size: 15px; } .ctl b { color: var(--accent); text-align: right; font-weight: 700; }
 .title { background: radial-gradient(ellipse at 30% 60%, rgba(0,0,0,0.1), rgba(0,0,0,0.72)); align-items: stretch; justify-content: flex-start; z-index: 40; }
 .titlebox { margin: auto auto auto 9vw; display: flex; flex-direction: column; gap: 26px; }
-.logo { display: flex; flex-direction: column; line-height: 0.86; font-weight: 700; text-transform: uppercase; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8)); }
+.logo { display: flex; flex-direction: column; line-height: 0.86; font-weight: 700; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8)); }
 .logo .l1 { font-size: 40px; letter-spacing: 0.7em; color: var(--dim); padding-left: 4px; }
 .logo .l2 { font-size: clamp(64px, 10vw, 132px); letter-spacing: 0.04em; color: #e6e6e6; }
 .logo .l2 i { color: #b73a35; font-style: normal; }
