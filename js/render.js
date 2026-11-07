@@ -25,7 +25,12 @@
     cv.style.width = '100%'; cv.style.height = '100%';
     const ls = DSZ.settings.lightRes;
     LW = Math.ceil(w * ls); LH = Math.ceil(h * ls); lm.width = LW; lm.height = LH;
-    R.vig = null;
+    R.vig = null; R.grainBig = null;
+    // low-res vignette baked into the lightmap (same look, no extra full-screen pass)
+    const [vc, vx] = U.canvas2d(LW, LH);
+    const vg = vx.createRadialGradient(LW / 2, LH / 2, LH * 0.3, LW / 2, LH / 2, LW * 0.62);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(0.65, 'rgba(0,0,0,0.28)'); vg.addColorStop(1, 'rgba(0,0,0,0.78)');
+    vx.fillStyle = vg; vx.fillRect(0, 0, LW, LH); R.vigL = vc;
   };
   R.setScale = function (s) { R.scale = s; R.resize(); };
 
@@ -91,6 +96,10 @@
 
   // ---------------------------------------------------------------- ground chunks
   function chunkKey(cx, cy) { return cy * 1000 + cx; }
+  function chunkRect(cx, cy) {
+    const x0 = cx * CH, y0 = cy * CH, pad = 6;
+    return { ox: (x0 - (y0 + CH)) * 32 - pad, oy: (x0 + y0) * 16 - pad, w: CH * 64 + pad * 2, h: CH * 32 + pad * 2 + 4 };
+  }
   function bakeChunk(cx, cy) {
     const x0 = cx * CH, y0 = cy * CH, pad = 6;
     const ox = (x0 - (y0 + CH)) * 32 - pad, oy = (x0 + y0) * 16 - pad;
@@ -165,11 +174,16 @@
     const shake = S.cam.shake || 0, sxk = shake ? (Math.random() - 0.5) * shake * 6 : 0, syk = shake ? (Math.random() - 0.5) * shake * 6 : 0;
     const ci = iso(S.cam.x, S.cam.y); camIx = ci[0] + sxk; camIy = ci[1] + syk;
     const VW = R.VW, VH = R.VH;
+    // exact screen-space culling bounds (iso pixels), with margins for tall/wide sprites
+    const iz = 1 / zoom;
+    const svx0 = camIx - VW / 2 * iz, svx1 = camIx + VW / 2 * iz;
+    const svy0 = camIy - VH / 2 * iz, svy1 = camIy + VH / 2 * iz;
+    const MX = 160, MT = 280, MB = 60;
     const amb = R.ambient(S.hour), dl = R.daylight(S.hour), sun = sunShadow(S), p = S.player;
     const pb = W.buildingAt(Math.floor(p.x), Math.floor(p.y));
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#07080a'; ctx.fillRect(0, 0, VW, VH);
     ctx.setTransform(zoom, 0, 0, zoom, VW / 2 - camIx * zoom, VH / 2 - camIy * zoom);
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'medium';
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'low';
     // view bounds (iso space)
     const vx0 = camIx - VW / 2 / zoom - 80, vx1 = camIx + VW / 2 / zoom + 80, vy0 = camIy - VH / 2 / zoom - 40, vy1 = camIy + VH / 2 / zoom + 240;
     // world bbox
@@ -181,10 +195,23 @@
     bakeBudget = 3; let drawn = 0;
     for (let cy = Math.floor(ty0 / CH); cy <= Math.floor(ty1 / CH); cy++) for (let cx = Math.floor(tx0 / CH); cx <= Math.floor(tx1 / CH); cx++) {
       if (cx < 0 || cy < 0 || cx * CH >= C.W || cy * CH >= C.H) continue;
+      const rc = chunkRect(cx, cy);
+      const csx = (rc.ox - camIx) * zoom + VW / 2, csy = (rc.oy - camIy) * zoom + VH / 2;
+      const cw = rc.w * zoom, chh = rc.h * zoom;
+      const onScreen = !(csx >= VW || csx + cw <= 0 || csy >= VH || csy + chh <= 0);
+      // only bake chunks that are on (or just outside) the screen - no wasted bakes far off-view
+      const near = !(csx >= VW + 260 || csx + cw <= -260 || csy >= VH + 260 || csy + chh <= -260);
+      if (!onScreen && !near) continue;
       const k = chunkKey(cx, cy); let ch = chunks.get(k);
-      if (!ch) { if (bakeBudget <= 0) continue; bakeBudget--; ch = bakeChunk(cx, cy); chunks.set(k, ch); }
+      if (!ch) { if (!near || bakeBudget <= 0) continue; bakeBudget--; ch = bakeChunk(cx, cy); chunks.set(k, ch); }
       else { chunks.delete(k); chunks.set(k, ch); }
-      ctx.drawImage(ch.c, ch.ox, ch.oy); drawn++;
+      if (!onScreen) continue;
+      // draw only the part of the chunk that is actually inside the viewport
+      const ix0 = ch.ox > svx0 ? ch.ox : svx0, iy0 = ch.oy > svy0 ? ch.oy : svy0;
+      const ix1 = (ch.ox + rc.w) < svx1 ? (ch.ox + rc.w) : svx1, iy1 = (ch.oy + rc.h) < svy1 ? (ch.oy + rc.h) : svy1;
+      if (ix1 <= ix0 || iy1 <= iy0) continue;
+      ctx.drawImage(ch.c, ix0 - ch.ox, iy0 - ch.oy, ix1 - ix0, iy1 - iy0, ix0, iy0, ix1 - ix0, iy1 - iy0);
+      drawn++;
     }
     if (chunks.size > 110) { let n = chunks.size - 90; for (const k of chunks.keys()) { chunks.delete(k); if (--n <= 0) break; } }
     R.stats.chunks = drawn;
@@ -207,6 +234,9 @@
     for (const b of W.blds) if (b) { const tgt = (insideB === b) ? 0 : 1; b.roofA = b.roofA === undefined ? 1 : b.roofA + (tgt - b.roofA) * Math.min(1, dt * 6); }
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
       const i = ty * C.W + tx, o = W.obj[i];
+      // screen-space cull: skip tiles whose sprites cannot reach the viewport
+      const sx = (tx - ty) * 32, sy = (tx + ty) * 16;
+      const onScreen = sx > svx0 - MX && sx < svx1 + MX && sy > svy0 - MT && sy < svy1 + MB;
       if (o) {
         const d = D[o.t];
         // cutaway: walls in front of the player when inside their building
@@ -214,16 +244,20 @@
         else if (d.tall && tx + ty > pkey + 0.5 && tx + ty < pkey + 6 && Math.abs((tx - ty) - (px - py)) < 2.4) o.ft = 0.38;
         else o.ft = 1;
         o.fa = o.fa === undefined ? o.ft : o.fa + (o.ft - o.fa) * Math.min(1, dt * 9);
-        pushItem(tx + ty + 1, 0, o, tx, ty);
+        if (onScreen) pushItem(tx + ty + 1, 0, o, tx, ty);
       }
-      const rb = W.room[i];
-      if (rb && W.blds[rb].roofA > 0.02) pushItem(tx + ty + 1.02, 1, W.blds[rb], tx, ty);
+      if (onScreen) {
+        const rb = W.room[i];
+        if (rb && W.blds[rb].roofA > 0.02) pushItem(tx + ty + 1.02, 1, W.blds[rb], tx, ty);
+      }
     }
-    for (const z of S.zombies) { if (z.x < tx0 - 3 || z.x > tx1 + 3 || z.y < ty0 - 3 || z.y > ty1 + 3) continue; pushItem(z.dead ? z.x + z.y - 0.6 : z.x + z.y, 2, z); }
-    for (const c of S.cars) { if (c.x < tx0 - 4 || c.x > tx1 + 4 || c.y < ty0 - 4 || c.y > ty1 + 4) continue; pushItem(c.x + c.y + 0.0, 3, c); }
-    for (const d of S.drops) { if (d.x < tx0 - 2 || d.x > tx1 + 2 || d.y < ty0 - 2 || d.y > ty1 + 2) continue; pushItem(d.x + d.y - 0.5, 4, d); }
+    // entities: same screen-space cull (their sprites are anchored at the ground point)
+    const entOn = (ex, ey, mx, my) => { const ex2 = (ex - ey) * 32, ey2 = (ex + ey) * 16; return ex2 > svx0 - mx && ex2 < svx1 + mx && ey2 > svy0 - my && ey2 < svy1 + MB; };
+    for (const z of S.zombies) { if (z.x < tx0 - 3 || z.x > tx1 + 3 || z.y < ty0 - 3 || z.y > ty1 + 3) continue; if (!entOn(z.x, z.y, 170, 260)) continue; pushItem(z.dead ? z.x + z.y - 0.6 : z.x + z.y, 2, z); }
+    for (const c of S.cars) { if (c.x < tx0 - 4 || c.x > tx1 + 4 || c.y < ty0 - 4 || c.y > ty1 + 4) continue; if (!entOn(c.x, c.y, 200, 240)) continue; pushItem(c.x + c.y + 0.0, 3, c); }
+    for (const d of S.drops) { if (d.x < tx0 - 2 || d.x > tx1 + 2 || d.y < ty0 - 2 || d.y > ty1 + 2) continue; if (!entOn(d.x, d.y, 90, 90)) continue; pushItem(d.x + d.y - 0.5, 4, d); }
     if (!p.driving) pushItem(p.x + p.y + 0.01, 5, p);
-    for (const pt of S.particles) { if (pt.x < tx0 - 2 || pt.x > tx1 + 2 || pt.y < ty0 - 2 || pt.y > ty1 + 2) continue; pushItem(pt.x + pt.y + 0.5, 6, pt); }
+    for (const pt of S.particles) { if (pt.x < tx0 - 2 || pt.x > tx1 + 2 || pt.y < ty0 - 2 || pt.y > ty1 + 2) continue; if (!entOn(pt.x, pt.y, 120, 160)) continue; pushItem(pt.x + pt.y + 0.5, 6, pt); }
     // ---- shadows (ground pass)
     drawShadows(S, sun, tx0, ty0, tx1, ty1);
     // ---- sorted draw
@@ -277,6 +311,8 @@
     for (const it of order) {
       if (it.t === 0) {
         const o = it.a, d = D[o.t]; if (d.wall || d.low && d.h < 40 || d.thin && d.h < 100 || d.h < 24 || !d.solid && !d.tree) continue;
+        // props hidden under an opaque roof are not visible, so their shadow is not either
+        if (o.b) { const b = W.blds[o.b]; if (b && b.roofA > 0.98 && (d.h || 30) < C.WH) continue; }
         const s = DSZ.Props.get(o), tx = it.b, ty = it.c;
         shadowSprite(s, (tx - ty) * 32, (tx + ty + 1) * 16, sun, str * 0.9, d.tree ? 0.9 : 0.75);
       } else if (it.t === 2) {
@@ -386,7 +422,10 @@
     const ex = (tx - ty) * 32, ey = (tx + ty) * 16, wh = C.WH;
     ctx.globalAlpha = b.roofA;
     const edge = tx === b.x || ty === b.y || tx === b.x + b.w - 1 || ty === b.y + b.h - 1;
-    ctx.drawImage(roofTile(b.roof, (tx * 7 + ty * 13) & 3), ex - 33, ey - wh - 1);
+    // cache the 4 roof tile variants per building (no per-tile key building)
+    let rt = b._rt;
+    if (!rt) { rt = b._rt = [roofTile(b.roof, 0), roofTile(b.roof, 1), roofTile(b.roof, 2), roofTile(b.roof, 3)]; }
+    ctx.drawImage(rt[(tx * 7 + ty * 13) & 3], ex - 33, ey - wh - 1);
     if (edge) { ctx.globalAlpha = b.roofA * 0.25; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.moveTo(ex, ey - wh); ctx.lineTo(ex + 32, ey - wh + 16); ctx.lineTo(ex, ey - wh + 32); ctx.lineTo(ex - 32, ey - wh + 16); ctx.fill(); }
     ctx.globalAlpha = 1;
   }
@@ -596,8 +635,10 @@
       i ? lctx.lineTo(q[0], q[1]) : lctx.moveTo(q[0], q[1]);
     }
     lctx.closePath(); lctx.fill('evenodd');
+    // vignette is baked into the lightmap (one less full-screen pass, identical result)
+    if (R.vigL) { lctx.globalCompositeOperation = 'source-over'; lctx.globalAlpha = 1; lctx.drawImage(R.vigL, 0, 0); }
     // ---- composite
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'low';
     ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lm, 0, 0, LW, LH, 0, 0, R.VW, R.VH);
     if (DSZ.settings.bloom) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.11 + night * 0.05; ctx.drawImage(lm, 0, 0, LW, LH, 0, 0, R.VW, R.VH); ctx.globalAlpha = 1; }
     ctx.globalCompositeOperation = 'source-over';
@@ -631,17 +672,22 @@
       for (let i = 0; i < n; i++) { const sx = ((i * 97.13 + T * 400) % (VW + 100)) - 20, sy = ((i * 53.7 + T * 1200 + (i % 7) * 31) % (VH + 60)) - 20; ctx.moveTo(sx, sy); ctx.lineTo(sx - 5, sy + 14); }
       ctx.stroke();
     }
-    // vignette
-    if (!R.vig || R.vig.w !== VW || R.vig.h !== VH) {
-      const [c, x] = U.canvas2d(VW >> 1, VH >> 1), g = x.createRadialGradient(c.width / 2, c.height / 2, c.height * 0.3, c.width / 2, c.height / 2, c.width * 0.62);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.65, 'rgba(0,0,0,0.28)'); g.addColorStop(1, 'rgba(0,0,0,0.78)'); x.fillStyle = g; x.fillRect(0, 0, c.width, c.height); R.vig = { c, w: VW, h: VH };
-    }
-    ctx.drawImage(R.vig.c, 0, 0, VW, VH);
+    // vignette is applied inside the lightmap (see drawLighting)
     // low-health / bleeding tint
     if (p.hp < 40) { ctx.fillStyle = 'rgba(120,0,0,' + ((40 - p.hp) / 40 * 0.25 * (0.7 + 0.3 * Math.sin(T * 5))) + ')'; ctx.fillRect(0, 0, VW, VH); }
     if (p.hurt > 0) { ctx.fillStyle = 'rgba(150,0,0,' + Math.min(0.35, p.hurt * 0.5) + ')'; ctx.fillRect(0, 0, VW, VH); }
-    // film grain
-    if (DSZ.settings.grain) { ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = 0.09; const ox = (Math.random() * 128) | 0, oy = (Math.random() * 128) | 0; for (let y = -oy; y < VH; y += 128) for (let x = -ox; x < VW; x += 128) ctx.drawImage(grain, x, y); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
+    // film grain (pre-tiled into one canvas, then offset per frame - same animated grain, one draw)
+    if (DSZ.settings.grain) {
+      if (!R.grainBig || R.grainBig.width !== VW + 128 || R.grainBig.height !== VH + 128) {
+        const [gc, gx] = U.canvas2d(VW + 128, VH + 128);
+        for (let yy = 0; yy < gc.height; yy += 128) for (let xx = 0; xx < gc.width; xx += 128) gx.drawImage(grain, xx, yy);
+        R.grainBig = gc;
+      }
+      ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = 0.09;
+      const ox = (Math.random() * 128) | 0, oy = (Math.random() * 128) | 0;
+      ctx.drawImage(R.grainBig, -ox, -oy);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
     // desaturate slightly in a cold teal grade at night (cheap colour tint)
     ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = 'rgba(20,40,70,' + (0.18 * (1 - dl)) + ')'; ctx.fillRect(0, 0, VW, VH); ctx.globalCompositeOperation = 'source-over';
     // letterbox bars for the cinematic look in the reference

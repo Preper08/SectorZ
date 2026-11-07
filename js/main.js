@@ -11,7 +11,7 @@
   Main.applyQuality = function () {
     const q = DSZ.settings.quality;
     if (q === 'auto') { if (!R.scale || R.scale < 0.5) R.scale = 1; } else R.scale = +q;
-    R.resize(); R.dirtyAll && R.dirtyAll();
+    R.resize();
   };
 
   async function boot() {
@@ -74,17 +74,21 @@
     DSZ.Ents.updateParticles(S, dt);
   }
 
-  function adapt(dtMs) {
+  function adapt(dtMs, workMs) {
     if (DSZ.settings.quality !== 'auto' || Main.mode !== 'play') return;
-    ft += (dtMs - ft) * 0.08; scaleCool -= dtMs / 1000;
+    // judge by how long our own frame work takes, not by the vsync interval -
+    // otherwise a 30 Hz display would keep lowering the resolution even when we are fast
+    const ms = workMs || dtMs;
+    ft += (ms - ft) * 0.08; scaleCool -= dtMs / 1000;
     if (scaleCool > 0) return;
-    if (ft > 26 && R.scale > 0.5) { R.setScale(Math.max(0.5, +(R.scale - 0.08).toFixed(2))); scaleCool = 2; R.dirtyAll(); }
-    else if (ft < 14.5 && R.scale < 1) { R.setScale(Math.min(1, +(R.scale + 0.05).toFixed(2))); scaleCool = 6; R.dirtyAll(); }
+    if (ft > 26 && R.scale > 0.5) { R.setScale(Math.max(0.5, +(R.scale - 0.08).toFixed(2))); scaleCool = 2; }
+    else if (ft < 14.5 && R.scale < 1) { R.setScale(Math.min(1, +(R.scale + 0.05).toFixed(2))); scaleCool = 6; }
   }
 
   function loop(now) {
     requestAnimationFrame(loop);
     let dt = (now - last) / 1000; last = now; if (!(dt > 0)) dt = 0.016; const rawMs = dt * 1000; dt = Math.min(dt, 0.05);
+    const work0 = performance.now();
     try {
       if (UI.open.title || S.title) { titleCam(dt); }
       else {
@@ -93,7 +97,7 @@
       }
       R.frame(S, dt);
       UI.update(S, dt);
-      adapt(rawMs);
+      adapt(rawMs, performance.now() - work0);
     } catch (e) {
       if (!errShown) { errShown = true; console.error('Frame error', e); }
       window.__dszError = e;
@@ -102,7 +106,7 @@
     frames++; fpsT += rawMs; if (fpsT >= 500) { UI.fps(Math.round(frames * 1000 / fpsT) + ' fps · ' + Math.round(R.scale * 100) + '%'); window.__fps = frames * 1000 / fpsT; frames = 0; fpsT = 0; }
   }
 
-  window.addEventListener('resize', () => { if (booted) { R.resize(); R.dirtyAll(); } });
+  window.addEventListener('resize', () => { if (booted) { R.resize(); } });
   window.addEventListener('beforeunload', () => { try { if (S && !S.title) Game.save(S); } catch (e) { /* */ } });
   document.addEventListener('visibilitychange', () => { if (document.hidden && S && !S.title && !UI.open.menu && S.state === 'play') UI.toggleMenu(true); });
   window.addEventListener('contextmenu', e => e.preventDefault());

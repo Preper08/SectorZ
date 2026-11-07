@@ -458,27 +458,56 @@
     updateSleep(S, dt);
     E.updateZombies(S, dt); E.updateCars(S, dt); E.updateParticles(S, dt);
     updateCamera(S, dt);
-    S.saveT -= dt; if (S.saveT <= 0) { S.saveT = 60; Game.save(S); }
+    // autosave is spread over several frames so it never stalls the game loop
+    S.saveT -= dt; if (S.saveT <= 0) { S.saveT = 60; Game.saveBegin(S); }
+    Game.saveStep(4);
   };
   function updateWorldLite(S, dt) { S.time += dt; S.hour += dt * 24 / C.DAY_LEN; E.updateParticles(S, dt); E.updateZombies(S, dt); E.updateCars(S, dt); updateCamera(S, dt); S.cam.zoom += (1.25 - S.cam.zoom) * dt; }
 
   // ---------------------------------------------------------------- save / load
+  let saveJob = null;
+  function scanSaveRows(S, y0, y1, mods, base) {
+    for (let y = y0; y < y1; y++) for (let x = 0; x < C.W; x++) {
+      const o = W.obj[y * C.W + x]; if (!o) continue;
+      if (o.base) { base.push({ t: o.t, x, y, f: o.f, open: o.open, hp: o.hp, fuel: o.fuel, lit: o.lit, water: o.water, grid: o.grid }); }
+      else if (o.grid || o.searched || o.broken || o.chop || o.open !== undefined && o.open !== o.open0 || o.hp !== undefined && o.maxhp && o.hp < o.maxhp) mods.push({ x, y, grid: o.grid, searched: o.searched, broken: o.broken, open: o.open, locked: o.locked, hp: o.hp, chop: o.chop });
+    }
+  }
+  function savePayload(S, mods, base) {
+    const p = S.player;
+    return {
+      v: 1, seed: S.seed, hour: S.hour, day: S.day, stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
+      player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
+      mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
+    };
+  }
   Game.save = function (S) {
     S = S || Game.S; if (!S || S.state !== 'play') return false;
+    saveJob = null;
     try {
-      const p = S.player, mods = [], base = [];
-      for (let y = 0; y < C.H; y++) for (let x = 0; x < C.W; x++) {
-        const o = W.obj[y * C.W + x]; if (!o) continue;
-        if (o.base) { base.push({ t: o.t, x, y, f: o.f, open: o.open, hp: o.hp, fuel: o.fuel, lit: o.lit, water: o.water, grid: o.grid }); }
-        else if (o.grid || o.searched || o.broken || o.chop || o.open !== undefined && o.open !== o.open0 || o.hp !== undefined && o.maxhp && o.hp < o.maxhp) mods.push({ x, y, grid: o.grid, searched: o.searched, broken: o.broken, open: o.open, locked: o.locked, hp: o.hp, chop: o.chop });
-      }
-      const data = {
-        v: 1, seed: S.seed, hour: S.hour, day: S.day, stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
-        player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
-        mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
-      };
-      localStorage.setItem('dsz_save', JSON.stringify(data)); S.lastSave = Date.now(); return true;
+      const mods = [], base = [];
+      scanSaveRows(S, 0, C.H, mods, base);
+      localStorage.setItem('dsz_save', JSON.stringify(savePayload(S, mods, base))); S.lastSave = Date.now(); return true;
     } catch (e) { console.warn('save failed', e); return false; }
+  };
+  // non-blocking autosave: spread the world scan over several frames, then write once
+  Game.saveBegin = function (S) {
+    S = S || Game.S; if (!S || S.state !== 'play') return false;
+    saveJob = { S, y: 0, mods: [], base: [] };
+    return true;
+  };
+  Game.saveStep = function (rows) {
+    const j = saveJob; if (!j) return false;
+    if (j.S !== Game.S || j.S.state !== 'play') { saveJob = null; return false; }
+    const n = rows || 4, y1 = Math.min(C.H, j.y + n);
+    scanSaveRows(j.S, j.y, y1, j.mods, j.base);
+    j.y = y1;
+    if (j.y < C.H) return false;
+    try {
+      localStorage.setItem('dsz_save', JSON.stringify(savePayload(j.S, j.mods, j.base)));
+      j.S.lastSave = Date.now();
+    } catch (e) { console.warn('save failed', e); }
+    saveJob = null; return true;
   };
   Game.hasSave = () => { try { return !!localStorage.getItem('dsz_save'); } catch (e) { return false; } };
   Game.readSave = () => { try { return JSON.parse(localStorage.getItem('dsz_save')); } catch (e) { return null; } };

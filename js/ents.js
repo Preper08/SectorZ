@@ -145,9 +145,14 @@
   E.updateZombies = function (S, dt) {
     const p = S.player, dl = DSZ.Render.daylight(S.hour);
     S.flowT = (S.flowT || 0) - dt; if (S.flowT <= 0) { E.updateFlow(S); S.flowT = 0.3; }
-    let active = 0;
-    for (const z of S.zombies) { z.active = !z.dead && Math.abs(z.x - p.x) < 60 && Math.abs(z.y - p.y) < 60; if (z.active) active++; }
-    S.activeZ = active; rebuildHash(S);
+    // refresh the active set a few times per second instead of scanning every zombie every frame
+    S.actT = (S.actT || 0) - dt;
+    if (S.actT <= 0) {
+      S.actT = 0.15;
+      let active = 0;
+      for (const z of S.zombies) { z.active = !z.dead && Math.abs(z.x - p.x) < 60 && Math.abs(z.y - p.y) < 60; if (z.active) active++; }
+      S.activeZ = active; rebuildHash(S);
+    }
     const vis = (7 + 10 * dl) * (p.lightOn && dl < 0.6 ? 1.35 : 1) * (p.running ? 1.25 : 1) * (p.sneak ? 0.6 : 1) * (S.player.driving ? 1.4 : 1);
     for (let zi = S.zombies.length - 1; zi >= 0; zi--) {
       const z = S.zombies[zi];
