@@ -153,7 +153,8 @@
       for (const z of S.zombies) { z.active = !z.dead && Math.abs(z.x - p.x) < 60 && Math.abs(z.y - p.y) < 60; if (z.active) active++; }
       S.activeZ = active; rebuildHash(S);
     }
-    const vis = (7 + 10 * dl) * (p.lightOn && dl < 0.6 ? 1.35 : 1) * (p.running ? 1.25 : 1) * (p.sneak ? 0.6 : 1) * (S.player.driving ? 1.4 : 1);
+    // crouching shrinks how far zombies can spot the player (stacks with sneak)
+    const vis = (7 + 10 * dl) * (p.lightOn && dl < 0.6 ? 1.35 : 1) * (p.running ? 1.25 : 1) * (p.sneak ? 0.6 : 1) * (p.crouch ? 0.45 : 1) * (S.player.driving ? 1.4 : 1);
     for (let zi = S.zombies.length - 1; zi >= 0; zi--) {
       const z = S.zombies[zi];
       if (z.flash > 0) z.flash -= dt * 6;

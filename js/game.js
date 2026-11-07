@@ -311,13 +311,14 @@
     const wantRun = In.down('ShiftLeft') && il > 0 && p.stamina > 4 && !p.sneak && !p.crouch && !p.broken;
     p.running = wantRun;
     let spd = p.running ? 4.8 : (p.sneak ? 1.5 : 2.6);
+    if (p.crouch) spd *= 0.7; // crouch = 70% of normal walk speed
     if (p.broken) spd *= 0.5; if (p.use) spd *= 0.6; if (p.atkT > 0) spd *= 0.65; if (p.stamina < 12) spd *= 0.8;
     const wt = Inv.weight(P); if (wt > 40) spd *= Math.max(0.6, 1 - (wt - 40) / 120);
     p.vx += (mx * spd - p.vx) * Math.min(1, dt * 14); p.vy += (my * spd - p.vy) * Math.min(1, dt * 14);
     const sp = Math.hypot(p.vx, p.vy); p.moving = sp > 0.3;
     if (sp > 0.01) { const r = W.moveCircle(p.x, p.y, p.vx * dt, p.vy * dt, 0.27); p.x = r.x; p.y = r.y; E.pushFromCars(S, p, 0.27); S.stats.distance += sp * dt / 1000; }
     if (p.running && p.moving) p.stamina = Math.max(0, p.stamina - 13 * dt); else p.stamina = Math.min(100, p.stamina + (p.moving ? 6 : 14) * dt);
-    if (p.moving) { p.stepT -= dt * sp / 2.4; if (p.stepT <= 0) { p.stepT = 1; const nz = p.running ? 9 : (p.sneak ? 1.2 : 4); A.play(p.running ? 'stepRun' : 'step', p.x, p.y, p.sneak ? 0.3 : 0.6, 20); E.noise(S, p.x, p.y, nz); } }
+    if (p.moving) { p.stepT -= dt * sp / 2.4; if (p.stepT <= 0) { p.stepT = 1; const nz = p.running ? 9 : (p.sneak ? 1.2 : (p.crouch ? 2.2 : 4)); A.play(p.running ? 'stepRun' : 'step', p.x, p.y, p.sneak ? 0.3 : (p.crouch ? 0.4 : 0.6), 20); E.noise(S, p.x, p.y, nz); } }
     p.ph += sp * dt * 5.3;
     // ---- pose
     const gun = p.heldDef && p.heldDef.type === 'gun', mel = p.heldDef && p.heldDef.type === 'melee';
