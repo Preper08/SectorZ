@@ -312,7 +312,7 @@
     row('Render resolution', sel('quality', [['auto', 'Auto (adaptive)'], ['1', '100%'], ['0.85', '85%'], ['0.7', '70%'], ['0.55', '55%']], () => DSZ.Main.applyQuality()));
     row('Lighting quality', sel('lightRes', [[0.2, 'Low'], [0.28, 'Medium'], [0.36, 'High'], [0.5, 'Ultra']], () => DSZ.Render.resize()));
     row('Film grain', tog('grain')); row('Bloom', tog('bloom')); row('UI blur', tog('blur', () => document.body.classList.toggle('noblur', !s.blur))); row('Show FPS', tog('showFps', () => els.fps.classList.toggle('hidden', !s.showFps)));
-    row('God mode (admin)', tog('godmode', () => { if (S) DSZ.Game.toast(S, s.godmode ? 'God mode ON - immortal, no hunger or thirst.' : 'God mode OFF.'); }));
+    row('God mode (admin)', tog('godmode', () => { if (S && s.godmode && DSZ.Game.godKit) DSZ.Game.godKit(S); if (S) DSZ.Game.toast(S, s.godmode ? 'God mode ON - immortal, infinite items.' : 'God mode OFF.'); }));
   }
   function buildControls() {
     const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Ctrl', 'Sneak'], ['C', 'Crouch (hold)'], ['E', 'Interact · search · open · enter car'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['V', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];

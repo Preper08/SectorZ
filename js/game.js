@@ -40,6 +40,8 @@
     // new games start bare-handed: the bat lies on the floor near the spawn.
     // Loaded saves keep whatever the player already has (no duplicates, no extra spawns).
     else Game.placeStarterBat(S);
+    // god mode (admin): fill the inventory when it is enabled before the game starts
+    if (DSZ.settings.godmode) Game.godKit(S);
     Game.toast(S, 'Find supplies. Stay quiet. Survive the night.');
     DSZ.emit('newgame', S);
     return S;
@@ -78,6 +80,31 @@
     if (slot < 0) return; // hotbar full - it stays in the inventory
     Inv.removeItem(P, it);
     P.hot[slot] = it; P.sel = slot;
+  };
+  // God mode (admin): give the player a full loadout. Only tops up what is missing,
+  // so it is safe to call on every god-mode enable or game start.
+  Game.godKit = function (S) {
+    const p = S.player, P = p.inv;
+    if (!P.equip.bag || P.equip.bag.id !== 'bigpack') Inv.equip(P, Inv.make('bigpack'), Game.dropFn(S));
+    const ensure = (id, q, extra) => { const have = Inv.count(P, id); if (have < q) Inv.give(P, Inv.make(id, q - have, extra)); };
+    ensure('pistol', 1, { mag: 12 }); ensure('shotgun', 1, { mag: 6 }); ensure('rifle', 1, { mag: 5 });
+    ensure('machete', 1); ensure('crowbar', 1); ensure('axe', 1);
+    ensure('ammo9', 40); ensure('shell', 20); ensure('ammo762', 20);
+    ensure('medkit', 2); ensure('bandage', 5); ensure('antibiotics', 3); ensure('painkillers', 3); ensure('splint', 2);
+    ensure('mre', 4); ensure('beans', 4); ensure('water', 4); ensure('soda', 4);
+    ensure('hammer', 1); ensure('nails', 30); ensure('wood', 6); ensure('scrap', 12); ensure('tape', 3);
+    ensure('gascan', 1, { fuel: 100 }); ensure('battery', 3); ensure('flashlight', 1, { bat: 100 }); ensure('map', 1); ensure('lighter', 1);
+    if (P.equip.light && P.equip.light.bat !== undefined) P.equip.light.bat = 100;
+    // put the main weapons into empty hotbar slots (1-4)
+    const kit = ['pistol', 'shotgun', 'rifle', 'machete'];
+    for (let i = 0; i < P.hot.length; i++) {
+      if (P.hot[i]) continue;
+      const id = kit.find(k => Inv.count(P, k) > 0 && !P.hot.some(x => x && x.id === k));
+      if (!id) break;
+      const it = Inv.all(P).find(x => x.id === id);
+      if (it) { Inv.removeItem(P, it); P.hot[i] = it; }
+    }
+    Game.toast(S, 'God mode: inventory filled - items are infinite.');
   };
 
   // ---------------------------------------------------------------- equipment visuals
@@ -121,7 +148,7 @@
   // ---------------------------------------------------------------- items
   Game.useItem = function (S, it) {
     const p = S.player, d = I[it.id], P = p.inv; if (p.dead) return false;
-    const consume = () => { it.q -= 1; if (it.q <= 0) Inv.removeItem(P, it); };
+    const consume = () => { if (DSZ.settings.godmode) return; it.q -= 1; if (it.q <= 0) Inv.removeItem(P, it); }; // god mode: items are never used up
     switch (d.type) {
       case 'food': case 'drink': {
         p.food = Math.min(100, p.food + (d.food || 0)); p.water = Math.min(100, p.water + (d.water || 0));
@@ -157,7 +184,8 @@
     let car = p.driving; if (!car) for (const c of S.cars) if (c.drivable && Math.hypot(c.x - p.x, c.y - p.y) < 3) { car = c; break; }
     if (!car) { Game.toast(S, 'No vehicle nearby.'); return false; }
     const amt = Math.min(it.fuel, car.maxfuel - car.fuel); if (amt <= 0.5) { Game.toast(S, 'Tank is full.'); return false; }
-    it.fuel -= amt; car.fuel += amt; A.play('drink'); Game.toast(S, 'Added ' + Math.round(amt) + ' fuel'); return true;
+    it.fuel -= amt; if (DSZ.settings.godmode) it.fuel = Math.max(it.fuel, it.maxfuel || 100); // god mode: endless fuel
+    car.fuel += amt; A.play('drink'); Game.toast(S, 'Added ' + Math.round(amt) + ' fuel'); return true;
   };
   Game.toggleLight = function (S) {
     const p = S.player, L = p.inv.equip.light; if (!L) { Game.toast(S, 'No light equipped.'); return; }
@@ -215,7 +243,8 @@
     b.why = !near ? 'Too far' : (!Inv.has(p.inv, 'hammer') ? 'Need a hammer' : (!Inv.canBuild(p.inv, b.def) ? 'Missing materials' : (!tileFree(S, tx, ty) ? 'Blocked' : '')));
     if (In.pressed('KeyR')) b.rot = (b.rot + 1) & 3;
     if (In.mouse.clicked && b.ok) {
-      Inv.payBuild(p.inv, b.def); Game.placeBase(S, b.def, tx, ty, b.rot); A.play('build', tx + 0.5, ty + 0.5, 1); E.debris(S, tx + 0.5, ty + 0.5, 0.6, 8, '#8a6a44'); E.noise(S, tx + 0.5, ty + 0.5, 12); S.stats.built++;
+      if (!DSZ.settings.godmode) Inv.payBuild(p.inv, b.def); // god mode: build for free
+      Game.placeBase(S, b.def, tx, ty, b.rot); A.play('build', tx + 0.5, ty + 0.5, 1); E.debris(S, tx + 0.5, ty + 0.5, 0.6, 8, '#8a6a44'); E.noise(S, tx + 0.5, ty + 0.5, 12); S.stats.built++;
     } else if (In.mouse.clicked && !b.ok && b.why) Game.toast(S, b.why);
     if (In.mouse.rclicked || In.pressed('KeyX')) {
       const o = W.getObj(tx, ty); if (o && o.base && near) {
@@ -331,6 +360,8 @@
     if (!p.driving) { p.aimAng = Math.atan2(mw[1] - p.y, mw[0] - p.x); const da = U.angDiff(p.ang, p.aimAng); p.ang += da * Math.min(1, dt * 18); }
     // held/loadout
     const h = held(S); p.heldDef = h ? I[h.id] : null;
+    // god mode: the held weapon never degrades, jams or runs dry
+    if (DSZ.settings.godmode && h) { const hd = I[h.id]; if (h.dur !== undefined && hd.dur) h.dur = hd.dur; if (hd.mag) h.mag = hd.mag; }
     p.aiming = In.mouse.rdown && !ui.blockMouse() && !S.build.active;
     // ---- driving
     if (p.driving) {
@@ -431,9 +462,9 @@
     if (p.food < 15 && !p.warnedF) { p.warnedF = 1; Game.toast(S, 'You are starving.', 'bad'); } if (p.food > 25) p.warnedF = 0;
     if (p.water < 15 && !p.warnedW) { p.warnedW = 1; Game.toast(S, 'You are dehydrated.', 'bad'); } if (p.water > 25) p.warnedW = 0;
     if (p.energy < 15 && !p.warnedE) { p.warnedE = 1; Game.toast(S, 'You are exhausted. Find a bed.', 'bad'); } if (p.energy > 25) p.warnedE = 0;
-    // light fuel/battery
+    // light fuel/battery (god mode: lights never die)
     const L = P.equip.light;
-    if (L && p.lightOn) {
+    if (L && p.lightOn && !god) {
       if (L.bat !== undefined) { L.bat -= dt * 0.28; p.lightFlick = L.bat < 14 ? (Math.random() < 0.12 ? 0.6 : 0) : 0; if (L.bat <= 0) { L.bat = 0; p.lightOn = false; Game.toast(S, 'Flashlight died.'); } }
       if (L.burn !== undefined) { L.burn -= dt; if (L.burn <= 0) { L.burn = 0; p.lightOn = false; Game.toast(S, 'Your light burned out.'); if (L.id === 'torch') { P.equip.light = null; Game.refreshEquipVisuals(S); } } }
     }
