@@ -312,6 +312,7 @@
     row('Render resolution', sel('quality', [['auto', 'Auto (adaptive)'], ['1', '100%'], ['0.85', '85%'], ['0.7', '70%'], ['0.55', '55%']], () => DSZ.Main.applyQuality()));
     row('Lighting quality', sel('lightRes', [[0.2, 'Low'], [0.28, 'Medium'], [0.36, 'High'], [0.5, 'Ultra']], () => DSZ.Render.resize()));
     row('Film grain', tog('grain')); row('Bloom', tog('bloom')); row('UI blur', tog('blur', () => document.body.classList.toggle('noblur', !s.blur))); row('Show FPS', tog('showFps', () => els.fps.classList.toggle('hidden', !s.showFps)));
+    row('God mode (admin)', tog('godmode', () => { if (S) DSZ.Game.toast(S, s.godmode ? 'God mode ON - immortal, no hunger or thirst.' : 'God mode OFF.'); }));
   }
   function buildControls() {
     const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Ctrl', 'Sneak'], ['C', 'Crouch (hold)'], ['E', 'Interact · search · open · enter car'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['V', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];
@@ -344,7 +345,7 @@
     els.vitals.querySelectorAll('.vrow').forEach(r => { const k = r.dataset.k, v = Math.round(vals[k]); if (vrows[k] !== v) { vrows[k] = v; r.querySelector('i').style.width = Math.max(0, v) + '%'; r.querySelector('b').textContent = v; r.classList.toggle('low', v < 22 && k !== 'stamina'); } });
     renderHot(false);
     if (slow) {
-      let st = ''; if (p.bleed > 0) st += '<span>Bleeding</span>'; if (p.infection > 30) st += '<span>Infected</span>'; else if (p.infection > 0) st += '<span class="warn">Feverish</span>'; if (p.broken) st += '<span>Broken leg</span>'; if (p.food < 25) st += '<span class="warn">Hungry</span>'; if (p.water < 25) st += '<span class="warn">Thirsty</span>'; if (p.energy < 20) st += '<span class="warn">Tired</span>'; if (p.reload > 0) st += '<span class="warn">Reloading</span>';
+      let st = ''; if (DSZ.settings.godmode) st += '<span class="warn">GOD MODE</span>'; if (p.bleed > 0) st += '<span>Bleeding</span>'; if (p.infection > 30) st += '<span>Infected</span>'; else if (p.infection > 0) st += '<span class="warn">Feverish</span>'; if (p.broken) st += '<span>Broken leg</span>'; if (p.food < 25) st += '<span class="warn">Hungry</span>'; if (p.water < 25) st += '<span class="warn">Thirsty</span>'; if (p.energy < 20) st += '<span class="warn">Tired</span>'; if (p.reload > 0) st += '<span class="warn">Reloading</span>';
       if (els.vitals.querySelector('#status').innerHTML !== st) els.vitals.querySelector('#status').innerHTML = st;
       const h = Math.floor(S.hour), m = Math.floor((S.hour - h) * 60); els.clk.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); els.dayl.textContent = 'Day ' + S.day;
       els.wx.textContent = S.weather.rain > 0.7 ? 'Storm' : (S.weather.rain > 0.15 ? 'Rain' : (DSZ.Render.daylight(S.hour) < 0.3 ? 'Night' : 'Clear'));

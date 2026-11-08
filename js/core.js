@@ -94,11 +94,13 @@
 
   DSZ.settings = {
     renderScale: 1, lightRes: 0.25, blur: true, grain: true, bloom: true, shadows: true,
-    volume: 0.7, music: 0.5, quality: 'auto', showFps: false
+    volume: 0.7, music: 0.5, quality: 'auto', showFps: false, godmode: false
   };
   try {
     const s = JSON.parse(localStorage.getItem('dsz_settings') || 'null');
     if (s) Object.assign(DSZ.settings, s);
   } catch (e) { /* ignore */ }
   DSZ.saveSettings = () => { try { localStorage.setItem('dsz_settings', JSON.stringify(DSZ.settings)); } catch (e) { /* ignore */ } };
+  // settings are saved on every change; this is just a safety net so nothing is ever lost
+  window.addEventListener('beforeunload', DSZ.saveSettings);
 })();

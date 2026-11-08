@@ -98,6 +98,7 @@
   // ---------------------------------------------------------------- damage / death
   Game.hurtPlayer = function (S, dmg, sx, sy, type, src) {
     const p = S.player; if (p.dead) return;
+    if (DSZ.settings.godmode) return; // admin: take no damage at all
     const armor = Inv.armor(p.inv), red = type === 'bite' ? Math.min(0.8, armor / 100 * 0.85) : (type === 'blast' || type === 'crash' ? Math.min(0.4, armor / 150) : 0);
     dmg *= (1 - red);
     p.hp -= dmg; p.hurt = 0.55; S.cam.shake = Math.min(1.2, (S.cam.shake || 0) + 0.35);
@@ -416,11 +417,16 @@
   // ---------------------------------------------------------------- survival stats, world systems
   function updateSurvival(S, dt) {
     const p = S.player, P = p.inv; if (p.dead) return;
+    // god mode: no needs, no bleed/infection, full stamina (settings > God mode)
+    const god = DSZ.settings.godmode;
+    if (god) { p.bleed = 0; p.infection = 0; p.stamina = 100; }
     const sleepMul = S.sleeping ? 0.4 : 1;
-    p.food = Math.max(0, p.food - 0.042 * dt * sleepMul * (p.running ? 1.5 : 1)); p.water = Math.max(0, p.water - 0.066 * dt * sleepMul * (p.running ? 1.6 : 1)); p.energy = Math.max(0, p.energy - 0.012 * dt * (S.sleeping ? 0 : 1));
-    let dmg = 0; if (p.food <= 0) dmg += 0.25; if (p.water <= 0) dmg += 0.4; if (p.energy <= 0) dmg += 0.1; if (p.bleed > 0) { dmg += 0.55 * p.bleed; p.bleed = Math.max(0, p.bleed - 0.012 * dt); if (Math.random() < dt * 1.2) E.blood(S, p.x, p.y, Math.random() * 6.28, 1, 0.1); }
-    if (p.infection > 0) { p.infection = Math.min(100, p.infection + 0.07 * dt); if (p.infection > 45) dmg += (p.infection - 45) * 0.01; if (p.infection >= 100) { Game.die(S, 'infection'); return; } }
-    if (dmg > 0) { p.hp -= dmg * dt; if (p.hp <= 0) { Game.die(S, p.water <= 0 ? 'thirst' : (p.food <= 0 ? 'hunger' : (p.bleed > 0 ? 'bleeding' : 'infection'))); return; } }
+    if (!god) {
+      p.food = Math.max(0, p.food - 0.042 * dt * sleepMul * (p.running ? 1.5 : 1)); p.water = Math.max(0, p.water - 0.066 * dt * sleepMul * (p.running ? 1.6 : 1)); p.energy = Math.max(0, p.energy - 0.012 * dt * (S.sleeping ? 0 : 1));
+      let dmg = 0; if (p.food <= 0) dmg += 0.25; if (p.water <= 0) dmg += 0.4; if (p.energy <= 0) dmg += 0.1; if (p.bleed > 0) { dmg += 0.55 * p.bleed; p.bleed = Math.max(0, p.bleed - 0.012 * dt); if (Math.random() < dt * 1.2) E.blood(S, p.x, p.y, Math.random() * 6.28, 1, 0.1); }
+      if (p.infection > 0) { p.infection = Math.min(100, p.infection + 0.07 * dt); if (p.infection > 45) dmg += (p.infection - 45) * 0.01; if (p.infection >= 100) { Game.die(S, 'infection'); return; } }
+      if (dmg > 0) { p.hp -= dmg * dt; if (p.hp <= 0) { Game.die(S, p.water <= 0 ? 'thirst' : (p.food <= 0 ? 'hunger' : (p.bleed > 0 ? 'bleeding' : 'infection'))); return; } }
+    }
     else if (p.food > 45 && p.water > 45 && p.hp < 100 && p.infection < 20) p.hp = Math.min(100, p.hp + (S.sleeping ? 0.8 : 0.16) * dt);
     if (p.food < 15 && !p.warnedF) { p.warnedF = 1; Game.toast(S, 'You are starving.', 'bad'); } if (p.food > 25) p.warnedF = 0;
     if (p.water < 15 && !p.warnedW) { p.warnedW = 1; Game.toast(S, 'You are dehydrated.', 'bad'); } if (p.water > 25) p.warnedW = 0;
