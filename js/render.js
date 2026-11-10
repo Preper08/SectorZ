@@ -482,12 +482,39 @@
     const tipx = hx + (dx - dy) * 32, tipy = hy + (dx + dy) * 16 - dz * ZU;
     const bx = hx - (dx - dy) * 32 * 0.18, by = hy - (dx + dy) * 16 * 0.18 + dz * ZU * 0.18;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = th + 1.5; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tipx, tipy); ctx.stroke();
-    ctx.strokeStyle = col; ctx.lineWidth = th; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tipx, tipy); ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = th * 0.3; ctx.beginPath(); ctx.moveTo(bx - 0.5, by - 0.8); ctx.lineTo(tipx - 0.5, tipy - 0.8); ctx.stroke();
-    if (it.type === 'gun') { // grip
-      ctx.strokeStyle = '#222'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - 0.5, hy + 5); ctx.stroke();
+    const seg = (x1, y1, x2, y2, w, c) => { ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = w + 1.5; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+    const hl = (x1, y1, x2, y2, w) => { ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1 - 0.8); ctx.lineTo(x2, y2 - 0.8); ctx.stroke(); };
+    const fx = (dx - dy) * 32, fy = (dx + dy) * 16; // unit step along the weapon axis in screen space
+    const px = fx / Math.hypot(fx, fy) || 0, py = fy / Math.hypot(fx, fy) || 0; // unit direction
+    if (it.type === 'gun') {
+      const long = it.w >= 4, mid = it.w === 3, dark = '#1e1e22', wood = it.id === 'shotgun' || it.id === 'rifle' ? '#5a3c22' : '#222';
+      // stock: thick butt from the hand backwards (rifle/shotgun only)
+      if (long || mid) seg(hx - px * 6, hy - py * 6 - 1, hx - px * 14, hy - py * 14 + 2, 5.5, wood);
+      // receiver / body
+      seg(hx, hy, tipx, tipy, long ? 4.5 : 3.6, col);
+      // barrel: thin darker tube past the receiver
+      seg(hx + px * (long ? 16 : 8), hy + py * (long ? 16 : 8), tipx, tipy, long ? 2.2 : 1.8, dark);
+      // grip: short segment down from the hand
+      seg(hx, hy, hx - px * 1 - 1.5, hy + 6, 3, dark);
+      if (long) { // magazine / pump under the receiver
+        seg(hx + px * 9, hy + py * 9 + 1, hx + px * 13, hy + py * 13 + 4, 2.6, dark);
+      } else if (mid) { // smg magazine
+        seg(hx + px * 4, hy + py * 4 + 1, hx + px * 6, hy + py * 6 + 6, 2.6, dark);
+      }
+      // sight nub on top
+      ctx.fillStyle = dark; ctx.fillRect(hx + px * (long ? 8 : 4) - 1.2, hy + py * (long ? 8 : 4) - 3.2, 2.4, 2.4);
+      hl(hx, hy, tipx, tipy, long ? 1.6 : 1.2);
       if (p.muzzle > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(sprites.flare, tipx - 24, tipy - 24, 48, 48); ctx.globalCompositeOperation = 'source-over'; }
+      return;
+    }
+    seg(bx, by, tipx, tipy, th, col);
+    hl(bx, by, tipx, tipy, th * 0.3);
+    if (it.type === 'melee' && (it.id === 'machete' || it.id === 'knife')) { // blade edge highlight along the lower side
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(bx + 1, by + 2); ctx.lineTo(tipx + 1, tipy + 2); ctx.stroke();
+    }
+    if (it.type === 'melee' && it.id === 'axe') { // axe head blob near the tip
+      const hpx2 = tipx - fx * 0.12, hpy2 = tipy - fy * 0.12;
+      ctx.fillStyle = '#7a8088'; ctx.beginPath(); ctx.ellipse(hpx2, hpy2, 5.5, 3.8, Math.atan2(fy, fx), 0, 7); ctx.fill();
     }
     if (it.type === 'light' && p.lightOn) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.8; ctx.drawImage(sprites.glow, tipx - 10, tipy - 10, 20, 20); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
   }

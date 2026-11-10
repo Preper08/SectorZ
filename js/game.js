@@ -111,10 +111,10 @@
   const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], vest: [58, 64, 70], helmet: [76, 86, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], fannypack: [74, 74, 82] };
   Game.refreshEquipVisuals = function (S) {
     const p = S.player, e = p.inv.equip, L = {};
-    if (e.body) { L.body = e.body.id; L.bodyCol = CLOTH_COL[e.body.id] || [90, 90, 90]; }
-    if (e.head) { L.head = e.head.id; L.headCol = CLOTH_COL[e.head.id] || [80, 80, 80]; }
-    if (e.feet) { L.feet = e.feet.id; L.feetCol = CLOTH_COL[e.feet.id]; }
-    if (e.bag && e.bag.id !== 'fannypack') { L.bag = e.bag.id; L.bagCol = CLOTH_COL[e.bag.id]; }
+    if (e.body) { L.body = e.body.id; L.bodyCol = CLOTH_COL[e.body.id] || [90, 90, 90]; L.bodyId = e.body.id; }
+    if (e.head) { L.head = e.head.id; L.headCol = CLOTH_COL[e.head.id] || [80, 80, 80]; L.headId = e.head.id; }
+    if (e.feet) { L.feet = e.feet.id; L.feetCol = CLOTH_COL[e.feet.id]; L.feetId = e.feet.id; }
+    if (e.bag) { L.bag = e.bag.id; L.bagCol = CLOTH_COL[e.bag.id]; L.bagId = e.bag.id; }
     p.look = L;
     const lt = e.light; p.lightDef = lt ? Object.assign({}, I[lt.id], { id: lt.id }) : null;
     if (!lt) p.lightOn = false;

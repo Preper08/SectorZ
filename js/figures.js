@@ -104,24 +104,55 @@
     const cap = (a, b, r, col, extra) => { const pa = pr(a), pb = pr(b); parts.push(Object.assign({ pa, pb, w: r * 2 * SC, col, d: (pa.d + pb.d) / 2 }, extra || {})); };
     const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
     const rb = spec.armR || 0.062;
-    // legs (shoes at ends)
-    cap(J.hipL, J.kneeL, 0.085, pants); cap(J.kneeL, J.footL, 0.07, pants); cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, shoes);
-    cap(J.hipR, J.kneeR, 0.085, pants); cap(J.kneeR, J.footR, 0.07, pants); cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, shoes);
+    // legs (shoes at ends; boots get a taller, thicker shaft)
+    const boot = spec.feetId === 'boots';
+    const legR = boot ? 0.095 : 0.085;
+    cap(J.hipL, J.kneeL, legR, pants); cap(J.kneeL, J.footL, 0.07, pants);
+    if (boot) { cap([J.footL[0] - 0.04, J.footL[1], J.footL[2] + 0.02], [J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.22], 0.075, shoes); } // boot shaft up the shin
+    cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, shoes);
+    cap(J.hipR, J.kneeR, legR, pants); cap(J.kneeR, J.footR, 0.07, pants);
+    if (boot) { cap([J.footR[0] - 0.04, J.footR[1], J.footR[2] + 0.02], [J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.22], 0.075, shoes); }
+    cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, shoes);
     // torso
     cap(J.pel, J.neck, 0.155, shirt, { torso: true });
     cap(J.shL, J.shR, 0.075, shirt);
     cap(J.pel, [J.pel[0], J.pel[1], J.pel[2] - 0.05], 0.15, pants);
+    // clothing details: jacket hem + collar, tactical vest overlay (kept in the capsule style)
+    if (spec.bodyId === 'jacket') {
+      cap([J.pel[0] + 0.02, 0, J.pel[2] + 0.06], [J.neck[0], 0, J.neck[2] - 0.08], 0.165, shirt, { hem: true }); // open front line
+      cap([J.neck[0] - 0.02, -0.07, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.07, J.neck[2] - 0.02], 0.06, shirt); // folded collar
+    } else if (spec.bodyId === 'hoodie') {
+      cap([J.neck[0] - 0.01, 0, J.neck[2] - 0.01], [J.neck[0] + 0.1, 0, J.neck[2] - 0.14], 0.09, shirt); // hood bump behind the neck
+      cap([J.pel[0] + 0.04, 0, J.pel[2] + 0.05], [J.pel[0] + 0.04, 0, J.pel[2] + 0.18], 0.03, shirt); // drawstring
+    } else if (spec.bodyId === 'vest') {
+      const vc = shirt.map(v => v * 0.72); // darker overlay panels
+      cap([J.neck[0] + 0.02, 0, J.neck[2] - 0.02], [J.pel[0] + 0.02, 0, J.pel[2] + 0.1], 0.115, vc, { plate: true });
+      cap([J.shL[0], -0.13, J.shL[2] - 0.02], [J.shR[0], 0.13, J.shR[2] - 0.02], 0.055, vc); // shoulder yoke
+      cap([J.pel[0] + 0.03, -0.1, J.pel[2] + 0.02], [J.pel[0] + 0.03, 0.1, J.pel[2] + 0.02], 0.045, vc); // belt pouches
+    }
     // arms
     const sleeve = spec.sleeve || shirt;
     cap(J.shL, J.elL, rb + 0.008, sleeve); cap(J.elL, J.handL, rb, spec.glove || skin);
     cap(J.shR, J.elR, rb + 0.008, sleeve); cap(J.elR, J.handR, rb, spec.glove || skin);
     // neck + head
     cap(J.neck, J.head, 0.05, skin);
-    // bag
+    // bag: distinct shapes per bag type, drawn behind the torso with visible straps
     if (spec.bag) {
-      const bk = [J.pel[0] - 0.2, 0, (J.pel[2] + J.neck[2]) / 2 + 0.02];
-      // bag sits behind torso along local -x (tilted with torso)
-      cap([bk[0], -0.09, bk[2] - 0.12], [bk[0], 0.09, bk[2] + 0.12], 0.12, spec.bag, { bag: true });
+      const big = spec.bagId === 'bigpack', small = spec.bagId === 'fannypack';
+      const bk = [J.pel[0] - (small ? 0.1 : 0.22), 0, small ? (J.pel[2] + 0.14) : (J.pel[2] + J.neck[2]) / 2 + 0.02];
+      if (small) {
+        // fanny pack: small pouch on the lower back / hip
+        cap([bk[0], -0.08, bk[2] - 0.05], [bk[0], 0.08, bk[2] + 0.05], 0.085, spec.bag, { bag: true });
+      } else {
+        // main body: bigpack is taller and thicker, backpack is one rounded block
+        cap([bk[0], -0.11, bk[2] - (big ? 0.17 : 0.13)], [bk[0], 0.11, bk[2] + (big ? 0.17 : 0.13)], big ? 0.14 : 0.12, spec.bag, { bag: true });
+        if (big) cap([bk[0] - 0.07, -0.08, bk[2] + 0.2], [bk[0] - 0.07, 0.08, bk[2] + 0.28], 0.06, spec.bag); // rolled top / lid
+        // shoulder straps over both shoulders (visible from the front)
+        const stc = spec.bag.map(v => v * 0.6);
+        cap(J.shL, [J.pel[0] - 0.02, J.shL[1], J.pel[2] + 0.02], 0.032, stc);
+        cap(J.shR, [J.pel[0] - 0.02, J.shR[1], J.pel[2] + 0.02], 0.032, stc);
+        if (!big) cap([bk[0] + 0.06, -0.06, bk[2] + 0.1], [bk[0] + 0.06, 0.06, bk[2] - 0.06], 0.03, stc); // side pocket seam
+      }
     }
     parts.sort((a, b) => a.d - b.d);
     // head drawn in depth order too
@@ -163,9 +194,23 @@
         const e1 = pr([J.head[0] + 0.115, J.head[1] - 0.045, J.head[2] + 0.01]), e2 = pr([J.head[0] + 0.115, J.head[1] + 0.045, J.head[2] + 0.01]);
         x.fillStyle = spec.eye || 'rgba(14,10,10,0.9)'; x.globalAlpha = Math.min(1, fv * 2.5); x.fillRect(e1.x - 0.9, e1.y - 0.7, 1.8, 1.6); x.fillRect(e2.x - 0.9, e2.y - 0.7, 1.8, 1.6); x.globalAlpha = 1;
       }
-      if (spec.hat) { // cap / helmet
+      if (spec.hat) { // cap: flat dome + front brim. helmet: full dome covering the head down to the ears + rim
         const ht = pr([J.head[0] + 0.01, J.head[1], J.head[2] + 0.06]);
-        x.fillStyle = rgb(spec.hat, 1); x.beginPath(); x.arc(ht.x, ht.y - 1.2, hr * 1.02, Math.PI * 1.02, Math.PI * 1.98); x.lineTo(ht.x + hr, ht.y); x.fill();
+        const helmet = spec.headId === 'helmet';
+        if (helmet) {
+          x.fillStyle = rgb(spec.hat, 0.85); x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.06, Math.PI * 0.95, Math.PI * 2.06); x.lineTo(ht.x + hr * 1.06, hp.y + hr * 0.42); x.closePath(); x.fill();
+          // darker rim band at the bottom edge
+          x.strokeStyle = rgb(spec.hat, 0.55); x.lineWidth = 2.2; x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.02, Math.PI * 0.98, Math.PI * 2.02); x.stroke();
+          // chin strap hint on the visible cheek side
+          x.strokeStyle = 'rgba(30,30,30,0.55)'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(hp.x - hr * 0.75, hp.y + hr * 0.45); x.lineTo(hp.x - hr * 0.55, hp.y + hr * 0.95); x.stroke();
+        } else {
+          x.fillStyle = rgb(spec.hat, 1); x.beginPath(); x.arc(ht.x, ht.y - 1.2, hr * 1.02, Math.PI * 1.02, Math.PI * 1.98); x.lineTo(ht.x + hr, ht.y); x.fill();
+          // brim sticking forward from the cap edge
+          const br = pr([J.head[0] + 0.17, J.head[1], J.head[2] + 0.045]);
+          x.strokeStyle = rgb(spec.hat, 0.8); x.lineWidth = 3.4; x.lineCap = 'round'; x.beginPath(); x.moveTo(ht.x + hr * 0.55, ht.y - 1.5); x.lineTo(br.x, br.y); x.stroke();
+          // button on top
+          x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(ht.x, ht.y - hr * 0.98, 1.6, 0, 7); x.fill();
+        }
         x.fillStyle = 'rgba(255,255,255,0.18)'; x.beginPath(); x.arc(ht.x - 1.5, ht.y - 3, hr * 0.6, Math.PI * 1.1, Math.PI * 1.7); x.stroke();
       }
       x.strokeStyle = 'rgba(0,0,0,0.35)'; x.lineWidth = 0.8; x.beginPath(); x.arc(hp.x, hp.y, hr, 0, 7); x.stroke();
@@ -204,7 +249,7 @@
   const SHIRTS = [[150, 40, 40], [48, 80, 130], [70, 110, 70], [190, 180, 160], [60, 60, 66], [180, 130, 50], [110, 60, 110], [220, 220, 214], [40, 90, 100], [130, 90, 60]];
   const PANTS = [[44, 56, 84], [48, 48, 52], [92, 82, 62], [60, 70, 50], [30, 30, 34], [100, 100, 108]];
   Fig.playerSpec = function (eq) {
-    return { id: 'P' + (eq.body || 0) + (eq.head || 0) + (eq.bag || 0) + (eq.feet || 0), skin: SKIN[1], hair: HAIR[1], shirt: eq.bodyCol || [78, 98, 120], pants: [54, 60, 78], sleeve: eq.bodyCol ? null : [78, 98, 120], shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, eye: 'rgba(14,10,10,0.9)' };
+    return { id: 'P' + (eq.body || 0) + (eq.head || 0) + (eq.bag || 0) + (eq.feet || 0), skin: SKIN[1], hair: HAIR[1], shirt: eq.bodyCol || [78, 98, 120], pants: [54, 60, 78], sleeve: eq.bodyCol ? null : [78, 98, 120], shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, eye: 'rgba(14,10,10,0.9)' };
   };
   Fig.zombieSpec = function (seed, type) {
     const r = U.mulberry32(seed * 7919 + 13);
