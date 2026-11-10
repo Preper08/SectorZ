@@ -38,7 +38,7 @@
 <!-- ============ INVENTORY / CRAFTING WINDOW ============ -->
 <div id="win" class="win hidden">
   <div class="whead">
-    <div class="tabs"><button data-tab="inv" class="on">Inventory</button><button data-tab="craft">Crafting</button></div>
+    <div class="tabs"><button data-tab="inv" class="on">Inventory</button><button data-tab="craft">Crafting</button><button data-tab="admin" id="tab-admin-btn" class="hidden">Admin</button></div>
     <button class="x" id="winx">✕</button>
   </div>
   <div id="tab-inv" class="wbody">
@@ -61,6 +61,12 @@
     <div class="col" id="crafttabs"></div>
     <div class="col" id="craftlist"></div>
     <div class="col" id="craftdetail"></div>
+  </div>
+  <div id="tab-admin" class="wbody hidden">
+    <div class="col">
+      <input id="admin-search" type="text" placeholder="Search items..." autocomplete="off">
+      <div id="admin-list" class="adminlist"></div>
+    </div>
   </div>
 </div>
 <div id="tip" class="panel hidden"></div>

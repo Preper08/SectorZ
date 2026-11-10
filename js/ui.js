@@ -15,7 +15,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'g-pockets', 'g-bag', 'bagtitle', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'g-pockets', 'g-bag', 'bagtitle', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver']) els[id] = $(id);
     els.ver.textContent = 'v' + C.VERSION;
     // tabs
     document.querySelectorAll('#win .tabs button').forEach(b => b.addEventListener('click', () => UI.showTab(b.dataset.tab)));
@@ -44,8 +44,9 @@
   // ------------------------------------------------------------------ windows
   UI.showTab = function (t) {
     UI.open.tab = t; document.querySelectorAll('#win .tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-    els['tab-inv'].classList.toggle('hidden', t !== 'inv'); els['tab-craft'].classList.toggle('hidden', t !== 'craft');
-    if (t === 'craft') renderCraft(); else renderInv();
+    els['tab-admin-btn'].classList.toggle('hidden', !DSZ.settings.godmode); // admin tab exists only in god mode
+    els['tab-inv'].classList.toggle('hidden', t !== 'inv'); els['tab-craft'].classList.toggle('hidden', t !== 'craft'); els['tab-admin'].classList.toggle('hidden', t !== 'admin');
+    if (t === 'craft') renderCraft(); else if (t === 'admin') renderAdmin(); else renderInv();
   };
   UI.openWin = function (tab) { UI.open.win = true; els.win.classList.remove('hidden'); UI.showTab(tab || UI.open.tab || 'inv'); A.play('click', null, null, 0.4); };
   UI.closeWin = function () { cancelDrag(); UI.open.win = false; UI.loot = null; els.win.classList.add('hidden'); hideTip(); els.lootcol.classList.add('hidden'); };
@@ -137,6 +138,52 @@
     const P = S.player.inv; els['bagtitle'].style.display = P.bagGrid ? '' : 'none'; els['bagtitle'].textContent = P.equip.bag ? I[P.equip.bag.id].name : 'Bag'; renderGrid('bag');
     if (UI.loot) { els.lootcol.classList.remove('hidden'); els.loottitle.textContent = UI.loot.title; renderGrid('loot'); } else els.lootcol.classList.add('hidden');
     renderHot(true);
+  }
+
+  // -------------------------------------------------- admin backpack (god mode only)
+  const ADMIN_TYPES = [['melee', 'Melee'], ['gun', 'Guns'], ['ammo', 'Ammo'], ['food', 'Food'], ['drink', 'Drinks'], ['med', 'Medical'], ['clothes', 'Clothes'], ['bag', 'Bags'], ['light', 'Light'], ['tool', 'Tools'], ['fuel', 'Fuel'], ['mat', 'Materials'], ['misc', 'Misc']];
+  let adminQ = '';
+  function renderAdmin() {
+    const tabBtn = els['tab-admin-btn'];
+    tabBtn.classList.toggle('hidden', !DSZ.settings.godmode); // god mode off = no admin access
+    if (!DSZ.settings.godmode) { UI.showTab('inv'); return; }
+    if (!els['admin-search'].dataset.bound) {
+      els['admin-search'].dataset.bound = '1';
+      els['admin-search'].addEventListener('input', () => { adminQ = els['admin-search'].value.toLowerCase(); renderAdminList(); });
+    }
+    renderAdminList();
+  }
+  function renderAdminList() {
+    const box = els['admin-list']; box.innerHTML = '';
+    const q = adminQ.trim();
+    let shown = 0;
+    for (const [type, label] of ADMIN_TYPES) {
+      const defs = Object.values(I).filter(d => d.type === type && !d.hidden && (!q || d.name.toLowerCase().includes(q) || d.id.includes(q)));
+      if (!defs.length) continue;
+      const cat = document.createElement('div'); cat.className = 'admincat'; cat.textContent = label + (q ? ' (' + defs.length + ')' : '');
+      box.appendChild(cat);
+      for (const d of defs) {
+        shown++;
+        const e = document.createElement('div'); e.className = 'adminitem';
+        e.innerHTML = '<img src="' + img(d.id) + '"><div><b>' + d.name + '</b><small>' + d.type + '</small></div>';
+        e.addEventListener('click', () => adminGive(d.id));
+        e.addEventListener('mouseenter', () => { const fake = { id: d.id, q: 1 }; hovered = fake; showTip(fake, e); });
+        e.addEventListener('mouseleave', hideTip);
+        box.appendChild(e);
+      }
+    }
+    if (!shown) { const d = document.createElement('div'); d.className = 'admincat'; d.textContent = 'No items match "' + q + '"'; box.appendChild(d); }
+  }
+  function adminGive(id) {
+    const d = I[id];
+    const it = Inv.make(id, d.stack > 1 ? d.stack : 1);
+    if (d.type === 'gun') it.mag = d.mag;
+    if (id === 'gascan') it.fuel = d.maxfuel || 100;
+    if (id === 'flashlight') it.bat = 100;
+    const left = Inv.give(S.player.inv, it);
+    if (left) { DSZ.Game.toast(S, 'Inventory full - item dropped at your feet.'); DSZ.Game.dropItem(S, S.player.x, S.player.y, left); A.play('thud', S.player.x, S.player.y, 0.5); }
+    else { A.play('pickup'); DSZ.Game.toast(S, 'Admin: +' + d.name); }
+    UI.refresh();
   }
   UI.refresh = () => { if (UI.open.win) { if (UI.open.tab === 'inv') renderInv(); else renderCraft(); } renderHot(true); };
   function renderHot(force) {

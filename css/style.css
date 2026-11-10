@@ -157,5 +157,13 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 #cursor::after { top: 12px; left: 0; height: 2px; width: 26px; -webkit-mask: linear-gradient(90deg, #000 0 8px, transparent 8px 18px, #000 18px); mask: linear-gradient(90deg, #000 0 8px, transparent 8px 18px, #000 18px); }
 #cursor.ui { width: 14px; height: 14px; margin: -2px 0 0 -2px; } #cursor.ui::before, #cursor.ui::after { display: none; } #cursor.ui { border: 2px solid rgba(255,255,255,0.9); border-radius: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; }
 #bigmap { width: 704px; height: 704px; max-width: 90vh; max-height: 90vh; display: block; border: 1px solid var(--line); }
+#admin-search { width: 100%; background: #14161a; border: 1px solid var(--line-hi); color: var(--text); font: inherit; padding: 7px 10px; margin-bottom: 10px; }
+.adminlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+.adminitem { display: flex; align-items: center; gap: 8px; background: #1a1d22; border: 1px solid var(--line); padding: 5px 8px; cursor: pointer; user-select: none; }
+.adminitem:hover { border-color: var(--accent); background: #20242a; }
+.adminitem img { width: 32px; height: 32px; image-rendering: pixelated; }
+.adminitem b { font-size: 13px; display: block; line-height: 1.1; }
+.adminitem small { color: var(--dim); font-size: 11px; text-transform: capitalize; }
+.admincat { grid-column: 1 / -1; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 12px; margin-top: 6px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
 #vignetteTop { position: fixed; inset: 0; pointer-events: none; z-index: 5; box-shadow: inset 0 0 160px rgba(0,0,0,0.35); }
 @media (max-width: 1000px) { #wins .wbody { flex-wrap: wrap; } #minimap { width: 140px; height: 140px; } }
