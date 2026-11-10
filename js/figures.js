@@ -111,18 +111,18 @@
     cap(J.hipR, J.kneeR, legR, pants); cap(J.kneeR, J.footR, 0.07, pants);
     if (boot) {
       for (const [kne, ft] of [[J.kneeL, J.footL], [J.kneeR, J.footR]]) {
-        // shaft: one piece starting just below the knee (slight overlap onto the bare
-        // leg so there is no gap) and running down to the ankle, following the leg
+        // shaft: one piece from just below the knee to the ankle, drawn IN FRONT of the
+        // leg so the trouser leg tucks into the boot (no pants pixels over the boot)
         const t0 = lerp3(kne, ft, 0.02), t1 = ft;
-        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.079, shoes, { d: (pr(t0).d + pr(t1).d) / 2 - 0.02 });
+        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.079, shoes, { d: (pr(t0).d + pr(t1).d) / 2 + 0.03 });
         // laces: cross stitches down the front of the shaft
         const l0 = lerp3(kne, ft, 0.3), l1 = lerp3(kne, ft, 0.08);
-        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.026, shoes, { lace: true });
+        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.026, shoes, { lace: true, d: (pr(l0).d + pr(l1).d) / 2 + 0.04 });
         // foot: ankle to toe box as one piece, plus a heel block behind
-        cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.058, shoes);
-        cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.048, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85]);
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.058, shoes, { d: pr(ft).d + 0.03 });
+        cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.048, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85], { d: pr(ft).d + 0.03 });
         // dark sole line under the whole foot
-        cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.042, shoes, { sole: true });
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.042, shoes, { sole: true, d: pr(ft).d + 0.04 });
       }
     } else {
       cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, shoes);
