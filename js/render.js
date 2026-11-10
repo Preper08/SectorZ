@@ -431,9 +431,10 @@
   }
 
   // ---------------------------------------------------------------- entities
+  const CH_SCALE = 0.9; // characters drawn at 90% so cars, doors and props read correctly
   function drawZombie(z, S) {
     const Fig = DSZ.Fig, s = Fig.get(z.spec, z.ang, z.pose); z.sprite = s;
-    const i = iso(z.x, z.y), sc = z.sc || 1;
+    const i = iso(z.x, z.y), sc = (z.sc || 1) * CH_SCALE;
     ctx.globalAlpha = z.alpha === undefined ? 1 : z.alpha;
     if (sc !== 1) { ctx.save(); ctx.translate(i[0], i[1]); ctx.scale(sc, sc); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore(); }
     else ctx.drawImage(s.c, i[0] - s.ox, i[1] - s.oy);
@@ -457,11 +458,11 @@
   function drawPlayer(S) {
     const p = S.player; const spec = DSZ.Fig.playerSpec(p.look || {}); const s = DSZ.Fig.get(spec, p.ang, p.pose); p.sprite = s;
     const i = iso(p.x, p.y);
-    ctx.drawImage(s.c, i[0] - s.ox, i[1] - s.oy);
-    // held item
+    ctx.save(); ctx.translate(i[0], i[1]); ctx.scale(CH_SCALE, CH_SCALE); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
+    // held item (hand anchor scaled with the sprite)
     const it = p.heldDef;
     if (it) {
-      const hx = i[0] - s.ox + s.hand[0] + s.ox, hy = i[1] - s.oy + s.hand[1] + s.oy;
+      const hx = i[0] + s.hand[0] * CH_SCALE, hy = i[1] + s.hand[1] * CH_SCALE;
       drawHeld(it, p, hx, hy, S);
     }
     if (p.flash > 0) { ctx.globalAlpha = p.flash * 0.35; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
