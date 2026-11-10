@@ -380,7 +380,7 @@
     if (il > 0) { ix /= il; iy /= il; mx = ix / 64 + iy / 32; my = iy / 32 - ix / 64; const l = Math.hypot(mx, my); mx /= l; my /= l; }
     p.sneak = In.down('ControlLeft') || In.down('KeyZ');
     // crouch: hold C (walk speed and collision radius are unchanged; only the pose gets lower)
-    p.crouch = In.down('KeyC') && !ui.blockKeys();
+    p.crouch = (In.down('ControlLeft') || In.down('ControlRight')) && !ui.blockKeys();
     const wantRun = In.down('ShiftLeft') && il > 0 && p.stamina > 4 && !p.sneak && !p.crouch && !p.broken;
     p.running = wantRun;
     let spd = p.running ? 4.8 : (p.sneak ? 1.5 : 2.6);
