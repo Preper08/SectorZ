@@ -104,22 +104,20 @@
     const cap = (a, b, r, col, extra) => { const pa = pr(a), pb = pr(b); parts.push(Object.assign({ pa, pb, w: r * 2 * SC, col, d: (pa.d + pb.d) / 2 }, extra || {})); };
     const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
     const rb = spec.armR || 0.062;
-    // legs (boots: one continuous shaft + heel + toe + dark sole + laces; pants overlap the boot top)
+    // legs (bare legs; boots: one continuous shaft from below the knee to the foot, heel + toe + sole + laces)
     const boot = spec.feetId === 'boots';
     const legR = boot ? 0.095 : 0.085;
     cap(J.hipL, J.kneeL, legR, pants); cap(J.kneeL, J.footL, 0.07, pants);
     cap(J.hipR, J.kneeR, legR, pants); cap(J.kneeR, J.footR, 0.07, pants);
     if (boot) {
       for (const [kne, ft] of [[J.kneeL, J.footL], [J.kneeR, J.footR]]) {
-        // shaft: one piece from the ankle up to just below the knee, slightly tucked behind the leg
-        const t0 = lerp3(kne, ft, 0.38), t1 = lerp3(kne, ft, 0.06);
-        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.01], 0.076, shoes, { d: (pr(t0).d + pr(t1).d) / 2 - 0.02 });
-        // pant leg hangs over the shaft's top edge so the two connect naturally
-        const pleg = lerp3(kne, ft, 0.3);
-        cap(kne, [pleg[0], pleg[1], pleg[2]], legR * 0.96, pants, { d: (pr(kne).d + pr(pleg).d) / 2 + 0.02 });
-        // laces: stitches over the shaft (drawn as cross lines)
-        const l0 = lerp3(kne, ft, 0.36), l1 = lerp3(kne, ft, 0.12);
-        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.028, shoes, { lace: true });
+        // shaft: one piece starting just below the knee (slight overlap onto the bare
+        // leg so there is no gap) and running down to the ankle, following the leg
+        const t0 = lerp3(kne, ft, 0.02), t1 = ft;
+        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.079, shoes, { d: (pr(t0).d + pr(t1).d) / 2 - 0.02 });
+        // laces: cross stitches down the front of the shaft
+        const l0 = lerp3(kne, ft, 0.3), l1 = lerp3(kne, ft, 0.08);
+        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.026, shoes, { lace: true });
         // foot: ankle to toe box as one piece, plus a heel block behind
         cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.058, shoes);
         cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.048, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85]);
