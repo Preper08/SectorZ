@@ -379,8 +379,8 @@
     let mx = 0, my = 0; const il = Math.hypot(ix, iy);
     if (il > 0) { ix /= il; iy /= il; mx = ix / 64 + iy / 32; my = iy / 32 - ix / 64; const l = Math.hypot(mx, my); mx /= l; my /= l; }
     p.sneak = In.down('ControlLeft') || In.down('KeyZ');
-    // crouch: hold C (walk speed and collision radius are unchanged; only the pose gets lower)
-    p.crouch = (In.down('ControlLeft') || In.down('ControlRight')) && !ui.blockKeys();
+    // crouch: toggle with Left/Right Ctrl (walk speed and collision radius are unchanged; only the pose gets lower)
+    if ((In.pressed('ControlLeft') || In.pressed('ControlRight')) && !ui.blockKeys()) p.crouch = !p.crouch;
     const wantRun = In.down('ShiftLeft') && il > 0 && p.stamina > 4 && !p.sneak && !p.crouch && !p.broken;
     p.running = wantRun;
     let spd = p.running ? 4.8 : (p.sneak ? 1.5 : 2.6);
@@ -514,6 +514,7 @@
     const steps = 20, step = dt * 60 / steps * 1.0;
     s.t += dt; S.hour += (dt * 60) * (24 / C.DAY_LEN); if (S.hour >= 24) { S.hour -= 24; S.day++; }
     p.energy = Math.min(100, p.energy + 14 * dt); p.hp = Math.min(100, p.hp + 3 * dt * (p.food > 20 && p.water > 20 ? 1 : 0));
+    p.crouch = false; p.pose.crouch = false; // standing up resets the crouch toggle
     S.weather.rain += (S.weather.target - S.weather.rain) * Math.min(1, dt * 2);
     for (const z of S.zombies) if (!z.dead && z.state === 'chase' && Math.hypot(z.x - p.x, z.y - p.y) < 14) { S.sleeping = null; Game.toast(S, 'Something woke you up!', 'bad'); return; }
     if (p.energy >= 100 || s.t > 8) { S.sleeping = null; Game.toast(S, 'You wake up refreshed.'); }

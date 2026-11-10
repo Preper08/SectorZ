@@ -315,7 +315,7 @@
     row('God mode (admin)', tog('godmode', () => { if (S && s.godmode && DSZ.Game.godKit) DSZ.Game.godKit(S); if (S) DSZ.Game.toast(S, s.godmode ? 'God mode ON - immortal, infinite items.' : 'God mode OFF.'); }));
   }
   function buildControls() {
-    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Z (or Ctrl)', 'Sneak'], ['Ctrl', 'Crouch (hold)'], ['E', 'Interact · search · open · enter car'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];
+    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Z', 'Sneak'], ['Ctrl', 'Crouch (toggle)'], ['E', 'Interact · search · open · enter car'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];
     els.ctlbody.innerHTML = '<div class="ctl">' + rows.map(r => '<b>' + r[0] + '</b><span>' + r[1] + '</span>').join('') + '</div>';
   }
 
