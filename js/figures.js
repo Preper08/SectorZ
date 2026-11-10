@@ -126,20 +126,12 @@
     }
   }
 
-  function render(spec, ang, P) {
-    const J = pose(P);
-    const ca = Math.cos(ang), sa = Math.sin(ang);
-    const pr = p => { const wx = p[0] * ca - p[1] * sa, wy = p[0] * sa + p[1] * ca; return { x: (wx - wy) * 32, y: (wx + wy) * 16 - p[2] * ZU, d: wx * VX + wy * VY + p[2] * VZ }; };
-    const parts = [];
-    const cap = (a, b, r, col, extra) => { const pa = pr(a), pb = pr(b); parts.push(Object.assign({ pa, pb, w: r * 2 * SC, col, d: (pa.d + pb.d) / 2 }, extra || {})); };
-    const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
-    const rb = spec.armR || 0.062;
-    drawLegs(J, spec, cap, pr, skin, pants, shoes);
-    // torso
+  // torso: pelvis-to-neck capsule + shoulder line + shorts hip piece, plus the clothing
+  // details for jacket / hoodie / vest anchored to the real joints
+  function drawTorso(J, spec, cap, skin, pants, shirt) {
     cap(J.pel, J.neck, 0.155, shirt, { torso: true });
     cap(J.shL, J.shR, 0.075, shirt);
     cap(J.pel, [J.pel[0], J.pel[1], J.pel[2] - 0.05], 0.15, pants);
-    // clothing details: jacket hem + collar, tactical vest overlay (kept in the capsule style)
     if (spec.bodyId === 'jacket') {
       cap([J.pel[0] + 0.02, 0, J.pel[2] + 0.06], [J.neck[0], 0, J.neck[2] - 0.08], 0.165, shirt, { hem: true }); // open front line
       cap([J.neck[0] - 0.02, -0.07, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.07, J.neck[2] - 0.02], 0.06, shirt); // folded collar
@@ -152,30 +144,48 @@
       cap([J.shL[0], -0.13, J.shL[2] - 0.02], [J.shR[0], 0.13, J.shR[2] - 0.02], 0.055, vc); // shoulder yoke
       cap([J.pel[0] + 0.03, -0.1, J.pel[2] + 0.02], [J.pel[0] + 0.03, 0.1, J.pel[2] + 0.02], 0.045, vc); // belt pouches
     }
-    // arms
+  }
+
+  // arms: upper arm + forearm with IK elbow, sleeve or bare skin
+  function drawArms(J, spec, cap, rb, skin, shirt) {
     const sleeve = spec.sleeve || shirt;
     cap(J.shL, J.elL, rb + 0.008, sleeve); cap(J.elL, J.handL, rb, spec.glove || skin);
     cap(J.shR, J.elR, rb + 0.008, sleeve); cap(J.elR, J.handR, rb, spec.glove || skin);
-    // neck + head
-    cap(J.neck, J.head, 0.05, skin);
-    // bag: distinct shapes per bag type, drawn behind the torso with visible straps
-    if (spec.bag) {
-      const big = spec.bagId === 'bigpack', small = spec.bagId === 'fannypack';
-      const bk = [J.pel[0] - (small ? 0.1 : 0.22), 0, small ? (J.pel[2] + 0.14) : (J.pel[2] + J.neck[2]) / 2 + 0.02];
-      if (small) {
-        // fanny pack: small pouch on the lower back / hip
-        cap([bk[0], -0.08, bk[2] - 0.05], [bk[0], 0.08, bk[2] + 0.05], 0.085, spec.bag, { bag: true });
-      } else {
-        // main body: bigpack is taller and thicker, backpack is one rounded block
-        cap([bk[0], -0.11, bk[2] - (big ? 0.17 : 0.13)], [bk[0], 0.11, bk[2] + (big ? 0.17 : 0.13)], big ? 0.14 : 0.12, spec.bag, { bag: true });
-        if (big) cap([bk[0] - 0.07, -0.08, bk[2] + 0.2], [bk[0] - 0.07, 0.08, bk[2] + 0.28], 0.06, spec.bag); // rolled top / lid
-        // shoulder straps over both shoulders (visible from the front)
-        const stc = spec.bag.map(v => v * 0.6);
-        cap(J.shL, [J.pel[0] - 0.02, J.shL[1], J.pel[2] + 0.02], 0.032, stc);
-        cap(J.shR, [J.pel[0] - 0.02, J.shR[1], J.pel[2] + 0.02], 0.032, stc);
-        if (!big) cap([bk[0] + 0.06, -0.06, bk[2] + 0.1], [bk[0] + 0.06, 0.06, bk[2] - 0.06], 0.03, stc); // side pocket seam
-      }
+  }
+
+  // bag: distinct shapes per bag type, drawn behind the torso with visible straps
+  function drawBag(J, spec, cap) {
+    if (!spec.bag) return;
+    const big = spec.bagId === 'bigpack', small = spec.bagId === 'fannypack';
+    const bk = [J.pel[0] - (small ? 0.1 : 0.22), 0, small ? (J.pel[2] + 0.14) : (J.pel[2] + J.neck[2]) / 2 + 0.02];
+    if (small) {
+      // fanny pack: small pouch on the lower back / hip
+      cap([bk[0], -0.08, bk[2] - 0.05], [bk[0], 0.08, bk[2] + 0.05], 0.085, spec.bag, { bag: true });
+    } else {
+      // main body: bigpack is taller and thicker, backpack is one rounded block
+      cap([bk[0], -0.11, bk[2] - (big ? 0.17 : 0.13)], [bk[0], 0.11, bk[2] + (big ? 0.17 : 0.13)], big ? 0.14 : 0.12, spec.bag, { bag: true });
+      if (big) cap([bk[0] - 0.07, -0.08, bk[2] + 0.2], [bk[0] - 0.07, 0.08, bk[2] + 0.28], 0.06, spec.bag); // rolled top / lid
+      // shoulder straps over both shoulders (visible from the front)
+      const stc = spec.bag.map(v => v * 0.6);
+      cap(J.shL, [J.pel[0] - 0.02, J.shL[1], J.pel[2] + 0.02], 0.032, stc);
+      cap(J.shR, [J.pel[0] - 0.02, J.shR[1], J.pel[2] + 0.02], 0.032, stc);
+      if (!big) cap([bk[0] + 0.06, -0.06, bk[2] + 0.1], [bk[0] + 0.06, 0.06, bk[2] - 0.06], 0.03, stc); // side pocket seam
     }
+  }
+
+  function render(spec, ang, P) {
+    const J = pose(P);
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    const pr = p => { const wx = p[0] * ca - p[1] * sa, wy = p[0] * sa + p[1] * ca; return { x: (wx - wy) * 32, y: (wx + wy) * 16 - p[2] * ZU, d: wx * VX + wy * VY + p[2] * VZ }; };
+    const parts = [];
+    const cap = (a, b, r, col, extra) => { const pa = pr(a), pb = pr(b); parts.push(Object.assign({ pa, pb, w: r * 2 * SC, col, d: (pa.d + pb.d) / 2 }, extra || {})); };
+    const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
+    const rb = spec.armR || 0.062;
+    drawLegs(J, spec, cap, pr, skin, pants, shoes);
+    drawTorso(J, spec, cap, skin, pants, shirt);
+    drawArms(J, spec, cap, rb, skin, shirt);
+    cap(J.neck, J.head, 0.05, skin);
+    drawBag(J, spec, cap);
     parts.sort((a, b) => a.d - b.d);
     // head drawn in depth order too
     const hp = pr(J.head), hr = 0.125 * SC;
