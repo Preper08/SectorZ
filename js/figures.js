@@ -100,50 +100,21 @@
   // by default); boots cover the shin and the foot when equipped. Every part is anchored
   // to the knee/foot joints, so it follows the walking and crouching motion.
   function drawLegs(J, spec, cap, pr, skin, pants, shoes) {
-    const boot = spec.feetId === 'boots';
-    const legR = boot ? 0.095 : 0.085;
+    const legR = FOOTWEAR_FIGS[spec.feetId] ? 0.095 : 0.085;
     cap(J.hipL, J.kneeL, legR, pants); cap(J.kneeL, J.footL, 0.07, skin);
     cap(J.hipR, J.kneeR, legR, pants); cap(J.kneeR, J.footR, 0.07, skin);
-    if (boot) {
-      for (const [kne, ft] of [[J.kneeL, J.footL], [J.kneeR, J.footR]]) {
-        // shaft: one piece from just below the knee to the ankle, drawn IN FRONT of the
-        // bare shin so the leg tucks into the boot and no skin shows through
-        const t0 = lerp3(kne, ft, 0.02), t1 = ft;
-        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.079, shoes, { d: (pr(t0).d + pr(t1).d) / 2 + 0.03 });
-        // laces: cross stitches down the front of the shaft
-        const l0 = lerp3(kne, ft, 0.3), l1 = lerp3(kne, ft, 0.08);
-        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.026, shoes, { lace: true, d: (pr(l0).d + pr(l1).d) / 2 + 0.04 });
-        // foot: ankle to toe box as one piece, plus a heel block behind
-        cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.058, shoes, { d: pr(ft).d + 0.03 });
-        cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.048, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85], { d: pr(ft).d + 0.03 });
-        // dark sole line under the whole foot
-        cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.042, shoes, { sole: true, d: pr(ft).d + 0.04 });
-      }
-    } else {
-      // barefoot: skin-toned feet
-      cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, skin);
-      cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, skin);
-    }
+    const fw = FOOTWEAR_FIGS[spec.feetId] || FOOTWEAR_FIGS.barefoot;
+    fw(J, cap, pr, skin, shoes);
   }
 
   // torso: pelvis-to-neck capsule + shoulder line + shorts hip piece, plus the clothing
-  // details for jacket / hoodie / vest anchored to the real joints
+  // details selected from CLOTHING_FIGS by bodyId (default: plain undershirt, no extras)
   function drawTorso(J, spec, cap, skin, pants, shirt) {
     cap(J.pel, J.neck, 0.155, shirt, { torso: true });
     cap(J.shL, J.shR, 0.075, shirt);
     cap(J.pel, [J.pel[0], J.pel[1], J.pel[2] - 0.05], 0.15, pants);
-    if (spec.bodyId === 'jacket') {
-      cap([J.pel[0] + 0.02, 0, J.pel[2] + 0.06], [J.neck[0], 0, J.neck[2] - 0.08], 0.165, shirt, { hem: true }); // open front line
-      cap([J.neck[0] - 0.02, -0.07, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.07, J.neck[2] - 0.02], 0.06, shirt); // folded collar
-    } else if (spec.bodyId === 'hoodie') {
-      cap([J.neck[0] - 0.01, 0, J.neck[2] - 0.01], [J.neck[0] + 0.1, 0, J.neck[2] - 0.14], 0.09, shirt); // hood bump behind the neck
-      cap([J.pel[0] + 0.04, 0, J.pel[2] + 0.05], [J.pel[0] + 0.04, 0, J.pel[2] + 0.18], 0.03, shirt); // drawstring
-    } else if (spec.bodyId === 'vest') {
-      const vc = shirt.map(v => v * 0.72); // darker overlay panels
-      cap([J.neck[0] + 0.02, 0, J.neck[2] - 0.02], [J.pel[0] + 0.02, 0, J.pel[2] + 0.1], 0.115, vc, { plate: true });
-      cap([J.shL[0], -0.13, J.shL[2] - 0.02], [J.shR[0], 0.13, J.shR[2] - 0.02], 0.055, vc); // shoulder yoke
-      cap([J.pel[0] + 0.03, -0.1, J.pel[2] + 0.02], [J.pel[0] + 0.03, 0.1, J.pel[2] + 0.02], 0.045, vc); // belt pouches
-    }
+    const cf = CLOTHING_FIGS[spec.bodyId];
+    if (cf) cf(J, cap, shirt);
   }
 
   // arms: upper arm + forearm with IK elbow, sleeve or bare skin
@@ -172,6 +143,73 @@
       if (!big) cap([bk[0] + 0.06, -0.06, bk[2] + 0.1], [bk[0] + 0.06, 0.06, bk[2] - 0.06], 0.03, stc); // side pocket seam
     }
   }
+
+  // ----- equipment definition tables: each entry is a draw function anchored to the
+  // body joints. Adding new clothing / headwear / footwear = a new table entry, no
+  // changes to the render pipeline. All shapes are kept in the capsule style.
+  const CLOTHING_FIGS = {
+    // jacket: open front line + folded collar
+    jacket: (J, cap, shirt) => {
+      cap([J.pel[0] + 0.02, 0, J.pel[2] + 0.06], [J.neck[0], 0, J.neck[2] - 0.08], 0.165, shirt, { hem: true }); // open front line
+      cap([J.neck[0] - 0.02, -0.07, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.07, J.neck[2] - 0.02], 0.06, shirt); // folded collar
+    },
+    // hoodie: hood bump behind the neck + drawstring
+    hoodie: (J, cap, shirt) => {
+      cap([J.neck[0] - 0.01, 0, J.neck[2] - 0.01], [J.neck[0] + 0.1, 0, J.neck[2] - 0.14], 0.09, shirt); // hood bump behind the neck
+      cap([J.pel[0] + 0.04, 0, J.pel[2] + 0.05], [J.pel[0] + 0.04, 0, J.pel[2] + 0.18], 0.03, shirt); // drawstring
+    },
+    // vest: darker plate overlay + shoulder yoke + belt pouches
+    vest: (J, cap, shirt) => {
+      const vc = shirt.map(v => v * 0.72); // darker overlay panels
+      cap([J.neck[0] + 0.02, 0, J.neck[2] - 0.02], [J.pel[0] + 0.02, 0, J.pel[2] + 0.1], 0.115, vc, { plate: true });
+      cap([J.shL[0], -0.13, J.shL[2] - 0.02], [J.shR[0], 0.13, J.shR[2] - 0.02], 0.055, vc); // shoulder yoke
+      cap([J.pel[0] + 0.03, -0.1, J.pel[2] + 0.02], [J.pel[0] + 0.03, 0.1, J.pel[2] + 0.02], 0.045, vc); // belt pouches
+    }
+  };
+
+  // headwear drawn inside drawHead(): dome + extras per item, all relative to the head
+  // joint (hp) and head radius (hr). entries receive (x, spec, hp, ht, hr, rgb, pr, J)
+  const HEADWEAR_FIGS = {
+    // helmet: full dome covering the head down to the ears + rim + chin strap
+    helmet: (x, spec, hp, ht, hr, rgb, pr, J) => {
+      x.fillStyle = rgb(spec.hat, 0.85); x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.06, Math.PI * 0.95, Math.PI * 2.06); x.lineTo(ht.x + hr * 1.06, hp.y + hr * 0.42); x.closePath(); x.fill();
+      x.strokeStyle = rgb(spec.hat, 0.55); x.lineWidth = 2.2; x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.02, Math.PI * 0.98, Math.PI * 2.02); x.stroke();
+      x.strokeStyle = 'rgba(30,30,30,0.55)'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(hp.x - hr * 0.75, hp.y + hr * 0.45); x.lineTo(hp.x - hr * 0.55, hp.y + hr * 0.95); x.stroke();
+    },
+    // cap: flat dome + front brim + top button
+    cap: (x, spec, hp, ht, hr, rgb, pr, J) => {
+      x.fillStyle = rgb(spec.hat, 1); x.beginPath(); x.arc(ht.x, ht.y - 1.2, hr * 1.02, Math.PI * 1.02, Math.PI * 1.98); x.lineTo(ht.x + hr, ht.y); x.fill();
+      const br = pr([J.head[0] + 0.17, J.head[1], J.head[2] + 0.045]);
+      x.strokeStyle = rgb(spec.hat, 0.8); x.lineWidth = 3.4; x.lineCap = 'round'; x.beginPath(); x.moveTo(ht.x + hr * 0.55, ht.y - 1.5); x.lineTo(br.x, br.y); x.stroke();
+      x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(ht.x, ht.y - hr * 0.98, 1.6, 0, 7); x.fill();
+    }
+  };
+
+  // footwear: shaft / laces / foot / heel / sole per item; barefoot is the default
+  // entry (skin-toned feet). entries receive (J, cap, pr, skin, shoes)
+  const FOOTWEAR_FIGS = {
+    barefoot: (J, cap, pr, skin, shoes) => {
+      cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, skin);
+      cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, skin);
+    },
+    // boots: shaft + laces + foot + heel + dark sole, both legs
+    boots: (J, cap, pr, skin, shoes) => {
+      for (const [kne, ft] of [[J.kneeL, J.footL], [J.kneeR, J.footR]]) {
+        // shaft: one piece from just below the knee to the ankle, drawn IN FRONT of the
+        // bare shin so the leg tucks into the boot and no skin shows through
+        const t0 = lerp3(kne, ft, 0.02), t1 = ft;
+        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.079, shoes, { d: (pr(t0).d + pr(t1).d) / 2 + 0.03 });
+        // laces: cross stitches down the front of the shaft
+        const l0 = lerp3(kne, ft, 0.3), l1 = lerp3(kne, ft, 0.08);
+        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.026, shoes, { lace: true, d: (pr(l0).d + pr(l1).d) / 2 + 0.04 });
+        // foot: ankle to toe box as one piece, plus a heel block behind
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.058, shoes, { d: pr(ft).d + 0.03 });
+        cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.048, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85], { d: pr(ft).d + 0.03 });
+        // dark sole line under the whole foot
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.042, shoes, { sole: true, d: pr(ft).d + 0.04 });
+      }
+    }
+  };
 
   function render(spec, ang, P) {
     const J = pose(P);
@@ -226,23 +264,10 @@
         const e1 = pr([J.head[0] + 0.115, J.head[1] - 0.045, J.head[2] + 0.01]), e2 = pr([J.head[0] + 0.115, J.head[1] + 0.045, J.head[2] + 0.01]);
         x.fillStyle = spec.eye || 'rgba(14,10,10,0.9)'; x.globalAlpha = Math.min(1, fv * 2.5); x.fillRect(e1.x - 0.9, e1.y - 0.7, 1.8, 1.6); x.fillRect(e2.x - 0.9, e2.y - 0.7, 1.8, 1.6); x.globalAlpha = 1;
       }
-      if (spec.hat) { // cap: flat dome + front brim. helmet: full dome covering the head down to the ears + rim
+      if (spec.hat) { // headwear from HEADWEAR_FIGS: cap dome + brim, helmet dome + rim
         const ht = pr([J.head[0] + 0.01, J.head[1], J.head[2] + 0.06]);
-        const helmet = spec.headId === 'helmet';
-        if (helmet) {
-          x.fillStyle = rgb(spec.hat, 0.85); x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.06, Math.PI * 0.95, Math.PI * 2.06); x.lineTo(ht.x + hr * 1.06, hp.y + hr * 0.42); x.closePath(); x.fill();
-          // darker rim band at the bottom edge
-          x.strokeStyle = rgb(spec.hat, 0.55); x.lineWidth = 2.2; x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.02, Math.PI * 0.98, Math.PI * 2.02); x.stroke();
-          // chin strap hint on the visible cheek side
-          x.strokeStyle = 'rgba(30,30,30,0.55)'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(hp.x - hr * 0.75, hp.y + hr * 0.45); x.lineTo(hp.x - hr * 0.55, hp.y + hr * 0.95); x.stroke();
-        } else {
-          x.fillStyle = rgb(spec.hat, 1); x.beginPath(); x.arc(ht.x, ht.y - 1.2, hr * 1.02, Math.PI * 1.02, Math.PI * 1.98); x.lineTo(ht.x + hr, ht.y); x.fill();
-          // brim sticking forward from the cap edge
-          const br = pr([J.head[0] + 0.17, J.head[1], J.head[2] + 0.045]);
-          x.strokeStyle = rgb(spec.hat, 0.8); x.lineWidth = 3.4; x.lineCap = 'round'; x.beginPath(); x.moveTo(ht.x + hr * 0.55, ht.y - 1.5); x.lineTo(br.x, br.y); x.stroke();
-          // button on top
-          x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(ht.x, ht.y - hr * 0.98, 1.6, 0, 7); x.fill();
-        }
+        const hw = HEADWEAR_FIGS[spec.headId];
+        if (hw) hw(x, spec, hp, ht, hr, rgb, pr, J);
         x.fillStyle = 'rgba(255,255,255,0.18)'; x.beginPath(); x.arc(ht.x - 1.5, ht.y - 3, hr * 0.6, Math.PI * 1.1, Math.PI * 1.7); x.stroke();
       }
       x.strokeStyle = 'rgba(0,0,0,0.35)'; x.lineWidth = 0.8; x.beginPath(); x.arc(hp.x, hp.y, hr, 0, 7); x.stroke();
