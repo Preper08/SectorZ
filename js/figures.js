@@ -96,16 +96,10 @@
     return J;
   }
 
-  function render(spec, ang, P) {
-    const J = pose(P);
-    const ca = Math.cos(ang), sa = Math.sin(ang);
-    const pr = p => { const wx = p[0] * ca - p[1] * sa, wy = p[0] * sa + p[1] * ca; return { x: (wx - wy) * 32, y: (wx + wy) * 16 - p[2] * ZU, d: wx * VX + wy * VY + p[2] * VZ }; };
-    const parts = [];
-    const cap = (a, b, r, col, extra) => { const pa = pr(a), pb = pr(b); parts.push(Object.assign({ pa, pb, w: r * 2 * SC, col, d: (pa.d + pb.d) / 2 }, extra || {})); };
-    const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
-    const rb = spec.armR || 0.062;
-    // legs: thighs in shorts colour, shins and feet are bare skin (short pants, barefoot
-    // by default); boots cover the shin and the foot when equipped
+  // legs: thighs in shorts colour, shins and feet are bare skin (short pants, barefoot
+  // by default); boots cover the shin and the foot when equipped. Every part is anchored
+  // to the knee/foot joints, so it follows the walking and crouching motion.
+  function drawLegs(J, spec, cap, pr, skin, pants, shoes) {
     const boot = spec.feetId === 'boots';
     const legR = boot ? 0.095 : 0.085;
     cap(J.hipL, J.kneeL, legR, pants); cap(J.kneeL, J.footL, 0.07, skin);
@@ -130,6 +124,17 @@
       cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, skin);
       cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, skin);
     }
+  }
+
+  function render(spec, ang, P) {
+    const J = pose(P);
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    const pr = p => { const wx = p[0] * ca - p[1] * sa, wy = p[0] * sa + p[1] * ca; return { x: (wx - wy) * 32, y: (wx + wy) * 16 - p[2] * ZU, d: wx * VX + wy * VY + p[2] * VZ }; };
+    const parts = [];
+    const cap = (a, b, r, col, extra) => { const pa = pr(a), pb = pr(b); parts.push(Object.assign({ pa, pb, w: r * 2 * SC, col, d: (pa.d + pb.d) / 2 }, extra || {})); };
+    const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
+    const rb = spec.armR || 0.062;
+    drawLegs(J, spec, cap, pr, skin, pants, shoes);
     // torso
     cap(J.pel, J.neck, 0.155, shirt, { torso: true });
     cap(J.shL, J.shR, 0.075, shirt);
