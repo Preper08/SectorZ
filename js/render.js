@@ -474,13 +474,13 @@
     if (it.type === 'gun') {
       // displayed lengths kept short of the true combat range: the reach numbers below
       // are gameplay values, the visuals only need to read as a gun, not measure it
-      const real = { pistol: 0.2, smg: 0.42, shotgun: 0.58, rifle: 0.64 };
+      const real = { pistol: 0.2, smg: 0.42, shotgun: 0.5, rifle: 0.54 };
       L = real[it.id] !== undefined ? real[it.id] : (it.w >= 4 ? 0.62 : 0.4);
       th = it.id === 'pistol' ? 2.6 : (it.w >= 4 ? 3 : 2.6); col = it.col || '#333'; el = 0;
     }
     else if (it.type === 'melee') {
       // real blade/handle lengths, visibly shorter than before (was range*0.62+0.15)
-      const real = { bat: 0.72, crowbar: 0.62, knife: 0.34, machete: 0.72, axe: 0.72, pipe: 0.62, hammer: 0.34, spear: 1.05 };
+      const real = { bat: 0.72, crowbar: 0.62, knife: 0.34, machete: 0.55, axe: 0.52, pipe: 0.62, hammer: 0.34, spear: 1.05 };
       L = real[it.id] !== undefined ? real[it.id] : it.range * 0.45;
       th = it.id === 'spear' ? 2.4 : 2.8; col = it.col || '#aaa';
       if (p.pose.arms === 'swing') { const t = p.pose.af / 4; el = t < 0.4 ? 0.2 + t * 3 : (t < 0.7 ? 1.4 - (t - 0.4) * 5.5 : -0.3); } else el = 0.3; // carry angle closer to the body
@@ -558,28 +558,23 @@
         ctx.fillStyle = '#b0b6ba'; ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(tm[0], tm[1]); ctx.lineTo(t1[0], t1[1]); ctx.closePath(); ctx.fill(); // angled tip
         hl(P0(TOT * 0.2, 0)[0], P0(TOT * 0.2, 0)[1], P0(TOT * 0.96, 0)[0], P0(TOT * 0.96, 0)[1], 0.9);
       } else if (id === 'axe') {
-        segT(TOT * -0.14, TOT * 0.97, 0, 0, 2.6, '#8a6a40'); // handle
-        // fire axe head: cutting blade on one side, pointed pick on the other, sitting at the top of the handle
-        const h2 = P0(TOT * 0.84, 0), t2 = P0(TOT * 1.02, 0);
+        // like the inventory icon: brown handle, red axe head sitting across the top, flat end
+        segT(TOT * -0.14, TOT * 0.9, 0, 0, 2.6, '#8a6a40'); // handle ends just below the head
+        const h2 = P0(TOT * 0.9, 0);
+        // head: one solid red wedge perpendicular to the handle (cutting edge on the outer side)
         ctx.fillStyle = '#c84034'; ctx.beginPath();
-        // blade side: broad curved-ish edge away from the player
-        ctx.moveTo(h2[0] + nx * 2.5, h2[1] + ny * 2.5);
-        ctx.lineTo(t2[0] + nx * 8.5, t2[1] + ny * 8.5); // cutting edge top
-        ctx.lineTo(t2[0] + nx * 8, t2[1] + ny * 3.5); // edge bottom (shorter: blade is wider at the top)
-        ctx.lineTo(h2[0] + nx * 2, h2[1] + ny * 1);
+        ctx.moveTo(h2[0] + px * 3, h2[1] + py * 3); // bottom-back of the head
+        ctx.lineTo(h2[0] + nx * 7.5 + px * 1.5, h2[1] + ny * 7.5 + py * 1.5); // cutting edge top
+        ctx.lineTo(h2[0] + nx * 7.5 + px * -2.5, h2[1] + ny * 7.5 + py * -2.5); // cutting edge bottom (shorter)
+        ctx.lineTo(h2[0] + px * -3, h2[1] + py * -3); // top-back of the head
         ctx.closePath(); ctx.fill();
         ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = '#b03a30'; ctx.beginPath();
-        // pick side: pointed spike in the opposite direction
-        ctx.moveTo(h2[0] + nx * -2.5, h2[1] + ny * -2.5);
-        ctx.lineTo(t2[0] + nx * -3.5, t2[1] + ny * -3.5);
-        ctx.lineTo(t2[0] + nx * -8, t2[1] + ny * -7.5); // pick point
-        ctx.lineTo(h2[0] + nx * -2, h2[1] + ny * -1);
+        // lighter inner face for the bevelled edge look (like the icon gradient)
+        ctx.fillStyle = 'rgba(255,180,150,0.35)'; ctx.beginPath();
+        ctx.moveTo(h2[0] + nx * 7.5 + px * 1.5, h2[1] + ny * 7.5 + py * 1.5);
+        ctx.lineTo(h2[0] + nx * 4 + px * 0, h2[1] + ny * 4 + py * 0);
+        ctx.lineTo(h2[0] + nx * 7.5 + px * -2.5, h2[1] + ny * 7.5 + py * -2.5);
         ctx.closePath(); ctx.fill();
-        ctx.stroke();
-        // steel band where the head meets the handle
-        ctx.fillStyle = '#8a9096'; ctx.beginPath();
-        ctx.ellipse(h2[0], h2[1], 1.6, 3.4, Math.atan2(fy, fx) + Math.PI / 2, 0, 7); ctx.fill();
         hl(P0(TOT * 0.05, -0.7)[0], P0(TOT * 0.05, -0.7)[1], P0(TOT * 0.6, -0.7)[0], P0(TOT * 0.6, -0.7)[1], 0.8);
       } else if (id === 'crowbar') {
         segT(TOT * -0.06, TOT * 0.7, 0, 0, 2.8, col); // shaft
