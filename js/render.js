@@ -471,12 +471,21 @@
     // 3D direction from hand along facing, with elevation
     const a = p.ang, ca = Math.cos(a), sa = Math.sin(a);
     let el = 0, L = 0.5, th = 3.4, col = '#2a2a2e', col2 = '#555';
-    if (it.type === 'gun') { L = it.w >= 4 ? 0.95 : (it.w >= 3 ? 0.62 : 0.4); th = it.w >= 4 ? 3.6 : 3; col = it.col || '#333'; el = 0; }
+    if (it.type === 'gun') {
+      // realistic real-world lengths (m): pistol ~0.24, smg ~0.55, shotgun ~1.0, rifle ~1.1
+      // held one-handed they read smaller on screen: scale down to keep player proportions
+      const real = { pistol: 0.22, smg: 0.45, shotgun: 0.72, rifle: 0.8 };
+      L = real[it.id] !== undefined ? real[it.id] : (it.w >= 4 ? 0.7 : 0.4);
+      th = it.id === 'pistol' ? 2.6 : (it.w >= 4 ? 3 : 2.6); col = it.col || '#333'; el = 0;
+    }
     else if (it.type === 'melee') {
-      L = it.range * 0.62 + 0.15; th = 3; col = it.col || '#aaa';
+      // real blade/handle lengths, visibly shorter than before (was range*0.62+0.15)
+      const real = { bat: 0.72, crowbar: 0.62, knife: 0.34, machete: 0.72, axe: 0.72, pipe: 0.62, hammer: 0.34, spear: 1.05 };
+      L = real[it.id] !== undefined ? real[it.id] : it.range * 0.45;
+      th = it.id === 'spear' ? 2.4 : 2.8; col = it.col || '#aaa';
       if (p.pose.arms === 'swing') { const t = p.pose.af / 4; el = t < 0.4 ? 0.2 + t * 3 : (t < 0.7 ? 1.4 - (t - 0.4) * 5.5 : -0.3); } else el = 0.3; // carry angle closer to the body
     }
-    else if (it.type === 'light') { L = 0.26; th = 4; col = it.col || '#d8c040'; el = 0; }
+    else if (it.type === 'light') { L = 0.2; th = 3.2; col = it.col || '#d8c040'; el = 0; }
     else return;
     const dx = ca * Math.cos(el) * L, dy = sa * Math.cos(el) * L, dz = Math.sin(el) * L;
     const tipx = hx + (dx - dy) * 32, tipy = hy + (dx + dy) * 16 - dz * ZU;
@@ -491,43 +500,43 @@
     const P0 = (t, n) => [hx + px * t + nx * (n || 0), hy + py * t + ny * (n || 0)];
     const segT = (t0, t1, n0, n1, w, c) => { const A2 = P0(t0, n0), B2 = P0(t1, n1); seg(A2[0], A2[1], B2[0], B2[1], w, c); };
     // full screen-space length of the weapon (behind-hand part + held part) in px
-    const TOT = Math.hypot(tipx - bx, tipy - by) / 0.82 + 8;
+    const TOT = Math.hypot(tipx - bx, tipy - by) / 0.82;
     const dark = '#1e1e22';
     if (it.type === 'gun') {
       const wood = '#6a4a2a';
       if (it.id === 'pistol') {
         // slide: short thick bar past the hand; muzzle; grip down-back from the hand
-        segT(TOT * 0.1, TOT * 0.92, -1, -1, 3.8, col);
-        segT(TOT * 0.92, TOT * 1.02, -1, -1, 2, dark);
-        const g0 = P0(TOT * 0.12, 1), g1 = P0(TOT * 0.02, 7);
-        seg(g0[0], g0[1], g1[0], g1[1], 3.4, dark);
-        ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.55, -2.4)[0] - 1, P0(TOT * 0.55, -2.4)[1] - 1.2, 2.2, 2.2); // rear sight
-        hl(P0(TOT * 0.2, -1.2)[0], P0(TOT * 0.2, -1.2)[1], P0(TOT * 0.85, -1.2)[0], P0(TOT * 0.85, -1.2)[1], 1);
+        segT(TOT * 0.1, TOT * 0.92, -0.8, -0.8, 2.9, col);
+        segT(TOT * 0.92, TOT * 1.02, -0.8, -0.8, 1.6, dark);
+        const g0 = P0(TOT * 0.12, 0.8), g1 = P0(TOT * 0.02, 5.2);
+        seg(g0[0], g0[1], g1[0], g1[1], 2.6, dark);
+        ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.55, -1.9)[0] - 0.9, P0(TOT * 0.55, -1.9)[1] - 1, 1.8, 1.8); // rear sight
+        hl(P0(TOT * 0.2, -0.9)[0], P0(TOT * 0.2, -0.9)[1], P0(TOT * 0.85, -0.9)[0], P0(TOT * 0.85, -0.9)[1], 0.8);
       } else if (it.id === 'smg') {
-        segT(TOT * -0.16, TOT * 0.8, 0, 0, 4.2, col); // boxy receiver
-        segT(TOT * 0.8, TOT * 1.02, 0, 0, 2, dark); // short barrel
-        const m0 = P0(TOT * 0.3, 3), m1 = P0(TOT * 0.34, 9.5);
-        seg(m0[0], m0[1], m1[0], m1[1], 2.8, dark); // straight magazine
-        const g0 = P0(TOT * -0.02, 2), g1 = P0(TOT * -0.06, 7);
-        seg(g0[0], g0[1], g1[0], g1[1], 3, dark); // grip
-        segT(TOT * -0.34, TOT * -0.16, 0, 0, 2.4, dark); // stock stub
-        ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.6, -2.8)[0] - 1.3, P0(TOT * 0.6, -2.8)[1] - 1.3, 2.6, 2.6); // sight
-        hl(P0(TOT * 0, -1.2)[0], P0(TOT * 0, -1.2)[1], P0(TOT * 0.75, -1.2)[0], P0(TOT * 0.75, -1.2)[1], 1.2);
+        segT(TOT * -0.16, TOT * 0.8, 0, 0, 3.2, col); // boxy receiver
+        segT(TOT * 0.8, TOT * 1.02, 0, 0, 1.6, dark); // short barrel
+        const m0 = P0(TOT * 0.3, 2.2), m1 = P0(TOT * 0.34, 7.2);
+        seg(m0[0], m0[1], m1[0], m1[1], 2.1, dark); // straight magazine
+        const g0 = P0(TOT * -0.02, 1.5), g1 = P0(TOT * -0.06, 5.2);
+        seg(g0[0], g0[1], g1[0], g1[1], 2.3, dark); // grip
+        segT(TOT * -0.34, TOT * -0.16, 0, 0, 1.8, dark); // stock stub
+        ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.6, -2)[0] - 1, P0(TOT * 0.6, -2)[1] - 1, 2, 2); // sight
+        hl(P0(TOT * 0, -0.9)[0], P0(TOT * 0, -0.9)[1], P0(TOT * 0.75, -0.9)[0], P0(TOT * 0.75, -0.9)[1], 0.9);
       } else if (it.id === 'shotgun') {
-        segT(TOT * -0.3, TOT * 0.78, 0, 0, 4.6, col); // receiver
-        segT(TOT * 0.78, TOT * 1.04, 0, 0, 2.2, dark); // barrel
-        segT(TOT * 0.78, TOT * 1.0, 3, 3.4, 2.2, dark); // tube magazine under the barrel
-        segT(TOT * -0.28, TOT * -0.06, -0.5, -0.5, 5.8, wood); // wooden butt
-        segT(TOT * 0.36, TOT * 0.54, 2.4, 3.6, 3.4, wood); // wooden pump
-        hl(P0(TOT * -0.05, -1.3)[0], P0(TOT * -0.05, -1.3)[1], P0(TOT * 0.7, -1.3)[0], P0(TOT * 0.7, -1.3)[1], 1.3);
+        segT(TOT * -0.3, TOT * 0.78, 0, 0, 3.4, col); // receiver
+        segT(TOT * 0.78, TOT * 1.04, 0, 0, 1.7, dark); // barrel
+        segT(TOT * 0.78, TOT * 1.0, 2.2, 2.5, 1.7, dark); // tube magazine under the barrel
+        segT(TOT * -0.28, TOT * -0.06, -0.4, -0.4, 4.3, wood); // wooden butt
+        segT(TOT * 0.36, TOT * 0.54, 1.8, 2.7, 2.5, wood); // wooden pump
+        hl(P0(TOT * -0.05, -1)[0], P0(TOT * -0.05, -1)[1], P0(TOT * 0.7, -1)[0], P0(TOT * 0.7, -1)[1], 1);
       } else { // rifle (hunting)
-        segT(TOT * -0.26, TOT * 0.58, 0, 0, 4.2, wood); // wooden stock
-        segT(TOT * 0.58, TOT * 0.92, 0, 0, 3.6, col); // steel action
-        segT(TOT * 0.92, TOT * 1.1, 0, 0, 1.9, dark); // long thin barrel
-        const g0 = P0(TOT * -0.02, 1.5), g1 = P0(TOT * -0.06, 6);
-        seg(g0[0], g0[1], g1[0], g1[1], 3.2, dark); // grip
-        ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(P0(TOT * 0.64, -2.6)[0], P0(TOT * 0.64, -2.6)[1], 1.7, 0, 7); ctx.fill(); // bolt handle
-        hl(P0(TOT * -0.05, -1.1)[0], P0(TOT * -0.05, -1.1)[1], P0(TOT * 0.88, -1.1)[0], P0(TOT * 0.88, -1.1)[1], 1.2);
+        segT(TOT * -0.26, TOT * 0.58, 0, 0, 3.2, wood); // wooden stock
+        segT(TOT * 0.58, TOT * 0.92, 0, 0, 2.7, col); // steel action
+        segT(TOT * 0.92, TOT * 1.1, 0, 0, 1.5, dark); // long thin barrel
+        const g0 = P0(TOT * -0.02, 1.1), g1 = P0(TOT * -0.06, 4.5);
+        seg(g0[0], g0[1], g1[0], g1[1], 2.4, dark); // grip
+        ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(P0(TOT * 0.64, -1.9)[0], P0(TOT * 0.64, -1.9)[1], 1.3, 0, 7); ctx.fill(); // bolt handle
+        hl(P0(TOT * -0.05, -0.8)[0], P0(TOT * -0.05, -0.8)[1], P0(TOT * 0.88, -0.8)[0], P0(TOT * 0.88, -0.8)[1], 0.9);
       }
       if (p.muzzle > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(sprites.flare, tipx - 24, tipy - 24, 48, 48); ctx.globalCompositeOperation = 'source-over'; }
       return;
@@ -535,64 +544,64 @@
     if (it.type === 'melee') {
       const id = it.id;
       if (id === 'knife') {
-        segT(TOT * -0.08, TOT * 0.2, 0, 0, 3.6, '#3a2a1e'); // handle
-        segT(TOT * 0.2, TOT * 0.24, -2, -2, 1.8, '#888'); // guard
-        segT(TOT * 0.24, TOT * 0.94, 0, 0, 2.6, '#c8ccd0'); // blade
-        const t0 = P0(TOT * 0.94, -1.5), tm = P0(TOT * 1.06, 0.4), t1 = P0(TOT * 0.94, 1.5);
+        segT(TOT * -0.08, TOT * 0.2, 0, 0, 2.8, '#3a2a1e'); // handle
+        segT(TOT * 0.2, TOT * 0.24, -1.5, -1.5, 1.4, '#888'); // guard
+        segT(TOT * 0.24, TOT * 0.94, 0, 0, 2, '#c8ccd0'); // blade
+        const t0 = P0(TOT * 0.94, -1.2), tm = P0(TOT * 1.06, 0.3), t1 = P0(TOT * 0.94, 1.2);
         ctx.fillStyle = '#c8ccd0'; ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(tm[0], tm[1]); ctx.lineTo(t1[0], t1[1]); ctx.closePath(); ctx.fill(); // tip
-        hl(P0(TOT * 0.3, 0)[0], P0(TOT * 0.3, 0)[1], P0(TOT * 0.9, 0)[0], P0(TOT * 0.9, 0)[1], 0.8);
+        hl(P0(TOT * 0.3, 0)[0], P0(TOT * 0.3, 0)[1], P0(TOT * 0.9, 0)[0], P0(TOT * 0.9, 0)[1], 0.7);
       } else if (id === 'machete') {
-        segT(TOT * -0.1, TOT * 0.13, 0, 0, 4.2, '#2a2018'); // handle
-        segT(TOT * 0.13, TOT * 0.16, -2.2, -2.2, 2, '#888'); // guard
-        segT(TOT * 0.16, TOT * 1.0, 0, 0, 4.6, '#b0b6ba'); // broad blade
-        const t0 = P0(TOT * 1.0, -2.4), tm = P0(TOT * 1.12, 0.8), t1 = P0(TOT * 1.0, 2.4);
+        segT(TOT * -0.1, TOT * 0.13, 0, 0, 3.2, '#2a2018'); // handle
+        segT(TOT * 0.13, TOT * 0.16, -1.7, -1.7, 1.5, '#888'); // guard
+        segT(TOT * 0.16, TOT * 1.0, 0, 0, 3.5, '#b0b6ba'); // broad blade
+        const t0 = P0(TOT * 1.0, -1.8), tm = P0(TOT * 1.12, 0.6), t1 = P0(TOT * 1.0, 1.8);
         ctx.fillStyle = '#b0b6ba'; ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(tm[0], tm[1]); ctx.lineTo(t1[0], t1[1]); ctx.closePath(); ctx.fill(); // angled tip
-        hl(P0(TOT * 0.2, 0)[0], P0(TOT * 0.2, 0)[1], P0(TOT * 0.96, 0)[0], P0(TOT * 0.96, 0)[1], 1.1);
+        hl(P0(TOT * 0.2, 0)[0], P0(TOT * 0.2, 0)[1], P0(TOT * 0.96, 0)[0], P0(TOT * 0.96, 0)[1], 0.9);
       } else if (id === 'axe') {
-        segT(TOT * -0.14, TOT * 0.97, 0, 0, 3.4, '#8a6a40'); // handle
+        segT(TOT * -0.14, TOT * 0.97, 0, 0, 2.6, '#8a6a40'); // handle
         const h2 = P0(TOT * 0.8, 0);
         ctx.fillStyle = '#c84034'; ctx.beginPath(); // blade wedge
-        ctx.moveTo(h2[0] + nx * -7, h2[1] + ny * -7); ctx.lineTo(tipx + nx * 1.5, tipy + ny * 1.5); ctx.lineTo(h2[0] + nx * 7, h2[1] + ny * 7); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.2; ctx.stroke();
-        hl(P0(TOT * 0.05, -0.9)[0], P0(TOT * 0.05, -0.9)[1], P0(TOT * 0.6, -0.9)[0], P0(TOT * 0.6, -0.9)[1], 0.9);
+        ctx.moveTo(h2[0] + nx * -5, h2[1] + ny * -5); ctx.lineTo(tipx + nx * 1.2, tipy + ny * 1.2); ctx.lineTo(h2[0] + nx * 5, h2[1] + ny * 5); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+        hl(P0(TOT * 0.05, -0.7)[0], P0(TOT * 0.05, -0.7)[1], P0(TOT * 0.6, -0.7)[0], P0(TOT * 0.6, -0.7)[1], 0.8);
       } else if (id === 'crowbar') {
-        segT(TOT * -0.06, TOT * 0.7, 0, 0, 3.6, col); // shaft
-        segT(TOT * 0.7, TOT * 0.98, 0, -0.4, 3.4, col);
-        const e1 = P0(TOT * 0.98, -0.4), e2 = P0(TOT * 0.9, -4.4), e3 = P0(TOT * 0.82, -5.6);
-        seg(e1[0], e1[1], e2[0], e2[1], 3.4, col); // hook bend
-        seg(e2[0], e2[1], e3[0], e3[1], 3.2, col);
-        segT(TOT * -0.06, TOT * -0.03, 0, 2.4, 4, col); // chisel end
-        hl(P0(TOT * 0.05, -1)[0], P0(TOT * 0.05, -1)[1], P0(TOT * 0.68, -1)[0], P0(TOT * 0.68, -1)[1], 1);
+        segT(TOT * -0.06, TOT * 0.7, 0, 0, 2.8, col); // shaft
+        segT(TOT * 0.7, TOT * 0.98, 0, -0.3, 2.6, col);
+        const e1 = P0(TOT * 0.98, -0.3), e2 = P0(TOT * 0.9, -3.4), e3 = P0(TOT * 0.82, -4.4);
+        seg(e1[0], e1[1], e2[0], e2[1], 2.6, col); // hook bend
+        seg(e2[0], e2[1], e3[0], e3[1], 2.5, col);
+        segT(TOT * -0.06, TOT * -0.03, 0, 1.8, 3, col); // chisel end
+        hl(P0(TOT * 0.05, -0.8)[0], P0(TOT * 0.05, -0.8)[1], P0(TOT * 0.68, -0.8)[0], P0(TOT * 0.68, -0.8)[1], 0.8);
       } else if (id === 'pipe') {
-        segT(TOT * -0.06, TOT * 0.86, 0, 0, 5, col); // heavy tube
-        segT(TOT * 0.86, TOT * 1.0, 0, 0, 6.2, '#5c626a'); // wider flange end
-        hl(P0(TOT * 0.05, -1.5)[0], P0(TOT * 0.05, -1.5)[1], P0(TOT * 0.82, -1.5)[0], P0(TOT * 0.82, -1.5)[1], 1.3);
+        segT(TOT * -0.06, TOT * 0.86, 0, 0, 3.8, col); // heavy tube
+        segT(TOT * 0.86, TOT * 1.0, 0, 0, 4.8, '#5c626a'); // wider flange end
+        hl(P0(TOT * 0.05, -1.1)[0], P0(TOT * 0.05, -1.1)[1], P0(TOT * 0.82, -1.1)[0], P0(TOT * 0.82, -1.1)[1], 1);
       } else if (id === 'hammer') {
-        segT(TOT * -0.06, TOT * 0.76, 0, 0, 3.4, '#946a3c'); // handle
+        segT(TOT * -0.06, TOT * 0.76, 0, 0, 2.6, '#946a3c'); // handle
         const h2 = P0(TOT * 0.85, 0);
         ctx.fillStyle = '#8a9096'; ctx.beginPath();
-        ctx.ellipse(h2[0], h2[1], 3.4, 6.4, Math.atan2(fy, fx) + Math.PI / 2, 0, 7); ctx.fill(); // steel head across the tip
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.2; ctx.stroke();
-        hl(P0(TOT * 0.05, -0.8)[0], P0(TOT * 0.05, -0.8)[1], P0(TOT * 0.58, -0.8)[0], P0(TOT * 0.58, -0.8)[1], 0.8);
+        ctx.ellipse(h2[0], h2[1], 2.6, 4.9, Math.atan2(fy, fx) + Math.PI / 2, 0, 7); ctx.fill(); // steel head across the tip
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+        hl(P0(TOT * 0.05, -0.6)[0], P0(TOT * 0.05, -0.6)[1], P0(TOT * 0.58, -0.6)[0], P0(TOT * 0.58, -0.6)[1], 0.7);
       } else if (id === 'spear') {
-        segT(TOT * -0.12, TOT * 0.84, 0, 0, 2.8, '#a07c48'); // long shaft
+        segT(TOT * -0.12, TOT * 0.84, 0, 0, 2.2, '#a07c48'); // long shaft
         const t0 = P0(TOT * 0.84, 0), tm = P0(TOT * 1.08, 0);
         ctx.fillStyle = '#c0c6ca'; ctx.beginPath();
-        ctx.moveTo(t0[0] + nx * -2.8, t0[1] + ny * -2.8); ctx.lineTo(tm[0], tm[1]); ctx.lineTo(t0[0] + nx * 2.8, t0[1] + ny * 2.8); ctx.closePath(); ctx.fill(); // leaf tip
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
-        hl(P0(TOT * 0, -0.7)[0], P0(TOT * 0, -0.7)[1], P0(TOT * 0.78, -0.7)[0], P0(TOT * 0.78, -0.7)[1], 0.8);
+        ctx.moveTo(t0[0] + nx * -2.2, t0[1] + ny * -2.2); ctx.lineTo(tm[0], tm[1]); ctx.lineTo(t0[0] + nx * 2.2, t0[1] + ny * 2.2); ctx.closePath(); ctx.fill(); // leaf tip
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 0.9; ctx.stroke();
+        hl(P0(TOT * 0, -0.6)[0], P0(TOT * 0, -0.6)[1], P0(TOT * 0.78, -0.6)[0], P0(TOT * 0.78, -0.6)[1], 0.7);
       } else { // bat (default): darker grip tape, tapering body, thick barrel end
         segT(TOT * -0.1, TOT * 0.22, 0, 0, th * 0.85, '#3a2a1c'); // grip
         segT(TOT * 0.22, TOT * 0.68, 0, 0, th * 1.1, col); // taper
         segT(TOT * 0.68, TOT * 1.0, 0, 0, th * 1.45, col); // barrel end
-        hl(P0(TOT * 0.28, -1.2)[0], P0(TOT * 0.28, -1.2)[1], P0(TOT * 0.95, -1.2)[0], P0(TOT * 0.95, -1.2)[1], 1.2);
+        hl(P0(TOT * 0.28, -1)[0], P0(TOT * 0.28, -1)[1], P0(TOT * 0.95, -1)[0], P0(TOT * 0.95, -1)[1], 1);
       }
       return;
     }
     if (it.type === 'light') {
-      segT(TOT * -0.18, TOT * 0.68, 0, 0, 4, col); // body
-      segT(TOT * 0.68, TOT * 1.0, 0, 0, 5.2, '#d8c040'); // head / lens
-      hl(P0(TOT * -0.12, -1)[0], P0(TOT * -0.12, -1)[1], P0(TOT * 0.6, -1)[0], P0(TOT * 0.6, -1)[1], 1);
+      segT(TOT * -0.18, TOT * 0.68, 0, 0, 3.2, col); // body
+      segT(TOT * 0.68, TOT * 1.0, 0, 0, 4.2, '#d8c040'); // head / lens
+      hl(P0(TOT * -0.12, -0.8)[0], P0(TOT * -0.12, -0.8)[1], P0(TOT * 0.6, -0.8)[0], P0(TOT * 0.6, -0.8)[1], 0.8);
       if (p.lightOn) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.8; ctx.drawImage(sprites.glow, tipx - 10, tipy - 10, 20, 20); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
       return;
     }
