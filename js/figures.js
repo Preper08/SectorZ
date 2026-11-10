@@ -104,23 +104,32 @@
     const cap = (a, b, r, col, extra) => { const pa = pr(a), pb = pr(b); parts.push(Object.assign({ pa, pb, w: r * 2 * SC, col, d: (pa.d + pb.d) / 2 }, extra || {})); };
     const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
     const rb = spec.armR || 0.062;
-    // legs (shoes at ends; boots get a taller, thicker shaft that follows the shin)
+    // legs (boots: one continuous shaft + heel + toe + dark sole + laces; pants overlap the boot top)
     const boot = spec.feetId === 'boots';
     const legR = boot ? 0.095 : 0.085;
     cap(J.hipL, J.kneeL, legR, pants); cap(J.kneeL, J.footL, 0.07, pants);
-    if (boot) {
-      // boot shaft hugs the whole calf: from just below the knee down to the ankle,
-      // lerped between the knee and foot joints so it follows the walking motion
-      const botL = lerp3(J.kneeL, J.footL, 0.45), topL = J.kneeL;
-      cap([botL[0], botL[1], botL[2] + 0.02], [topL[0], topL[1], topL[2] + 0.08], 0.082, shoes);
-    }
-    cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, shoes);
     cap(J.hipR, J.kneeR, legR, pants); cap(J.kneeR, J.footR, 0.07, pants);
     if (boot) {
-      const botR = lerp3(J.kneeR, J.footR, 0.45), topR = J.kneeR;
-      cap([botR[0], botR[1], botR[2] + 0.02], [topR[0], topR[1], topR[2] + 0.08], 0.082, shoes);
+      for (const [kne, ft] of [[J.kneeL, J.footL], [J.kneeR, J.footR]]) {
+        // shaft: one piece from the ankle up to just below the knee, slightly tucked behind the leg
+        const t0 = lerp3(kne, ft, 0.38), t1 = lerp3(kne, ft, 0.06);
+        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.01], 0.076, shoes, { d: (pr(t0).d + pr(t1).d) / 2 - 0.02 });
+        // pant leg hangs over the shaft's top edge so the two connect naturally
+        const pleg = lerp3(kne, ft, 0.3);
+        cap(kne, [pleg[0], pleg[1], pleg[2]], legR * 0.96, pants, { d: (pr(kne).d + pr(pleg).d) / 2 + 0.02 });
+        // laces: stitches over the shaft (drawn as cross lines)
+        const l0 = lerp3(kne, ft, 0.36), l1 = lerp3(kne, ft, 0.12);
+        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.028, shoes, { lace: true });
+        // foot: ankle to toe box as one piece, plus a heel block behind
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.058, shoes);
+        cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.048, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85]);
+        // dark sole line under the whole foot
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.042, shoes, { sole: true });
+      }
+    } else {
+      cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, shoes);
+      cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, shoes);
     }
-    cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, shoes);
     // torso
     cap(J.pel, J.neck, 0.155, shirt, { torso: true });
     cap(J.shL, J.shR, 0.075, shirt);
@@ -231,6 +240,18 @@
       x.lineWidth = p.w; x.strokeStyle = rgb(col, 0.82); x.beginPath(); x.moveTo(p.pa.x, p.pa.y); x.lineTo(p.pb.x, p.pb.y); x.stroke();
       x.lineWidth = p.w * 0.62; x.strokeStyle = rgb(col, 1.08); x.beginPath(); x.moveTo(p.pa.x - p.w * 0.1, p.pa.y - p.w * 0.12); x.lineTo(p.pb.x - p.w * 0.1, p.pb.y - p.w * 0.12); x.stroke();
       x.lineWidth = p.w * 0.22; x.strokeStyle = 'rgba(255,255,255,0.14)'; x.beginPath(); x.moveTo(p.pa.x - p.w * 0.22, p.pa.y - p.w * 0.2); x.lineTo(p.pb.x - p.w * 0.22, p.pb.y - p.w * 0.2); x.stroke();
+      if (p.lace) { // boot laces: short cross stitches along the shaft
+        x.strokeStyle = 'rgba(20,16,12,0.6)'; x.lineWidth = Math.max(0.8, p.w * 0.28);
+        const dx2 = p.pb.x - p.pa.x, dy2 = p.pb.y - p.pa.y, n = 4;
+        for (let i = 1; i < n; i++) {
+          const lx = p.pa.x + dx2 * (i / n), ly = p.pa.y + dy2 * (i / n);
+          x.beginPath(); x.moveTo(lx - p.w * 0.3, ly - p.w * 0.18); x.lineTo(lx + p.w * 0.3, ly + p.w * 0.18); x.stroke();
+        }
+      }
+      if (p.sole) { // boot sole: solid dark strip under the foot
+        x.strokeStyle = 'rgba(18,14,10,0.85)'; x.lineWidth = p.w * 0.7;
+        x.beginPath(); x.moveTo(p.pa.x, p.pa.y + p.w * 0.25); x.lineTo(p.pb.x, p.pb.y + p.w * 0.25); x.stroke();
+      }
       if (p.torso && spec.blood) { // gore on torso
         const r = U.mulberry32(spec.seed | 0);
         for (let i = 0; i < spec.blood; i++) { const t = r(), bx = p.pa.x + (p.pb.x - p.pa.x) * t + (r() - 0.5) * p.w * 0.7, by = p.pa.y + (p.pb.y - p.pa.y) * t + (r() - 0.5) * p.w * 0.3; x.fillStyle = 'rgba(' + (96 + r() * 40 | 0) + ',8,8,' + (0.5 + r() * 0.4) + ')'; x.beginPath(); x.ellipse(bx, by, 1 + r() * 3.2, 1 + r() * 2.2, r() * 3, 0, 7); x.fill(); }
