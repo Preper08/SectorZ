@@ -104,14 +104,22 @@
     const cap = (a, b, r, col, extra) => { const pa = pr(a), pb = pr(b); parts.push(Object.assign({ pa, pb, w: r * 2 * SC, col, d: (pa.d + pb.d) / 2 }, extra || {})); };
     const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
     const rb = spec.armR || 0.062;
-    // legs (shoes at ends; boots get a taller, thicker shaft)
+    // legs (shoes at ends; boots get a taller, thicker shaft that follows the shin)
     const boot = spec.feetId === 'boots';
     const legR = boot ? 0.095 : 0.085;
     cap(J.hipL, J.kneeL, legR, pants); cap(J.kneeL, J.footL, 0.07, pants);
-    if (boot) { cap([J.footL[0] - 0.04, J.footL[1], J.footL[2] + 0.02], [J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.22], 0.075, shoes); } // boot shaft up the shin
+    if (boot) {
+      // boot shaft hugs the lower leg: from just below the knee down to the ankle,
+      // lerped between the knee and foot joints so it follows the walking motion
+      const shaftL = lerp3(J.kneeL, J.footL, 0.32), topL = lerp3(J.kneeL, J.footL, 0.05);
+      cap([shaftL[0], shaftL[1], shaftL[2] + 0.03], [topL[0], topL[1], topL[2] + 0.2], 0.078, shoes);
+    }
     cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, shoes);
     cap(J.hipR, J.kneeR, legR, pants); cap(J.kneeR, J.footR, 0.07, pants);
-    if (boot) { cap([J.footR[0] - 0.04, J.footR[1], J.footR[2] + 0.02], [J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.22], 0.075, shoes); }
+    if (boot) {
+      const shaftR = lerp3(J.kneeR, J.footR, 0.32), topR = lerp3(J.kneeR, J.footR, 0.05);
+      cap([shaftR[0], shaftR[1], shaftR[2] + 0.03], [topR[0], topR[1], topR[2] + 0.2], 0.078, shoes);
+    }
     cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, shoes);
     // torso
     cap(J.pel, J.neck, 0.155, shirt, { torso: true });

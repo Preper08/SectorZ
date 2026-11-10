@@ -472,10 +472,10 @@
     const a = p.ang, ca = Math.cos(a), sa = Math.sin(a);
     let el = 0, L = 0.5, th = 3.4, col = '#2a2a2e', col2 = '#555';
     if (it.type === 'gun') {
-      // realistic real-world lengths (m): pistol ~0.24, smg ~0.55, shotgun ~1.0, rifle ~1.1
-      // held one-handed they read smaller on screen: scale down to keep player proportions
-      const real = { pistol: 0.22, smg: 0.45, shotgun: 0.72, rifle: 0.8 };
-      L = real[it.id] !== undefined ? real[it.id] : (it.w >= 4 ? 0.7 : 0.4);
+      // displayed lengths kept short of the true combat range: the reach numbers below
+      // are gameplay values, the visuals only need to read as a gun, not measure it
+      const real = { pistol: 0.2, smg: 0.42, shotgun: 0.58, rifle: 0.64 };
+      L = real[it.id] !== undefined ? real[it.id] : (it.w >= 4 ? 0.62 : 0.4);
       th = it.id === 'pistol' ? 2.6 : (it.w >= 4 ? 3 : 2.6); col = it.col || '#333'; el = 0;
     }
     else if (it.type === 'melee') {
@@ -529,10 +529,10 @@
         segT(TOT * -0.28, TOT * -0.06, -0.4, -0.4, 4.3, wood); // wooden butt
         segT(TOT * 0.36, TOT * 0.54, 1.8, 2.7, 2.5, wood); // wooden pump
         hl(P0(TOT * -0.05, -1)[0], P0(TOT * -0.05, -1)[1], P0(TOT * 0.7, -1)[0], P0(TOT * 0.7, -1)[1], 1);
-      } else { // rifle (hunting)
+      } else { // rifle (hunting): shorter visual barrel, stock stays prominent so it reads as a rifle
         segT(TOT * -0.26, TOT * 0.58, 0, 0, 3.2, wood); // wooden stock
         segT(TOT * 0.58, TOT * 0.92, 0, 0, 2.7, col); // steel action
-        segT(TOT * 0.92, TOT * 1.1, 0, 0, 1.5, dark); // long thin barrel
+        segT(TOT * 0.92, TOT * 1.1, 0, 0, 1.5, dark); // barrel
         const g0 = P0(TOT * -0.02, 1.1), g1 = P0(TOT * -0.06, 4.5);
         seg(g0[0], g0[1], g1[0], g1[1], 2.4, dark); // grip
         ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(P0(TOT * 0.64, -1.9)[0], P0(TOT * 0.64, -1.9)[1], 1.3, 0, 7); ctx.fill(); // bolt handle
@@ -559,10 +559,27 @@
         hl(P0(TOT * 0.2, 0)[0], P0(TOT * 0.2, 0)[1], P0(TOT * 0.96, 0)[0], P0(TOT * 0.96, 0)[1], 0.9);
       } else if (id === 'axe') {
         segT(TOT * -0.14, TOT * 0.97, 0, 0, 2.6, '#8a6a40'); // handle
-        const h2 = P0(TOT * 0.8, 0);
-        ctx.fillStyle = '#c84034'; ctx.beginPath(); // blade wedge
-        ctx.moveTo(h2[0] + nx * -5, h2[1] + ny * -5); ctx.lineTo(tipx + nx * 1.2, tipy + ny * 1.2); ctx.lineTo(h2[0] + nx * 5, h2[1] + ny * 5); ctx.closePath(); ctx.fill();
+        // fire axe head: cutting blade on one side, pointed pick on the other, sitting at the top of the handle
+        const h2 = P0(TOT * 0.84, 0), t2 = P0(TOT * 1.02, 0);
+        ctx.fillStyle = '#c84034'; ctx.beginPath();
+        // blade side: broad curved-ish edge away from the player
+        ctx.moveTo(h2[0] + nx * 2.5, h2[1] + ny * 2.5);
+        ctx.lineTo(t2[0] + nx * 8.5, t2[1] + ny * 8.5); // cutting edge top
+        ctx.lineTo(t2[0] + nx * 8, t2[1] + ny * 3.5); // edge bottom (shorter: blade is wider at the top)
+        ctx.lineTo(h2[0] + nx * 2, h2[1] + ny * 1);
+        ctx.closePath(); ctx.fill();
         ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = '#b03a30'; ctx.beginPath();
+        // pick side: pointed spike in the opposite direction
+        ctx.moveTo(h2[0] + nx * -2.5, h2[1] + ny * -2.5);
+        ctx.lineTo(t2[0] + nx * -3.5, t2[1] + ny * -3.5);
+        ctx.lineTo(t2[0] + nx * -8, t2[1] + ny * -7.5); // pick point
+        ctx.lineTo(h2[0] + nx * -2, h2[1] + ny * -1);
+        ctx.closePath(); ctx.fill();
+        ctx.stroke();
+        // steel band where the head meets the handle
+        ctx.fillStyle = '#8a9096'; ctx.beginPath();
+        ctx.ellipse(h2[0], h2[1], 1.6, 3.4, Math.atan2(fy, fx) + Math.PI / 2, 0, 7); ctx.fill();
         hl(P0(TOT * 0.05, -0.7)[0], P0(TOT * 0.05, -0.7)[1], P0(TOT * 0.6, -0.7)[0], P0(TOT * 0.6, -0.7)[1], 0.8);
       } else if (id === 'crowbar') {
         segT(TOT * -0.06, TOT * 0.7, 0, 0, 2.8, col); // shaft
