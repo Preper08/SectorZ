@@ -84,7 +84,8 @@
     if (d.type === 'light' && it.bat !== undefined) add('Battery', Math.round(it.bat) + '%'); if (it.burn !== undefined) add('Burn time', Math.round(it.burn) + 's');
     if (it.fuel !== undefined && d.type === 'fuel') add('Fuel', Math.round(it.fuel) + ' / ' + d.maxfuel);
     if (d.sick) add('Risk', 'Sickness');
-    if (d.cols) add('Storage', d.cols + ' × ' + d.rows);
+    if (d.cols) add(d.slot === 'legs' ? 'Pockets' : 'Storage', d.cols + ' × ' + d.rows);
+    if (d.quiet !== undefined) add('Noise', d.quiet);
     add('Size', d.w + ' × ' + d.h);
     return '<div class="t">' + d.type + '</div><b>' + d.name + (it.q > 1 ? ' ×' + it.q : '') + '</b>' + (d.desc ? '<div class="d">' + d.desc + '</div>' : '') + '<div class="s">' + rows.join('') + '</div>';
   }
@@ -117,7 +118,7 @@
     el.style.display = 'block'; el.style.width = (g.w * CELL + 2) + 'px'; el.style.height = (g.h * CELL + 2) + 'px'; el.innerHTML = '';
     for (const it of g.items) el.appendChild(itemEl(it, name));
   }
-  const EQ = [['head', 'Head'], ['body', 'Body'], ['feet', 'Feet'], ['bag', 'Bag'], ['light', 'Light']];
+  const EQ = [['head', 'Head'], ['body', 'Body'], ['vest', 'Vest'], ['legs', 'Legs'], ['feet', 'Feet'], ['bag', 'Bag'], ['light', 'Light']];
   function renderEquip() {
     const P = S.player.inv; els.equip.innerHTML = '';
     for (const [k, lab] of EQ) {

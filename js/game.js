@@ -94,6 +94,10 @@
     ensure('mre', 4); ensure('beans', 4); ensure('water', 4); ensure('soda', 4);
     ensure('hammer', 1); ensure('nails', 30); ensure('wood', 6); ensure('scrap', 12); ensure('tape', 3);
     ensure('gascan', 1, { fuel: 100 }); ensure('battery', 3); ensure('flashlight', 1, { bat: 100 }); ensure('map', 1); ensure('lighter', 1);
+    // admin loadout wears the full combat outfit: kevlar vest, cargo pants, boots
+    if (!P.equip.vest) Inv.equip(P, Inv.make('vest'), Game.dropFn(S));
+    if (!P.equip.legs || P.equip.legs.id !== 'cargopants') Inv.equip(P, Inv.make('cargopants'), Game.dropFn(S));
+    if (!P.equip.feet || P.equip.feet.id !== 'boots') Inv.equip(P, Inv.make('boots'), Game.dropFn(S));
     if (P.equip.light && P.equip.light.bat !== undefined) P.equip.light.bat = 100;
     // put the main weapons into empty hotbar slots (1-4)
     const kit = ['pistol', 'shotgun', 'rifle', 'machete'];
@@ -395,7 +399,7 @@
     const sp = Math.hypot(p.vx, p.vy); p.moving = sp > 0.3;
     if (sp > 0.01) { const r = W.moveCircle(p.x, p.y, p.vx * dt, p.vy * dt, 0.27); p.x = r.x; p.y = r.y; E.pushFromCars(S, p, 0.27); S.stats.distance += sp * dt / 1000; }
     if (p.running && p.moving) p.stamina = Math.max(0, p.stamina - 13 * dt); else p.stamina = Math.min(100, p.stamina + (p.moving ? 6 : 14) * dt);
-    if (p.moving) { p.stepT -= dt * sp / 2.4; if (p.stepT <= 0) { p.stepT = 1; const nz = p.running ? 9 : (p.sneak ? 1.2 : (p.crouch ? 2.2 : 4)); A.play(p.running ? 'stepRun' : 'step', p.x, p.y, p.sneak ? 0.3 : (p.crouch ? 0.4 : 0.6), 20); E.noise(S, p.x, p.y, nz); } }
+    if (p.moving) { p.stepT -= dt * sp / 2.4; if (p.stepT <= 0) { p.stepT = 1; const shoe = P.equip.feet ? I[P.equip.feet.id] : null; const base = shoe && shoe.quiet !== undefined ? shoe.quiet : 4; const nz = p.running ? 9 : (p.sneak ? 1.2 : (p.crouch ? Math.min(2.2, base * 0.55) : base)); A.play(p.running ? 'stepRun' : 'step', p.x, p.y, p.sneak ? 0.3 : (p.crouch ? 0.4 : 0.6), 20); E.noise(S, p.x, p.y, nz); } }
     p.ph += sp * dt * 5.3;
     // ---- pose
     const gun = p.heldDef && p.heldDef.type === 'gun', mel = p.heldDef && p.heldDef.type === 'melee';
