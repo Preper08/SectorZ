@@ -140,10 +140,10 @@
     // the pants pockets replace the old fixed 'Pockets' grid: the section title becomes
     // the main storage header while trousers are worn, and hides when they are not
     els['pantstitle'].classList.toggle('hidden', !P.pantsGrid);
-    els['pantstitle'].textContent = P.equip.legs ? I[P.equip.legs.id].name + ' pockets' : 'Pockets';
+    els['pantstitle'].textContent = P.equip.legs ? I[P.equip.legs.id].name + ' pockets  ' + P.pantsGrid.w + '×' + P.pantsGrid.h : 'Pockets';
     els['g-pants'].classList.toggle('hidden', !P.pantsGrid);
     renderGrid('pants');
-    els['bagtitle'].style.display = P.bagGrid ? '' : 'none'; els['bagtitle'].textContent = P.equip.bag ? I[P.equip.bag.id].name : 'Bag'; renderGrid('bag');
+    els['bagtitle'].style.display = P.bagGrid ? '' : 'none'; els['bagtitle'].textContent = P.equip.bag ? I[P.equip.bag.id].name + '  ' + P.bagGrid.w + '×' + P.bagGrid.h : 'Bag'; renderGrid('bag');
     if (UI.loot) { els.lootcol.classList.remove('hidden'); els.loottitle.textContent = UI.loot.title; renderGrid('loot'); } else els.lootcol.classList.add('hidden');
     renderHot(true);
   }
