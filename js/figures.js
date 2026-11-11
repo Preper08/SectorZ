@@ -96,13 +96,12 @@
     return J;
   }
 
-  // legs: thighs in shorts colour, shins and feet are bare skin (short pants, barefoot
-  // by default); boots cover the shin and the foot when equipped. Every part is anchored
-  // to the knee/foot joints, so it follows the walking and crouching motion.
+  // legs: thighs + shins follow the LEGS_FIGS entry (shorts keep shins bare, trousers
+  // cover them to the ankle); footwear drawn after from FOOTWEAR_FIGS
   function drawLegs(J, spec, cap, pr, skin, pants, shoes) {
     const legR = FOOTWEAR_FIGS[spec.feetId] ? 0.095 : 0.085;
-    cap(J.hipL, J.kneeL, legR, pants); cap(J.kneeL, J.footL, 0.07, skin);
-    cap(J.hipR, J.kneeR, legR, pants); cap(J.kneeR, J.footR, 0.07, skin);
+    const lg = LEGS_FIGS[spec.legsId] || LEGS_FIGS.shorts;
+    lg(J, cap, pr, skin, pants, legR);
     const fw = FOOTWEAR_FIGS[spec.feetId] || FOOTWEAR_FIGS.barefoot;
     fw(J, cap, pr, skin, shoes);
   }
@@ -144,10 +143,20 @@
     }
   }
 
+  // vest layer: drawn after the torso and arms so it overlays the BODY clothing; the
+  // shirt remains visible on the sides, lower hem and arms wherever the vest does not cover
+  function drawVest(J, spec, cap) {
+    if (!spec.vestId) return;
+    const vf = VEST_FIGS[spec.vestId];
+    if (vf) vf(J, cap, spec.shirt, spec.vestCol || spec.shirt);
+  }
+
   // ----- equipment definition tables: each entry is a draw function anchored to the
   // body joints. Adding new clothing / headwear / footwear = a new table entry, no
   // changes to the render pipeline. All shapes are kept in the capsule style.
   const CLOTHING_FIGS = {
+    // plain t-shirt: no extra layers, the torso capsule is the shirt
+    tshirt: null,
     // jacket: open front line + folded collar
     jacket: (J, cap, shirt) => {
       cap([J.pel[0] + 0.02, 0, J.pel[2] + 0.06], [J.neck[0], 0, J.neck[2] - 0.08], 0.165, shirt, { hem: true }); // open front line
@@ -157,10 +166,14 @@
     hoodie: (J, cap, shirt) => {
       cap([J.neck[0] - 0.01, 0, J.neck[2] - 0.01], [J.neck[0] + 0.1, 0, J.neck[2] - 0.14], 0.09, shirt); // hood bump behind the neck
       cap([J.pel[0] + 0.04, 0, J.pel[2] + 0.05], [J.pel[0] + 0.04, 0, J.pel[2] + 0.18], 0.03, shirt); // drawstring
-    },
-    // vest: darker plate overlay + shoulder yoke + belt pouches
-    vest: (J, cap, shirt) => {
-      const vc = shirt.map(v => v * 0.72); // darker overlay panels
+    }
+  };
+
+  // vest layer: drawn AFTER the body clothing so it overlays it; the underlying BODY
+  // item stays visible wherever the vest does not cover (sides, lower hem, arms)
+  // entries receive (J, cap, shirt, vestCol)
+  const VEST_FIGS = {
+    vest: (J, cap, shirt, vc) => {
       cap([J.neck[0] + 0.02, 0, J.neck[2] - 0.02], [J.pel[0] + 0.02, 0, J.pel[2] + 0.1], 0.115, vc, { plate: true });
       cap([J.shL[0], -0.13, J.shL[2] - 0.02], [J.shR[0], 0.13, J.shR[2] - 0.02], 0.055, vc); // shoulder yoke
       cap([J.pel[0] + 0.03, -0.1, J.pel[2] + 0.02], [J.pel[0] + 0.03, 0.1, J.pel[2] + 0.02], 0.045, vc); // belt pouches
@@ -185,12 +198,43 @@
     }
   };
 
+  // legs clothing: each entry draws the legs from the real hip/knee/foot joints.
+  // shorts keep the shins bare; trousers/cargo cover them to the ankle; cargo adds
+  // visible side pockets. entries receive (J, cap, pr, skin, col)
+  const LEGS_FIGS = {
+    // shorts: thigh-length shorts, shins and feet stay bare skin
+    shorts: (J, cap, pr, skin, col, legR) => {
+      cap(J.hipL, J.kneeL, legR, col); cap(J.hipR, J.kneeR, legR, col);
+      cap(J.kneeL, J.footL, 0.07, skin); cap(J.kneeR, J.footR, 0.07, skin);
+    },
+    // trousers: full-length legs down to the ankle, slightly thicker
+    trousers: (J, cap, pr, skin, col, legR) => {
+      cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.075, col);
+      cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.075, col);
+    },
+    // cargo pants: full-length + pocket patches on both thighs
+    cargopants: (J, cap, pr, skin, col, legR) => {
+      cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.075, col);
+      cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.075, col);
+      const dk = col.map(v => v * 0.75);
+      const pL = lerp3(J.hipL, J.kneeL, 0.45), pR = lerp3(J.hipR, J.kneeR, 0.45);
+      cap([pL[0] + 0.02, pL[1] - 0.06, pL[2]], [pL[0] + 0.02, pL[1] - 0.06, pL[2] - 0.14], 0.045, dk);
+      cap([pR[0] + 0.02, pR[1] + 0.06, pR[2]], [pR[0] + 0.02, pR[1] + 0.06, pR[2] - 0.14], 0.045, dk);
+    }
+  };
   // footwear: shaft / laces / foot / heel / sole per item; barefoot is the default
   // entry (skin-toned feet). entries receive (J, cap, pr, skin, shoes)
   const FOOTWEAR_FIGS = {
     barefoot: (J, cap, pr, skin, shoes) => {
       cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, skin);
       cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, skin);
+    },
+    // sneakers: low shoe over the foot + light-coloured sole strip, slimmer than boots
+    sneakers: (J, cap, pr, skin, shoes) => {
+      for (const ft of [J.footL, J.footR]) {
+        cap([ft[0] - 0.05, ft[1], ft[2] + 0.035], [ft[0] + 0.16, ft[1], ft[2] + 0.035], 0.052, shoes, { d: pr(ft).d + 0.03 });
+        cap([ft[0] - 0.05, ft[1], ft[2] + 0.006], [ft[0] + 0.16, ft[1], ft[2] + 0.006], 0.045, [shoes[0] * 1.35, shoes[1] * 1.35, shoes[2] * 1.35], { sole: true, d: pr(ft).d + 0.035 });
+      }
     },
     // boots: shaft + laces + foot + heel + dark sole, both legs
     boots: (J, cap, pr, skin, shoes) => {
@@ -222,6 +266,7 @@
     drawLegs(J, spec, cap, pr, skin, pants, shoes);
     drawTorso(J, spec, cap, skin, pants, shirt);
     drawArms(J, spec, cap, rb, skin, shirt);
+    drawVest(J, spec, cap);
     cap(J.neck, J.head, 0.05, skin);
     drawBag(J, spec, cap);
     parts.sort((a, b) => a.d - b.d);
@@ -318,7 +363,7 @@
   const SHIRTS = [[150, 40, 40], [48, 80, 130], [70, 110, 70], [190, 180, 160], [60, 60, 66], [180, 130, 50], [110, 60, 110], [220, 220, 214], [40, 90, 100], [130, 90, 60]];
   const PANTS = [[44, 56, 84], [48, 48, 52], [92, 82, 62], [60, 70, 50], [30, 30, 34], [100, 100, 108]];
   Fig.playerSpec = function (eq) {
-    return { id: 'P' + (eq.bodyId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0), skin: SKIN[1], hair: HAIR[1], shirt: eq.bodyCol || [78, 98, 120], pants: [54, 60, 78], sleeve: eq.bodyCol ? null : [78, 98, 120], shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, eye: 'rgba(14,10,10,0.9)' };
+    return { id: 'P' + (eq.bodyId || 0) + (eq.vestId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0) + (eq.legsId || 0), skin: SKIN[1], hair: HAIR[1], shirt: eq.bodyCol || [78, 98, 120], pants: eq.legsCol || [54, 60, 78], sleeve: eq.bodyCol ? null : [78, 98, 120], shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, legsId: eq.legsId || null, legsCol: eq.legsCol || null, vestId: eq.vestId || null, vestCol: eq.vestCol || null, eye: 'rgba(14,10,10,0.9)' };
   };
   Fig.zombieSpec = function (seed, type) {
     const r = U.mulberry32(seed * 7919 + 13);

@@ -108,14 +108,16 @@
   };
 
   // ---------------------------------------------------------------- equipment visuals
-  const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], vest: [58, 64, 70], helmet: [76, 86, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], fannypack: [74, 74, 82] };
+  const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], vest: [58, 64, 70], helmet: [76, 86, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], fannypack: [74, 74, 82], tshirt: [90, 122, 154], shorts: [84, 98, 126], trousers: [74, 79, 96], cargopants: [90, 98, 72], sneakers: [138, 138, 138] };
   // p.look carries only what the figure renderer consumes: an id per equipment slot
-  // (selects the draw entry in CLOTHING/HEADWEAR/FOOTWEAR_FIGS) and its colour
+  // (selects the draw entry in CLOTHING/VEST/HEADWEAR/FOOTWEAR/LEGS_FIGS) and its colour
   Game.refreshEquipVisuals = function (S) {
     const p = S.player, e = p.inv.equip, L = {};
     if (e.body) { L.bodyId = e.body.id; L.bodyCol = CLOTH_COL[e.body.id] || [90, 90, 90]; }
+    if (e.vest) { L.vestId = e.vest.id; L.vestCol = CLOTH_COL[e.vest.id] || [58, 64, 70]; }
     if (e.head) { L.headId = e.head.id; L.headCol = CLOTH_COL[e.head.id] || [80, 80, 80]; }
     if (e.feet) { L.feetId = e.feet.id; L.feetCol = CLOTH_COL[e.feet.id]; }
+    if (e.legs) { L.legsId = e.legs.id; L.legsCol = CLOTH_COL[e.legs.id] || [84, 98, 126]; }
     if (e.bag) { L.bagId = e.bag.id; L.bagCol = CLOTH_COL[e.bag.id]; }
     p.look = L;
     const lt = e.light; p.lightDef = lt ? Object.assign({}, I[lt.id], { id: lt.id }) : null;
