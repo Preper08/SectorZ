@@ -604,7 +604,7 @@
   Game.deleteSave = () => { try { localStorage.removeItem('dsz_save'); } catch (e) { /* */ } };
   Game.applySave = function (S, d) {
     const p = S.player; S.hour = d.hour; S.day = d.day; Object.assign(S.stats, d.stats); S.weather.rain = d.weather.rain; S.weather.target = d.weather.target;
-    Object.assign(p, d.player); p.inv = d.player.inv; Inv.migrateEquip(p.inv); Inv.refreshBag(p.inv); p.dead = false; p.vx = p.vy = 0;
+    Object.assign(p, d.player); p.inv = d.player.inv; Inv.migrateEquip(p.inv, Game.dropFn(S)); Inv.refreshBag(p.inv); p.dead = false; p.vx = p.vy = 0;
     for (const idx of d.removed || []) { const x = idx % C.W, y = (idx / C.W) | 0; const o = W.getObj(x, y); if (o && !o.base) { W.removeObj(x, y); } }
     for (const m of d.mods || []) { const o = W.getObj(m.x, m.y); if (!o) continue; if (m.grid) o.grid = m.grid; if (m.searched) o.searched = true; if (m.broken) o.broken = true; if (m.open !== undefined) o.open = m.open; if (m.locked !== undefined) o.locked = m.locked; if (m.hp !== undefined) o.hp = m.hp; if (m.chop) o.chop = m.chop; W.refresh(m.x, m.y); }
     for (const b of d.base || []) { const o = { t: b.t, f: b.f, v: 0, base: true, b: 0, open: b.open, hp: b.hp, fuel: b.fuel, lit: b.lit, water: b.water, grid: b.grid }; W.setObj(b.x, b.y, o); if (D[b.t].fire && b.lit || b.t === O.BLAMP) Game.attachBaseLight(o); }

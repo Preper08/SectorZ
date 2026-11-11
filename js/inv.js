@@ -52,12 +52,14 @@
   // ---- player inventory
   Inv.newPlayer = function () {
     // starter outfit assigned here once (game.js does not re-equip the base clothing):
-    // t-shirt + shorts worn, bare feet, no vest
-    const P = { pockets: Inv.grid(6, 2), bag: null, bagGrid: null, equip: { head: null, body: Inv.make('tshirt'), vest: null, legs: Inv.make('shorts'), feet: null, bag: null, light: null }, hot: [null, null, null, null, null, null], sel: -1 };
+    // t-shirt + shorts worn (the shorts' 1x1 pocket is the only storage), bare feet, no vest
+    const P = { pockets: null, bag: null, bagGrid: null, equip: { head: null, body: Inv.make('tshirt'), vest: null, legs: Inv.make('shorts'), feet: null, bag: null, light: null }, hot: [null, null, null, null, null, null], sel: -1 };
     Inv.refreshPants(P);
     return P;
   };
-  Inv.grids = P => P.bagGrid ? (P.pantsGrid ? [P.pockets, P.bagGrid, P.pantsGrid] : [P.pockets, P.bagGrid]) : (P.pantsGrid ? [P.pockets, P.pantsGrid] : [P.pockets]);
+  // storage grids in order: pants pockets first (always present once legs are worn),
+  // then the bag grid; the old fixed 6x2 'pockets' grid is gone
+  Inv.grids = P => P.bagGrid ? (P.pantsGrid ? [P.pantsGrid, P.bagGrid] : [P.bagGrid]) : (P.pantsGrid ? [P.pantsGrid] : []);
   Inv.give = function (P, it) { // returns leftover item or null
     for (const g of Inv.grids(P)) { if (Inv.addTo(g, it) === 0) return null; }
     return it;
@@ -110,8 +112,9 @@
     }
   };
   // old saves: add the new LEGS/VEST slots, move a vest stuck in the body slot to the vest slot,
-  // and give legacy characters the starter clothing they never had
-  Inv.migrateEquip = function (P) {
+  // and give legacy characters the starter clothing they never had. The old fixed 6x2 'pockets'
+  // grid is absorbed: its items move into the pants pockets / bag, then the field is dropped.
+  Inv.migrateEquip = function (P, dropFn) {
     let changed = false;
     if (!('legs' in P.equip)) { P.equip.legs = null; changed = true; }
     if (!('vest' in P.equip)) { P.equip.vest = null; changed = true; }
@@ -121,6 +124,12 @@
     // legacy characters wore an implicit t-shirt/shorts: make it explicit
     if (!P.equip.body) { P.equip.body = Inv.make('tshirt'); changed = true; }
     if (!P.equip.legs) { P.equip.legs = Inv.make('shorts'); changed = true; }
+    // absorb the legacy fixed pockets grid into the new storage (pants pockets first, then the bag)
+    if (P.pockets && P.pockets.items && P.pockets.items.length) {
+      Inv.refreshPants(P);
+      for (const it of P.pockets.items) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); }
+      P.pockets = null; changed = true;
+    }
     if (changed) Inv.refreshPants(P);
     return changed;
   };
