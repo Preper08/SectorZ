@@ -318,7 +318,7 @@
   const SHIRTS = [[150, 40, 40], [48, 80, 130], [70, 110, 70], [190, 180, 160], [60, 60, 66], [180, 130, 50], [110, 60, 110], [220, 220, 214], [40, 90, 100], [130, 90, 60]];
   const PANTS = [[44, 56, 84], [48, 48, 52], [92, 82, 62], [60, 70, 50], [30, 30, 34], [100, 100, 108]];
   Fig.playerSpec = function (eq) {
-    return { id: 'P' + (eq.body || 0) + (eq.head || 0) + (eq.bag || 0) + (eq.feet || 0), skin: SKIN[1], hair: HAIR[1], shirt: eq.bodyCol || [78, 98, 120], pants: [54, 60, 78], sleeve: eq.bodyCol ? null : [78, 98, 120], shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, eye: 'rgba(14,10,10,0.9)' };
+    return { id: 'P' + (eq.bodyId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0), skin: SKIN[1], hair: HAIR[1], shirt: eq.bodyCol || [78, 98, 120], pants: [54, 60, 78], sleeve: eq.bodyCol ? null : [78, 98, 120], shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, eye: 'rgba(14,10,10,0.9)' };
   };
   Fig.zombieSpec = function (seed, type) {
     const r = U.mulberry32(seed * 7919 + 13);

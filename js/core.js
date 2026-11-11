@@ -4,14 +4,17 @@
   const DSZ = window.DSZ = {};
 
   DSZ.C = {
-    TW: 64, TH: 32,          // iso tile size in px (zoom 1)
-    WH: 92,                  // wall height in px
+    TW: 64, TH: 32,          // iso tile size in px (zoom 1) = 1 world unit
+    WH: 92,                  // wall/door height in px (objects use their own px scale)
     W: 176, H: 176,          // world size in tiles
     CH: 8,                   // chunk size in tiles
     STREET0: 16, SP: 36,     // first street centre, spacing between streets
     ROAD: 6, SIDE: 2,        // road width, sidewalk width
     DAY_LEN: 1500,           // seconds per full in-game day
     START_HOUR: 17.2,
+    // vertical scale notes: characters use ZU = 39.2 px per world unit of height
+    // (js/figures.js) and are drawn at 0.90 (CH_SCALE in js/render.js); objects like
+    // walls/doors use the raw px values above. 1 world unit ~= 1 m of world space.
     VERSION: '0.1.0'
   };
 
