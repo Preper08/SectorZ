@@ -3,7 +3,11 @@
   'use strict';
   const DSZ = window.DSZ, U = DSZ.U, O = DSZ.O, G3 = DSZ.G3;
   const Props = DSZ.Props = {};
-  const B = G3.box;
+  // furniture Z-heights are defined for the 1.0 character scale; characters draw at 0.90
+  // (CH_SCALE in js/render.js), so prop z values shrink by the same factor to keep the
+  // furniture/character proportions consistent. x/y footprints are untouched.
+  const PROP_Z = 0.9;
+  const B = (x0, y0, z0, x1, y1, z1, c, o) => G3.box(x0, y0, z0 * PROP_Z, x1, y1, z1 * PROP_Z, c, o);
   const cache = new Map();
   const PALETTE = [[150, 110, 70], [110, 80, 54], [168, 140, 100], [90, 84, 78]];
   const FAB = [[120, 60, 56], [60, 84, 110], [86, 110, 78], [150, 130, 90], [96, 70, 100], [70, 70, 76]];
