@@ -392,6 +392,9 @@
     const wantRun = In.down('ShiftLeft') && il > 0 && p.stamina > 4 && !p.sneak && !p.crouch && !p.broken;
     p.running = wantRun;
     let spd = p.running ? 4.8 : (p.sneak ? 1.5 : 2.6);
+    // footwear bonus: running shoes add a small speed boost to every movement mode
+    const shoe = P.equip.feet ? I[P.equip.feet.id] : null;
+    if (shoe && shoe.speed) spd *= 1 + shoe.speed;
     if (p.crouch) spd *= 0.7; // crouch = 70% of normal walk speed
     if (p.broken) spd *= 0.5; if (p.use) spd *= 0.6; if (p.atkT > 0) spd *= 0.65; if (p.stamina < 12) spd *= 0.8;
     const wt = Inv.weight(P); if (wt > 40) spd *= Math.max(0.6, 1 - (wt - 40) / 120);

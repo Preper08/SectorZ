@@ -236,6 +236,13 @@
         cap([ft[0] - 0.05, ft[1], ft[2] + 0.006], [ft[0] + 0.16, ft[1], ft[2] + 0.006], 0.045, [shoes[0] * 1.35, shoes[1] * 1.35, shoes[2] * 1.35], { sole: true, d: pr(ft).d + 0.035 });
       }
     },
+    // running shoes: slimmer low profile with a white stripe, lighter colour
+    runners: (J, cap, pr, skin, shoes) => {
+      for (const ft of [J.footL, J.footR]) {
+        cap([ft[0] - 0.04, ft[1], ft[2] + 0.035], [ft[0] + 0.17, ft[1], ft[2] + 0.035], 0.046, shoes, { d: pr(ft).d + 0.03 });
+        cap([ft[0] - 0.04, ft[1], ft[2] + 0.005], [ft[0] + 0.17, ft[1], ft[2] + 0.005], 0.042, [255, 255, 255], { sole: true, d: pr(ft).d + 0.035 }); // white sole
+      }
+    },
     // boots: shaft + laces + foot + heel + dark sole, both legs
     boots: (J, cap, pr, skin, shoes) => {
       for (const [kne, ft] of [[J.kneeL, J.footL], [J.kneeR, J.footR]]) {
