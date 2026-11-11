@@ -212,6 +212,19 @@
       cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.075, col);
       cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.075, col);
     },
+    // jeans: full-length legs, slightly bluish, thinner than trousers
+    jeans: (J, cap, pr, skin, col, legR) => {
+      cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.072, col);
+      cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.072, col);
+    },
+    // tracksuit pants: full-length, slimmer with a light side stripe
+    tracksuit: (J, cap, pr, skin, col, legR) => {
+      cap(J.hipL, J.kneeL, legR * 0.92, col); cap(J.kneeL, J.footL, 0.065, col);
+      cap(J.hipR, J.kneeR, legR * 0.92, col); cap(J.kneeR, J.footR, 0.065, col);
+      const lite = [col[0] * 1.5 + 40, col[1] * 1.5 + 40, col[2] * 1.5 + 40];
+      cap(J.hipL, J.footL, 0.018, lite, { d: pr(J.hipL).d + 0.04 });
+      cap(J.hipR, J.footR, 0.018, lite, { d: pr(J.hipR).d + 0.04 });
+    },
     // cargo pants: full-length + pocket patches on both thighs
     cargopants: (J, cap, pr, skin, col, legR) => {
       cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.075, col);

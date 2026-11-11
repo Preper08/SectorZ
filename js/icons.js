@@ -88,6 +88,10 @@
     shorts: (x, c) => { poly(x, [[16, 18], [48, 18], [50, 30], [42, 54], [34, 54], [32, 36], [30, 54], [22, 54], [14, 30]], grad(x, 14, 18, 50, 54, c || '#54627e', 1.25, 0.65)); x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(16, 18, 32, 5); x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(17, 19, 30, 2); },
     // trousers: two full-length legs with a waistband
     trousers: (x, c) => { poly(x, [[16, 16], [48, 16], [50, 28], [46, 54], [35, 54], [32, 30], [29, 54], [18, 54], [14, 28]], grad(x, 14, 16, 50, 54, c || '#4a4f60', 1.25, 0.65)); x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(16, 16, 32, 5); x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(17, 17, 30, 2); },
+    // jeans: full-length legs with stitching seams
+    jeans: (x, c) => { poly(x, [[16, 16], [48, 16], [50, 28], [46, 54], [35, 54], [32, 30], [29, 54], [18, 54], [14, 28]], grad(x, 14, 16, 50, 54, c || '#3e4e6e', 1.25, 0.65)); x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(16, 16, 32, 5); x.strokeStyle = 'rgba(220,190,120,0.35)'; x.lineWidth = 1; x.beginPath(); x.moveTo(18, 24); x.lineTo(22, 54); x.moveTo(46, 24); x.lineTo(42, 54); x.stroke(); },
+    // tracksuit pants: slim full-length with a light side stripe
+    tracksuit: (x, c) => { poly(x, [[18, 16], [46, 16], [48, 28], [44, 54], [35, 54], [32, 30], [29, 54], [20, 54], [16, 28]], grad(x, 16, 16, 48, 54, c || '#3c5a48', 1.25, 0.65)); x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(18, 16, 28, 4); capsule(x, 20, 22, 26, 52, 2.5, '#e8e8e0'); capsule(x, 44, 22, 38, 52, 2.5, '#e8e8e0'); },
     // cargo pants: full-length + side pocket flaps on both legs
     cargopants: (x, c) => { poly(x, [[16, 16], [48, 16], [50, 28], [46, 54], [35, 54], [32, 30], [29, 54], [18, 54], [14, 28]], grad(x, 14, 16, 50, 54, c || '#5a6248', 1.25, 0.65)); x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(16, 16, 32, 5); rr(x, 8, 30, 12, 14, 2, grad(x, 8, 30, 20, 44, '#4c543c', 1.15, 0.6)); rr(x, 44, 30, 12, 14, 2, grad(x, 44, 30, 56, 44, '#4c543c', 1.15, 0.6)); x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(9, 33, 10, 2); x.fillRect(45, 33, 10, 2); },
     // sneakers: low shoe with a light sole and lace hints
