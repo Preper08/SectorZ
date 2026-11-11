@@ -15,7 +15,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'g-pockets', 'g-bag', 'bagtitle', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'g-pockets', 'g-bag', 'bagtitle', 'g-pants', 'pantstitle', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver']) els[id] = $(id);
     els.ver.textContent = 'v' + C.VERSION;
     // tabs
     document.querySelectorAll('#win .tabs button').forEach(b => b.addEventListener('click', () => UI.showTab(b.dataset.tab)));
@@ -95,8 +95,8 @@
   function hideTip() { hovered = null; els.tip.classList.add('hidden'); }
 
   // ------------------------------------------------------------------ inventory rendering
-  function gridEl(name) { return name === 'pockets' ? els['g-pockets'] : name === 'bag' ? els['g-bag'] : els['g-loot']; }
-  function gridObj(name) { const P = S.player.inv; return name === 'pockets' ? P.pockets : name === 'bag' ? P.bagGrid : (UI.loot && UI.loot.grid); }
+  function gridEl(name) { return name === 'pockets' ? els['g-pockets'] : name === 'bag' ? els['g-bag'] : name === 'pants' ? els['g-pants'] : els['g-loot']; }
+  function gridObj(name) { const P = S.player.inv; return name === 'pockets' ? P.pockets : name === 'bag' ? P.bagGrid : name === 'pants' ? P.pantsGrid : (UI.loot && UI.loot.grid); }
   function itemEl(it, name) {
     const d = I[it.id], [w, h] = Inv.size(it), e = document.createElement('div'); e.className = 'gi';
     e.style.cssText = 'left:' + (it.x * CELL) + 'px;top:' + (it.y * CELL) + 'px;width:' + (w * CELL) + 'px;height:' + (h * CELL) + 'px';
@@ -137,6 +137,7 @@
   function renderInv() {
     if (!S) return; renderEquip(); renderCondition(); renderGrid('pockets');
     const P = S.player.inv; els['bagtitle'].style.display = P.bagGrid ? '' : 'none'; els['bagtitle'].textContent = P.equip.bag ? I[P.equip.bag.id].name : 'Bag'; renderGrid('bag');
+    els['pantstitle'].classList.toggle('hidden', !P.pantsGrid); els['pantstitle'].textContent = P.equip.legs ? I[P.equip.legs.id].name + ' pockets' : 'Pants pockets'; els['g-pants'].classList.toggle('hidden', !P.pantsGrid); renderGrid('pants');
     if (UI.loot) { els.lootcol.classList.remove('hidden'); els.loottitle.textContent = UI.loot.title; renderGrid('loot'); } else els.lootcol.classList.add('hidden');
     renderHot(true);
   }
@@ -220,7 +221,7 @@
   function clearHL() { document.querySelectorAll('.cellhl').forEach(n => n.remove()); document.querySelectorAll('.eqslot.hl').forEach(n => n.classList.remove('hl')); }
   function target(e) {
     const t = document.elementFromPoint(e.clientX, e.clientY); if (!t) return null;
-    const grid = t.closest && t.closest('.grid'); if (grid) { const name = grid.id === 'g-pockets' ? 'pockets' : grid.id === 'g-bag' ? 'bag' : 'loot'; return { type: 'grid', name, el: grid }; }
+    const grid = t.closest && t.closest('.grid'); if (grid) { const name = grid.id === 'g-pockets' ? 'pockets' : grid.id === 'g-bag' ? 'bag' : grid.id === 'g-pants' ? 'pants' : 'loot'; return { type: 'grid', name, el: grid }; }
     const hs = t.closest && t.closest('.hslot'); if (hs) return { type: 'hot', idx: +hs.dataset.slot, el: hs };
     const eq = t.closest && t.closest('.eqslot'); if (eq) return { type: 'equip', slot: eq.dataset.eq, el: eq };
     if (t.closest && t.closest('#win')) return { type: 'panel' };
