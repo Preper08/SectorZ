@@ -57,9 +57,9 @@
     Inv.refreshPants(P);
     return P;
   };
-  // storage grids in order: pants pockets first (always present once legs are worn),
-  // then the bag grid; the old fixed 6x2 'pockets' grid is gone
-  Inv.grids = P => P.bagGrid ? (P.pantsGrid ? [P.pantsGrid, P.bagGrid] : [P.bagGrid]) : (P.pantsGrid ? [P.pantsGrid] : []);
+  // storage grids in order: the bag grid first (large items overflow there), then the pants
+  // pockets (small essentials); the old fixed 6x2 'pockets' grid is gone
+  Inv.grids = P => P.bagGrid ? (P.pantsGrid ? [P.bagGrid, P.pantsGrid] : [P.bagGrid]) : (P.pantsGrid ? [P.pantsGrid] : []);
   Inv.give = function (P, it) { // returns leftover item or null
     for (const g of Inv.grids(P)) { if (Inv.addTo(g, it) === 0) return null; }
     return it;

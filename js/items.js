@@ -88,7 +88,7 @@
   it('helmet', 'Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#4c5436' });
   it('cap', 'Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#4a6a8a' });
   // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags)
-  it('shorts', 'Shorts', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 1, rows: 1, col: '#54627e', desc: 'One pocket.' });
+  it('shorts', 'Shorts', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 2, rows: 1, col: '#54627e', desc: 'Two pockets.' });
   it('trousers', 'Trousers', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 2, rows: 1, col: '#4a4f60', desc: 'Two pockets.' });
   it('cargopants', 'Cargo Pants', 'clothes', { w: 2, h: 2, slot: 'legs', def: 2, cols: 2, rows: 2, col: '#5a6248', desc: 'Cargo pockets.' });
   // feet (FEET slot): sneakers are quieter than boots
