@@ -79,11 +79,20 @@
   it('map', 'Town Map', 'tool', { col: '#c4b48a', desc: 'Press M to open.' });
   it('radio', 'Radio', 'misc', { w: 2, h: 1, col: '#555' });
   // ---- clothing / bags
+  // upper body (BODY slot): only ONE at a time; a VEST is a separate slot worn over it
+  it('tshirt', 'T-shirt', 'clothes', { slot: 'body', def: 0, col: '#5a7a9a', desc: 'Plain and worn.' });
   it('jacket', 'Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 8, warm: 10, col: '#4a5a6a' });
   it('hoodie', 'Hoodie', 'clothes', { w: 2, h: 2, slot: 'body', def: 5, warm: 14, col: '#6a4a4a' });
-  it('vest', 'Kevlar Vest', 'clothes', { w: 2, h: 2, slot: 'body', def: 38, warm: 4, col: '#3a4046', desc: 'Reduces bite damage.' });
+  // vest slot: worn over the BODY clothing, drawn as an overlay layer
+  it('vest', 'Kevlar Vest', 'clothes', { w: 2, h: 2, slot: 'vest', def: 38, warm: 4, col: '#3a4046', desc: 'Reduces bite damage.' });
   it('helmet', 'Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#4c5436' });
   it('cap', 'Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#4a6a8a' });
+  // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags)
+  it('shorts', 'Shorts', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 1, rows: 1, col: '#54627e', desc: 'One pocket.' });
+  it('trousers', 'Trousers', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 2, rows: 1, col: '#4a4f60', desc: 'Two pockets.' });
+  it('cargopants', 'Cargo Pants', 'clothes', { w: 2, h: 2, slot: 'legs', def: 2, cols: 2, rows: 2, col: '#5a6248', desc: 'Cargo pockets.' });
+  // feet (FEET slot): sneakers are quieter than boots
+  it('sneakers', 'Sneakers', 'clothes', { w: 1, h: 1, slot: 'feet', def: 1, warm: 2, quiet: 2.5, col: '#8a8a8a', desc: 'Quiet steps.' });
   it('boots', 'Boots', 'clothes', { w: 2, h: 2, slot: 'feet', def: 6, warm: 6, col: '#5a4028' });
   it('backpack', 'Backpack', 'bag', { w: 2, h: 3, slot: 'bag', cols: 8, rows: 5, col: '#5c6a46', desc: '+ storage' });
   it('bigpack', 'Hiking Pack', 'bag', { w: 3, h: 3, slot: 'bag', cols: 10, rows: 7, col: '#8a4a30', desc: '++ storage' });
@@ -94,8 +103,8 @@
   const L = DSZ.LOOT = {
     kitchen: { n: [1, 3], t: [['beans', 8], ['soup', 7], ['bread', 5], ['chips', 4], ['cereal', 5], ['water', 5], ['soda', 5], ['knife', 4], ['matches', 3], ['lighter', 1.5], ['rags', 3], ['bottle', 3], ['juice', 3]] },
     fridge: { n: [0, 3], t: [['meat', 5], ['soda', 8], ['juice', 6], ['apple', 6], ['water', 6], ['candy', 4]] },
-    bedroom: { n: [0, 2], t: [['rags', 5], ['cloth', 4], ['painkillers', 3], ['candy', 2], ['flashlight', 1.2], ['battery', 3], ['cap', 2], ['bandage', 2], ['radio', 1]] },
-    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['cap', 4], ['boots', 3], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
+    bedroom: { n: [0, 2], t: [['rags', 5], ['cloth', 4], ['painkillers', 3], ['candy', 2], ['flashlight', 1.2], ['battery', 3], ['cap', 2], ['sneakers', 1.5], ['bandage', 2], ['radio', 1]] },
+    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['cap', 4], ['boots', 3], ['sneakers', 3], ['trousers', 3], ['cargopants', 1.5], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
     living: { n: [0, 2], t: [['battery', 4], ['rags', 3], ['candy', 3], ['chips', 3], ['soda', 3], ['radio', 1], ['lighter', 2], ['tape', 1]] },
     books: { n: [0, 1], t: [['rags', 3], ['map', 2], ['matches', 3], ['candy', 1]] },
     medical: { n: [0, 3], t: [['bandage', 9], ['painkillers', 6], ['antibiotics', 2.5], ['splint', 1.5], ['medkit', 1.2], ['rags', 3]] },
@@ -105,7 +114,7 @@
     grocery: { n: [1, 3], t: [['beans', 10], ['soup', 8], ['bread', 5], ['chips', 7], ['cereal', 6], ['water', 8], ['soda', 8], ['juice', 6], ['apple', 4], ['candy', 6], ['mre', 0.6]] },
     store: { n: [1, 3], t: [['beans', 4], ['water', 4], ['soda', 4], ['chips', 4], ['battery', 4], ['flashlight', 2], ['lighter', 2], ['tape', 3], ['rags', 3], ['backpack', 1.2], ['map', 1.5]] },
     hardware: { n: [1, 3], t: [['nails', 8], ['hammer', 3.5], ['crowbar', 3], ['wood', 5], ['scrap', 5], ['tape', 5], ['wire', 5], ['axe', 1.2], ['pipe', 3], ['battery', 3], ['flashlight', 2.5], ['gascan', 2], ['sheetmetal', 2.5], ['rope', 3], ['cement', 1.5], ['metalplate', 1.5]] },
-    clothing: { n: [1, 3], t: [['jacket', 6], ['hoodie', 6], ['cap', 5], ['boots', 5], ['cloth', 6], ['fannypack', 3], ['backpack', 3], ['bigpack', 0.8]] },
+    clothing: { n: [1, 3], t: [['jacket', 6], ['hoodie', 6], ['cap', 5], ['boots', 5], ['sneakers', 4], ['trousers', 4], ['cargopants', 2], ['cloth', 6], ['fannypack', 3], ['backpack', 3], ['bigpack', 0.8]] },
     electronics: { n: [1, 3], t: [['battery', 10], ['flashlight', 5], ['radio', 3], ['wire', 5], ['tape', 3], ['fusebox', 3]] },
     gas: { n: [1, 3], t: [['gascan', 3], ['soda', 6], ['chips', 6], ['candy', 6], ['water', 5], ['map', 3], ['battery', 3], ['lighter', 3], ['keys', 0.6]] },
     guns: { n: [1, 3], t: [['pistol', 3], ['shotgun', 1.8], ['rifle', 1.2], ['ammo9', 6], ['shell', 4], ['ammo762', 3], ['knife', 3], ['machete', 2], ['vest', 0.8]] },

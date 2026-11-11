@@ -51,9 +51,13 @@
 
   // ---- player inventory
   Inv.newPlayer = function () {
-    return { pockets: Inv.grid(6, 2), bag: null, bagGrid: null, equip: { head: null, body: null, feet: null, bag: null, light: null }, hot: [null, null, null, null, null, null], sel: -1 };
+    // starter outfit assigned here once (game.js does not re-equip the base clothing):
+    // t-shirt + shorts worn, bare feet, no vest
+    const P = { pockets: Inv.grid(6, 2), bag: null, bagGrid: null, equip: { head: null, body: Inv.make('tshirt'), vest: null, legs: Inv.make('shorts'), feet: null, bag: null, light: null }, hot: [null, null, null, null, null, null], sel: -1 };
+    Inv.refreshPants(P);
+    return P;
   };
-  Inv.grids = P => P.bagGrid ? [P.pockets, P.bagGrid] : [P.pockets];
+  Inv.grids = P => P.bagGrid ? (P.pantsGrid ? [P.pockets, P.bagGrid, P.pantsGrid] : [P.pockets, P.bagGrid]) : (P.pantsGrid ? [P.pockets, P.pantsGrid] : [P.pockets]);
   Inv.give = function (P, it) { // returns leftover item or null
     for (const g of Inv.grids(P)) { if (Inv.addTo(g, it) === 0) return null; }
     return it;
@@ -81,7 +85,7 @@
   Inv.removeItem = function (P, it) {
     for (const g of Inv.grids(P)) { const i = g.items.indexOf(it); if (i >= 0) { g.items.splice(i, 1); return true; } }
     for (let i = 0; i < P.hot.length; i++) if (P.hot[i] === it) { P.hot[i] = null; return true; }
-    for (const k in P.equip) if (P.equip[k] === it) { P.equip[k] = null; if (k === 'bag') Inv.refreshBag(P); return true; }
+    for (const k in P.equip) if (P.equip[k] === it) { P.equip[k] = null; if (k === 'bag') Inv.refreshBag(P); if (k === 'legs') Inv.refreshPants(P); return true; }
     return false;
   };
   Inv.refreshBag = function (P, dropFn) {
@@ -94,6 +98,32 @@
       P.bagGrid = ng;
     }
   };
+  // pants pocket grid: size comes from the equipped legs item (cols/rows), same pattern as bags
+  Inv.refreshPants = function (P, dropFn) {
+    const l = P.equip.legs, d = l && I[l.id];
+    const old = P.pantsGrid;
+    if (!l || !d.cols) { P.pantsGrid = null; if (old) for (const it of old.items) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); } return; }
+    if (!old || old.w !== d.cols || old.h !== d.rows) {
+      const ng = Inv.grid(d.cols, d.rows);
+      if (old) for (const it of old.items) { if (Inv.addTo(ng, it) !== 0) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); } }
+      P.pantsGrid = ng;
+    }
+  };
+  // old saves: add the new LEGS/VEST slots, move a vest stuck in the body slot to the vest slot,
+  // and give legacy characters the starter clothing they never had
+  Inv.migrateEquip = function (P) {
+    let changed = false;
+    if (!('legs' in P.equip)) { P.equip.legs = null; changed = true; }
+    if (!('vest' in P.equip)) { P.equip.vest = null; changed = true; }
+    // a vest equipped in the body slot (old system) moves to the vest slot without duplication
+    const bodyIt = P.equip.body;
+    if (bodyIt && I[bodyIt.id].slot === 'vest' && !P.equip.vest) { P.equip.vest = bodyIt; P.equip.body = null; changed = true; }
+    // legacy characters wore an implicit t-shirt/shorts: make it explicit
+    if (!P.equip.body) { P.equip.body = Inv.make('tshirt'); changed = true; }
+    if (!P.equip.legs) { P.equip.legs = Inv.make('shorts'); changed = true; }
+    if (changed) Inv.refreshPants(P);
+    return changed;
+  };
   Inv.equip = function (P, it, dropFn) { // equip clothing / bag / light; returns true
     const d = I[it.id]; let slot = null;
     if (d.type === 'clothes') slot = d.slot; else if (d.type === 'bag') slot = 'bag'; else if (d.type === 'light') slot = 'light';
@@ -101,16 +131,18 @@
     Inv.removeItem(P, it);
     const prev = P.equip[slot]; P.equip[slot] = it;
     if (slot === 'bag') { P.equip.bag = null; const keep = P.bagGrid; P.equip.bag = it; Inv.refreshBag(P, dropFn); }
+    if (slot === 'legs') Inv.refreshPants(P, dropFn); // pocket grid follows the trousers
     if (prev) { const left = Inv.give(P, prev); if (left && dropFn) dropFn(left); }
     return true;
   };
   Inv.unequip = function (P, slot, dropFn) {
     const it = P.equip[slot]; if (!it) return false;
     if (slot === 'bag') { P.equip.bag = null; Inv.refreshBag(P, dropFn); const left = Inv.give(P, it); if (left && dropFn) dropFn(left); return true; }
+    if (slot === 'legs') { P.equip.legs = null; Inv.refreshPants(P, dropFn); const left = Inv.give(P, it); if (left && dropFn) dropFn(left); return true; }
     const left = Inv.give(P, it); if (left) return false;
     P.equip[slot] = null; return true;
   };
-  Inv.armor = function (P) { let a = 0; for (const k of ['head', 'body', 'feet']) { const it = P.equip[k]; if (it) a += I[it.id].def || 0; } return a; };
+  Inv.armor = function (P) { let a = 0; for (const k of ['head', 'body', 'vest', 'legs', 'feet']) { const it = P.equip[k]; if (it) a += I[it.id].def || 0; } return a; };
   Inv.weight = function (P) { let w = 0; for (const it of Inv.all(P)) { const d = I[it.id]; w += d.w * d.h * 0.4 + (it.q - 1) * 0.1; } return w; };
 
   // ---- containers
