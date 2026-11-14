@@ -278,6 +278,7 @@
       else if (d.station === 'fire' || d.station === 'furnace') consider('fire', o, cx, cy, o.lit ? 'E  Add fuel (' + Math.round(o.fuel) + 's)' : 'E  Light fire (needs log/sticks)', 1.8);
       else if (o.t === O.BRAIN) consider('rain', o, cx, cy, 'E  Collect water (' + Math.floor(o.water || 0) + ')', 1.8);
       else if (o.t === O.SINK) consider('sink', o, cx, cy, 'E  Fill bottle', 1.5);
+      else if (o.t === O.TV) consider('tv', o, cx, cy, 'E  Watch TV', 1.7, -0.1);
       else if (o.pump) consider('pump', o, cx, cy, 'E  Siphon fuel' + (o.fuelLeft === undefined || o.fuelLeft > 0 ? '' : ' (empty)'), 1.6);
     }
     for (const z of S.zombies) if (z.dead && z.deadT <= 0 && Math.hypot(z.x - p.x, z.y - p.y) < 1.5) consider('corpse', z, z.x, z.y, z.grid || z.searched ? 'E  Open corpse' : 'E  Search body', 1.5, 0.1);
@@ -331,6 +332,7 @@
         break;
       }
       case 'sink': { const b = Inv.count(p.inv, 'bottle'); if (b > 0) { Inv.take(p.inv, 'bottle', 1); Game.giveOrDrop(S, Inv.make('dirtywater')); A.play('drink'); Game.toast(S, 'Filled bottle (dirty). Boil it.'); } else Game.toast(S, 'You need an empty bottle.'); break; }
+      case 'tv': { A.play('click'); DSZ.UI.openTV(f.ref); break; }
       case 'pump': {
         const o = f.ref; if (o.fuelLeft === undefined) o.fuelLeft = 10 + Math.random() * 30;
         const can = Inv.all(p.inv).find(x => x.id === 'gascan' && x.fuel < 100);

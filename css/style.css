@@ -157,6 +157,17 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 #cursor::after { top: 12px; left: 0; height: 2px; width: 26px; -webkit-mask: linear-gradient(90deg, #000 0 8px, transparent 8px 18px, #000 18px); mask: linear-gradient(90deg, #000 0 8px, transparent 8px 18px, #000 18px); }
 #cursor.ui { width: 14px; height: 14px; margin: -2px 0 0 -2px; } #cursor.ui::before, #cursor.ui::after { display: none; } #cursor.ui { border: 2px solid rgba(255,255,255,0.9); border-radius: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; }
 #bigmap { width: 704px; height: 704px; max-width: 90vh; max-height: 90vh; display: block; border: 1px solid var(--line); }
+
+/* ---------- TV popup ---------- */
+#tvwin { background: radial-gradient(ellipse at center, rgba(10,12,16,0.72), rgba(0,0,0,0.92)); z-index: 32; }
+.tvset { width: min(760px, 94vw); background: #14100c; border: 1px solid var(--line-hi); border-radius: 4px; box-shadow: 0 24px 70px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,255,255,0.04); }
+.tvset .whead { background: rgba(0,0,0,0.35); }
+.tvframe { position: relative; margin: 16px 16px 6px; padding: 16px; background: #0b0b0d; border: 1px solid rgba(0,0,0,0.8); border-radius: 6px; box-shadow: inset 0 3px 20px rgba(0,0,0,0.9), 0 0 0 2px rgba(255,255,255,0.03); }
+#tvscreen { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 3px; background: #04060a; }
+.tvglass { position: absolute; inset: 16px; border-radius: 3px; pointer-events: none; background: linear-gradient(150deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 32%); box-shadow: inset 0 0 90px rgba(0,0,0,0.6); }
+.tvmeta { display: flex; align-items: center; justify-content: space-between; padding: 6px 18px 16px; }
+.tvmeta span { font-size: 12px; letter-spacing: 0.22em; color: var(--dim); text-transform: uppercase; }
+.tvmeta .btn { padding: 6px 14px; }
 #admin-search { width: 100%; background: #14161a; border: 1px solid var(--line-hi); color: var(--text); font: inherit; padding: 7px 10px; margin-bottom: 10px; }
 .adminlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
 .adminitem { display: flex; align-items: center; gap: 8px; background: #1a1d22; border: 1px solid var(--line); padding: 5px 8px; cursor: pointer; user-select: none; }

@@ -3,20 +3,21 @@
   'use strict';
   const DSZ = window.DSZ, U = DSZ.U, C = DSZ.C, W = DSZ.World, O = DSZ.O, I = DSZ.ITEMS, Inv = DSZ.Inv, A = DSZ.Audio, In = DSZ.Input;
   const $ = id => document.getElementById(id);
-  const UI = DSZ.UI = { open: { win: false, tab: 'inv', map: false, menu: false, settings: false, controls: false, title: true, death: false }, loot: null, drag: null };
+  const UI = DSZ.UI = { open: { win: false, tab: 'inv', map: false, menu: false, settings: false, controls: false, title: true, death: false, tv: false }, loot: null, drag: null };
   const CELL = 44;
   let S = null, els = {}, imgCache = {}, craftTab = 'Survival', craftSel = null, hudT = 0, hotSig = '', toastSig = '', hovered = null, mmCanvas = null, mapRendered = null;
 
   const img = id => { let u = imgCache[id]; if (!u) u = imgCache[id] = DSZ.Icons.get(id).toDataURL(); return u; };
   UI.img = img;
-  UI.blockMouse = () => UI.open.win || UI.open.map || UI.open.menu || UI.open.settings || UI.open.controls || UI.open.title || UI.open.death;
-  UI.blockKeys = () => UI.open.menu || UI.open.settings || UI.open.controls || UI.open.title || UI.open.death;
-  UI.isModal = () => UI.open.menu || UI.open.settings || UI.open.title || UI.open.death || UI.open.controls;
+  UI.blockMouse = () => UI.open.win || UI.open.map || UI.open.menu || UI.open.settings || UI.open.controls || UI.open.title || UI.open.death || UI.open.tv;
+  UI.blockKeys = () => UI.open.menu || UI.open.settings || UI.open.controls || UI.open.title || UI.open.death || UI.open.tv;
+  UI.isModal = () => UI.open.menu || UI.open.settings || UI.open.title || UI.open.death || UI.open.controls || UI.open.tv;
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch']) els[id] = $(id);
     els.ver.textContent = 'v' + C.VERSION;
+    els.tvx.onclick = () => UI.closeTV(); els.tvclose.onclick = () => UI.closeTV();
     // tabs
     document.querySelectorAll('#win .tabs button').forEach(b => b.addEventListener('click', () => UI.showTab(b.dataset.tab)));
     $('winx').onclick = () => UI.closeWin(); $('mapx').onclick = () => UI.closeMap();
@@ -52,6 +53,28 @@
   UI.closeWin = function () { cancelDrag(); UI.open.win = false; UI.loot = null; els.win.classList.add('hidden'); hideTip(); els.lootcol.classList.add('hidden'); };
   UI.toggleWin = function (tab) { if (UI.open.win && UI.open.tab === tab) UI.closeWin(); else UI.openWin(tab); };
   UI.openLoot = function (title, grid, owner) { UI.loot = { title, grid, owner }; UI.openWin('inv'); };
+  // ---- interactive TV: a large popup showing the enlarged broadcast of the set we are at.
+  // movement and gameplay keys are blocked while open (UI.blockKeys/blockMouse); the mouse stays
+  // available for the Close button. Closing restores play with the player state untouched.
+  UI.openTV = function (tv) {
+    UI.open.tv = true; UI.tvT = 0;
+    UI.tvRef = tv || null;
+    // per-TV seed so different sets show slightly different feeds
+    UI.tvSeed = tv ? (((tv.x * 73856093) ^ (tv.y * 19349663)) >>> 0) % 1000 : 0;
+    UI.tvChannel = 1 + (UI.tvSeed % 66);
+    els.tvch.textContent = 'CH ' + UI.tvChannel + ' · LIVE FEED';
+    els.tvwin.classList.remove('hidden');
+    els.cursor.classList.toggle('ui', true);
+    if (S) S.paused = true; // freeze player movement and the world while watching (same as the pause menu)
+    A.play('click');
+  };
+  UI.closeTV = function () { if (!UI.open.tv) return; UI.open.tv = false; els.tvwin.classList.add('hidden'); if (S && !UI.open.menu) S.paused = false; A.play('click'); };
+  // animate the enlarged broadcast on the popup canvas using the shared TV screen content
+  function renderTV(dt) {
+    UI.tvT = (UI.tvT || 0) + (dt || 0.016);
+    const cv = els.tvscreen; if (!cv) return; const x = cv.getContext('2d');
+    DSZ.Props.tvDraw(x, cv.width, cv.height, UI.tvT, UI.tvSeed || 0);
+  }
   UI.openMap = function () { if (!Inv.has(S.player.inv, 'map')) { DSZ.Game.toast(S, 'You need a Town Map.'); return; } UI.open.map = true; els.mapwin.classList.remove('hidden'); drawBigMap(); };
   UI.closeMap = function () { UI.open.map = false; els.mapwin.classList.add('hidden'); };
   UI.toggleMenu = function (v) { v = v === undefined ? !UI.open.menu : v; UI.open.menu = v; els.pause.classList.toggle('hidden', !v); if (S) S.paused = v; if (v) { cancelDrag(); A.engine(false); } };
@@ -59,11 +82,11 @@
   UI.showControls = function (v) { UI.open.controls = v; els.controls.classList.toggle('hidden', !v); };
   UI.showTitle = function (v) {
     UI.open.title = v; els.title.classList.toggle('hidden', !v); els.hud.classList.toggle('hidden', v);
-    $('t-continue').disabled = !DSZ.Game.hasSave(); if (v) { els.win.classList.add('hidden'); UI.open.win = false; UI.open.menu = false; els.pause.classList.add('hidden'); UI.open.death = false; els.death.classList.add('hidden'); }
+    $('t-continue').disabled = !DSZ.Game.hasSave(); if (v) { els.win.classList.add('hidden'); UI.open.win = false; UI.open.menu = false; els.pause.classList.add('hidden'); UI.open.death = false; els.death.classList.add('hidden'); UI.closeTV(); }
   };
   UI.showLoading = function (v, txt, p) { $('loading').classList.toggle('hidden', !v); if (txt) $('ltxt').textContent = txt; if (p !== undefined) $('lbar').style.width = (p * 100) + '%'; };
   UI.showDeath = function (s) {
-    UI.open.death = true; UI.closeWin(); UI.closeMap(); els.death.classList.remove('hidden'); DSZ.Game.deleteSave();
+    UI.open.death = true; UI.closeWin(); UI.closeMap(); UI.closeTV(); els.death.classList.remove('hidden'); DSZ.Game.deleteSave();
     const why = { bite: 'Torn apart by the dead.', blast: 'Caught in an explosion.', crash: 'Killed in a crash.', hunger: 'You starved to death.', thirst: 'You died of thirst.', bleeding: 'You bled out.', infection: 'The infection took you.' }[s.deathCause] || 'You did not make it.';
     els.deathwhy.textContent = why;
     const hrs = ((s.day - 1) * 24 + s.hour - C.START_HOUR);
@@ -386,11 +409,13 @@
   UI.update = function (state, dt) {
     S = state; if (!S) return;
     const p = S.player;
+    if (UI.open.tv) renderTV(dt);
     els.cursor.classList.toggle('ui', UI.blockMouse());
     if (!UI.open.title) {
       // key handling
       if (!UI.open.death && !UI.open.settings && !UI.open.controls) {
-        if (In.pressed('Escape')) { if (UI.drag) cancelDrag(); else if (UI.open.map) UI.closeMap(); else if (UI.open.win) UI.closeWin(); else if (S.build.active) { DSZ.Game.setBuild(S, false); } else UI.toggleMenu(); }
+        if (In.pressed('Escape')) { if (UI.drag) cancelDrag(); else if (UI.open.tv) UI.closeTV(); else if (UI.open.map) UI.closeMap(); else if (UI.open.win) UI.closeWin(); else if (S.build.active) { DSZ.Game.setBuild(S, false); } else UI.toggleMenu(); }
+        else if (UI.open.tv) { /* TV open: gameplay keys are blocked; mouse stays for the Close button */ }
         else if (!UI.open.menu) {
           if (In.pressed('Tab') || In.pressed('KeyI')) UI.toggleWin('inv');
           if (In.pressed('KeyC')) UI.toggleWin('craft');

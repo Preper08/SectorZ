@@ -26,6 +26,51 @@
   const doors2 = (x, w, h) => { x.strokeStyle = 'rgba(0,0,0,0.55)'; x.lineWidth = 1.3; x.strokeRect(2, 2, w / 2 - 3, h - 4); x.strokeRect(w / 2 + 1, 2, w / 2 - 3, h - 4); x.fillStyle = 'rgba(220,220,225,0.7)'; x.fillRect(w / 2 - 4, h * 0.4, 2, 6); x.fillRect(w / 2 + 2, h * 0.4, 2, 6); grime(x, w, h, 0.3); };
   const drawers = (n) => (x, w, h) => { for (let i = 0; i < n; i++) { const y = h * i / n; x.strokeStyle = 'rgba(0,0,0,0.5)'; x.lineWidth = 1.2; x.strokeRect(2, y + 2, w - 4, h / n - 3); x.fillStyle = 'rgba(210,210,215,0.7)'; x.fillRect(w / 2 - 5, y + h / n / 2 - 1, 10, 2); } grime(x, w, h, 0.25); };
 
+  // ---- shared TV screen content: a dead "emergency broadcast" (CRT). Drawn tiny on the world
+  // prop and enlarged + animated in the interaction popup, so both show the same channel.
+  // t = seconds (animation), seed = per-TV offset so different sets look distinct.
+  let tvNoise = null;
+  function tvNoiseTile() {
+    if (tvNoise) return tvNoise;
+    const [c, x] = U.canvas2d(64, 64), id = x.createImageData(64, 64), d = id.data;
+    for (let i = 0; i < d.length; i += 4) { const v = (Math.random() * 255) | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+    x.putImageData(id, 0, 0); tvNoise = c; return c;
+  }
+  Props.tvDraw = function (x, w, h, t, seed) {
+    t = t || 0; seed = seed || 0;
+    const small = h < 60, nz = tvNoiseTile();
+    x.save();
+    x.fillStyle = '#0a1018'; x.fillRect(0, 0, w, h);            // dark blue-grey screen base
+    // test-pattern bars, bled out but visible
+    const bars = ['#8a3030', '#8a7a2c', '#2c8a3c', '#2c7a8a', '#463490', '#8a3468', '#6a6a6a', '#2a2a32'], bw = w / bars.length;
+    x.globalAlpha = small ? 0.16 : 0.28; for (let i = 0; i < bars.length; i++) { x.fillStyle = bars[i]; x.fillRect(i * bw, 0, Math.ceil(bw), h); } x.globalAlpha = 1;
+    // animated static
+    x.globalAlpha = small ? 0.2 : 0.4; const ox = (t * 120 + seed * 7) % 64, oy = (t * 180) % 64;
+    for (let yy = -64; yy < h; yy += 64) for (let xx = -64; xx < w; xx += 64) x.drawImage(nz, xx - ox, yy - oy); x.globalAlpha = 1;
+    // occasional glitch tear
+    if (((t * 6 + seed) | 0) % 5 === 0) { const ty = (Math.sin(t * 1.7 + seed) * 0.5 + 0.5) * h, th = Math.max(2, (h * 0.03) | 0); x.globalAlpha = small ? 0.3 : 0.55; x.drawImage(nz, 0, 0, 64, 64, (Math.sin(t * 3 + seed) * 0.5) * w * 0.08, ty, w, th); x.globalAlpha = 1; }
+    // scanlines
+    x.fillStyle = 'rgba(0,0,0,0.32)'; for (let yy = 0; yy < h; yy += 3) x.fillRect(0, yy, w, 1);
+    // rolling bright band
+    const bandY = ((t * 0.32 + seed * 0.13) % 1) * (h + 40) - 20, bg = x.createLinearGradient(0, bandY - 14, 0, bandY + 14);
+    bg.addColorStop(0, 'rgba(255,255,255,0)'); bg.addColorStop(0.5, 'rgba(180,215,255,0.14)'); bg.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = bg; x.fillRect(0, bandY - 14, w, 28);
+    // flicker + vignette
+    const fl = 0.9 + 0.1 * Math.sin(t * 11 + seed) * Math.sin(t * 3.3); x.fillStyle = 'rgba(0,0,0,' + ((1 - fl) * (small ? 1 : 0.6)).toFixed(3) + ')'; x.fillRect(0, 0, w, h);
+    const vg = x.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.24, w / 2, h / 2, Math.max(w, h) * 0.66);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,' + (small ? 0.8 : 0.62) + ')'); x.fillStyle = vg; x.fillRect(0, 0, w, h);
+    if (!small) {
+      // LIVE indicator
+      x.globalAlpha = (Math.sin(t * 4 + seed) > 0) ? 1 : 0.2; x.fillStyle = '#e0403a'; x.beginPath(); x.arc(w - 18, 20, 5.5, 0, 7); x.fill(); x.globalAlpha = 1;
+      x.fillStyle = 'rgba(235,235,240,0.9)'; x.font = 'bold ' + Math.round(h * 0.05) + 'px Rajdhani, sans-serif'; x.textAlign = 'right'; x.textBaseline = 'middle'; x.fillText('LIVE', w - 30, 21);
+      // scrolling news crawl along the bottom
+      const bandH = Math.max(20, h * 0.11); x.fillStyle = 'rgba(6,8,12,0.72)'; x.fillRect(0, h - bandH, w, bandH);
+      x.fillStyle = 'rgba(240,232,205,0.92)'; x.font = 'bold ' + Math.round(h * 0.058) + 'px Rajdhani, sans-serif'; x.textAlign = 'left'; x.textBaseline = 'middle';
+      const msg = '  EMERGENCY BROADCAST SYSTEM   ·   QUARANTINE IN EFFECT   ·   DO NOT APPROACH THE INFECTED   ·   STAY INDOORS   ·   ';
+      const tw = x.measureText(msg).width, sx = w - ((t * 46) % (tw + w)); x.fillText(msg, sx, h - bandH * 0.42);
+    }
+    x.restore();
+  };
+
   const B3 = {};
   B3[O.CRATE] = (o) => { const c = PALETTE[o.v & 3]; const f = B(-0.4, -0.4, 0, 0.4, 0.4, 0.62, c); for (const s of f) { if (s.role !== 'top') s.d = (x, w, h) => { planks(x, w, h, 4, false); x.strokeStyle = 'rgba(0,0,0,0.4)'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, 0); x.lineTo(w, h); x.moveTo(w, 0); x.lineTo(0, h); x.stroke(); grime(x, w, h, 0.3); }; else s.d = (x, w, h) => planks(x, w, h, 5, true); } return f; };
   B3[O.SHELF] = (o) => { const f = B(-0.18, -0.47, 0, 0.18, 0.47, 1.45, [96, 98, 104]); for (const s of f) { if (s.role === 'px' || s.role === 'nx') s.d = goods(o.v * 13 + (s.role === 'px' ? 1 : 2) + (o.x | 0) * 7 + (o.y | 0) * 3, 4); else if (s.role === 'top') s.d = (x, w, h) => { x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, 0, w, h); }; } return f; };
@@ -50,7 +95,13 @@
   B3[O.HYDRANT] = () => G3.prism(0, 0, 0, 0.5, 0.12, 8, [190, 40, 36], { top: [210, 60, 50], r1: 0.1 }).concat(G3.prism(0, 0, 0.3, 0.38, 0.17, 8, [180, 38, 34]));
   B3[O.MAILBOX] = () => B(-0.025, -0.025, 0, 0.025, 0.025, 0.8, [70, 70, 74]).concat(B(-0.14, -0.1, 0.8, 0.14, 0.1, 1.0, [60, 82, 140]));
   B3[O.BARRIER] = () => { const f = B(-0.18, -0.5, 0, 0.18, 0.5, 0.7, [176, 174, 168]); for (const s of f) if (s.role === 'px' || s.role === 'nx') s.d = (x, w, h) => { x.fillStyle = '#d84a28'; for (let i = 0; i < 4; i++) { x.beginPath(); x.moveTo(i * w / 4, h * 0.3); x.lineTo(i * w / 4 + w / 8, h * 0.3); x.lineTo(i * w / 4 + w / 8 - 4, h * 0.6); x.lineTo(i * w / 4 - 4, h * 0.6); x.fill(); } grime(x, w, h, 0.4); }; return f; };
-  B3[O.TV] = () => B(-0.2, -0.3, 0, 0.2, 0.3, 0.45, [90, 66, 46]).concat(B(-0.08, -0.32, 0.45, 0.1, 0.32, 0.88, [18, 18, 20]));
+  B3[O.TV] = () => {
+    const cab = B(-0.2, -0.3, 0, 0.2, 0.3, 0.45, [90, 66, 46]);
+    const body = B(-0.08, -0.32, 0.45, 0.1, 0.32, 0.88, [18, 18, 20]);
+    // the +x face of the set is the screen: give it the shared broadcast content
+    for (const f of body) if (f.role === 'px') f.d = (x, w, h) => Props.tvDraw(x, w, h, 0, 0);
+    return cab.concat(body);
+  };
   B3[O.BOOKSHELF] = (o) => { const f = B(-0.18, -0.46, 0, 0.18, 0.46, 1.6, [96, 68, 44]); for (const s of f) if (s.role === 'px') s.d = goods(o.v * 11 + 5, 5); return f; };
   B3[O.WORKBENCH] = () => { const f = B(-0.3, -0.48, 0, 0.3, 0.48, 0.82, [118, 90, 60], { top: [150, 120, 84] }); f.push(...B(-0.1, -0.3, 0.82, 0.05, -0.1, 0.9, [190, 40, 40]), ...B(0.0, 0.1, 0.82, 0.14, 0.3, 0.86, [100, 100, 106])); return f; };
   B3[O.CHECKOUT] = () => { const f = B(-0.28, -0.46, 0, 0.28, 0.46, 0.9, [90, 94, 100], { top: [60, 62, 66] }); f.push(...B(-0.1, 0.0, 0.9, 0.1, 0.2, 1.06, [30, 32, 36])); return f; };
