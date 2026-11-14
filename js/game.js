@@ -381,7 +381,11 @@
       if (In.pressed('KeyG')) Game.refuelNearby(S);
       if (c.engineOn) { A.engine(true, Math.min(1, Math.abs(c.speed) / 12 + (k.thr ? 0.18 : 0.05)), 1); if (c.fuel <= 0) c.engineOn = false; } else A.engine(false);
       if (In.pressed('KeyE') && !ui.blockKeys()) Game.exitCar(S);
-      p.x = c.x; p.y = c.y; p.moving = false; p.crouch = false; p.pose.crouch = false; p.pose.legs = 'idle'; S.stats.distance += Math.abs(c.speed) * dt / 1000; return;
+      p.x = c.x; p.y = c.y; p.moving = false; p.crouch = false; p.pose.crouch = false; p.pose.legs = 'idle'; S.stats.distance += Math.abs(c.speed) * dt / 1000;
+      // keep the focus marker on the current car (findFocus returns the 'E Exit vehicle' target
+      // while driving); without this the early return leaves a stale marker at the old position
+      S.focus = (p.dead || S.build.active) ? null : findFocus(S);
+      return;
     }
     // ---- movement
     let ix = (In.down('KeyD') || In.down('ArrowRight') ? 1 : 0) - (In.down('KeyA') || In.down('ArrowLeft') ? 1 : 0), iy = (In.down('KeyS') || In.down('ArrowDown') ? 1 : 0) - (In.down('KeyW') || In.down('ArrowUp') ? 1 : 0);
