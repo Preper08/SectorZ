@@ -217,12 +217,13 @@
     trousers: (J, cap, pr, skin, col, legR) => {
       cap(J.hipL, J.kneeL, legR * 0.94, col); cap(J.kneeL, J.footL, 0.066, col);
       cap(J.hipR, J.kneeR, legR * 0.94, col); cap(J.kneeR, J.footR, 0.066, col);
-      // pressed crease: a thin light line down the front of each leg, both segments
+      // pressed crease: a thin light line down the front of each leg, both segments.
+      // depth stays below footwear (boot shaft is +0.03) so boots cover the shin part
       const crease = [col[0] * 1.18, col[1] * 1.18, col[2] * 1.18];
-      cap(J.hipL, J.kneeL, 0.012, crease, { d: (pr(J.hipL).d + pr(J.kneeL).d) / 2 + 0.04 });
-      cap(J.kneeL, J.footL, 0.012, crease, { d: (pr(J.kneeL).d + pr(J.footL).d) / 2 + 0.04 });
-      cap(J.hipR, J.kneeR, 0.012, crease, { d: (pr(J.hipR).d + pr(J.kneeR).d) / 2 + 0.04 });
-      cap(J.kneeR, J.footR, 0.012, crease, { d: (pr(J.kneeR).d + pr(J.footR).d) / 2 + 0.04 });
+      cap(J.hipL, J.kneeL, 0.012, crease, { d: (pr(J.hipL).d + pr(J.kneeL).d) / 2 + 0.012 });
+      cap(J.kneeL, J.footL, 0.012, crease, { d: (pr(J.kneeL).d + pr(J.footL).d) / 2 + 0.012 });
+      cap(J.hipR, J.kneeR, 0.012, crease, { d: (pr(J.hipR).d + pr(J.kneeR).d) / 2 + 0.012 });
+      cap(J.kneeR, J.footR, 0.012, crease, { d: (pr(J.kneeR).d + pr(J.footR).d) / 2 + 0.012 });
     },
     // jeans: denim blue, baggy thick legs to the ankle with a rolled cuff
     jeans: (J, cap, pr, skin, col, legR) => {
@@ -240,11 +241,12 @@
       cap(J.hipL, J.kneeL, legR * 0.92, col); cap(J.kneeL, J.footL, 0.065, col);
       cap(J.hipR, J.kneeR, legR * 0.92, col); cap(J.kneeR, J.footR, 0.065, col);
       const lite = [col[0] * 1.5 + 40, col[1] * 1.5 + 40, col[2] * 1.5 + 40];
-      // stripe drawn per bone segment so it bends with the knee and keeps correct depth
-      cap(J.hipL, J.kneeL, 0.018, lite, { d: (pr(J.hipL).d + pr(J.kneeL).d) / 2 + 0.04 });
-      cap(J.kneeL, J.footL, 0.018, lite, { d: (pr(J.kneeL).d + pr(J.footL).d) / 2 + 0.04 });
-      cap(J.hipR, J.kneeR, 0.018, lite, { d: (pr(J.hipR).d + pr(J.kneeR).d) / 2 + 0.04 });
-      cap(J.kneeR, J.footR, 0.018, lite, { d: (pr(J.kneeR).d + pr(J.footR).d) / 2 + 0.04 });
+      // stripe drawn per bone segment so it bends with the knee and keeps correct depth.
+      // depth stays below footwear (boot shaft is +0.03) so boots cover the shin part
+      cap(J.hipL, J.kneeL, 0.018, lite, { d: (pr(J.hipL).d + pr(J.kneeL).d) / 2 + 0.012 });
+      cap(J.kneeL, J.footL, 0.018, lite, { d: (pr(J.kneeL).d + pr(J.footL).d) / 2 + 0.012 });
+      cap(J.hipR, J.kneeR, 0.018, lite, { d: (pr(J.hipR).d + pr(J.kneeR).d) / 2 + 0.012 });
+      cap(J.kneeR, J.footR, 0.018, lite, { d: (pr(J.kneeR).d + pr(J.footR).d) / 2 + 0.012 });
     },
     // cargo pants: full-length + pocket patches on both thighs
     cargopants: (J, cap, pr, skin, col, legR) => {
