@@ -399,8 +399,20 @@
     const kind = wallKind(o), mat0 = wallMat(o), ex = (tx - ty) * 32, ey = (tx + ty) * 16;
     if (a < 0.99) ctx.globalAlpha = a;
     const inner = (nx, ny) => { if (!o.b || o.t >= O.BWALL_W) return false; const i = ny * C.W + nx; return W.inb(nx, ny) && W.room[i] === o.b; };
-    if (!wallS) { const mat = (inner(tx, ty + 1) || o.inner) ? (o.imat || mat0) : mat0; const f = Wl.get(mat, kind, 'L', v); ctx.drawImage(f, ex - 32, ey + 16 - wh); }
-    if (!wallE) { const mat = (inner(tx + 1, ty) || o.inner) ? (o.imat || mat0) : mat0; const f = Wl.get(mat, kind, 'R', v); ctx.drawImage(f, ex, ey + 16 - wh); }
+    const drawS = !wallS, drawE = !wallE;
+    // Doors, windows, shop fronts and garages are an opening in a wall: the art belongs on a
+    // single face. When a tile shows two faces (a freestanding block, or both neighbours open)
+    // we keep the special art on the outward face and draw a plain wall on the other, so a door
+    // or window never appears on two sides of the same block.
+    let sKind = kind, eKind = kind;
+    if (kind !== 'plain' && drawS && drawE) {
+      let useS;
+      if (o.b && o.t < O.BWALL_W) { const sExt = !inner(tx, ty + 1), eExt = !inner(tx + 1, ty); useS = !(eExt && !sExt); } // prefer the exterior face; tie -> south
+      else useS = (o.f & 1) ? false : true; // base blocks: rotation picks the visible face
+      sKind = useS ? kind : 'plain'; eKind = useS ? 'plain' : kind;
+    }
+    if (drawS) { const mat = (inner(tx, ty + 1) || o.inner) ? (o.imat || mat0) : mat0; const f = Wl.get(mat, sKind, 'L', v); ctx.drawImage(f, ex - 32, ey + 16 - wh); }
+    if (drawE) { const mat = (inner(tx + 1, ty) || o.inner) ? (o.imat || mat0) : mat0; const f = Wl.get(mat, eKind, 'R', v); ctx.drawImage(f, ex, ey + 16 - wh); }
     const b = o.b && o.t < O.BWALL_W ? W.blds[o.b] : null;
     if (!b || b.roofA < 0.98 || o.fa < 0.9) { ctx.drawImage(Wl.top(o.t >= O.BWALL_W ? (o.t === O.BWALL_M ? '#7a8088' : '#8a6a44') : '#5a5650'), ex - 32, ey - wh); }
     ctx.globalAlpha = 1;
@@ -690,7 +702,9 @@
     if (od.wall) {
       const mat = def.obj === O.BWALL_M ? 'bmetal' : 'bwood', wh = C.WH, Wl = DSZ.Walls, ex = (tx - ty) * 32, ey = (tx + ty) * 16;
       ctx.globalAlpha = ok ? 0.65 : 0.45; const kind = def.obj === O.BDOOR ? 'door' : (def.obj === O.BWINDOW ? 'boarded' : 'plain');
-      ctx.drawImage(Wl.get(mat, kind, 'L', 0), ex - 32, ey + 16 - wh); ctx.drawImage(Wl.get(mat, kind, 'R', 0), ex, ey + 16 - wh); ctx.drawImage(Wl.top(def.obj === O.BWALL_M ? '#7a8088' : '#8a6a44'), ex - 32, ey - wh);
+      // match the world renderer: a door/window face shows on one side only (rotation picks which)
+      const useS = ((b.rot | 0) & 1) === 0; const sKind = kind === 'plain' ? kind : (useS ? kind : 'plain'), eKind = kind === 'plain' ? kind : (useS ? 'plain' : kind);
+      ctx.drawImage(Wl.get(mat, sKind, 'L', 0), ex - 32, ey + 16 - wh); ctx.drawImage(Wl.get(mat, eKind, 'R', 0), ex, ey + 16 - wh); ctx.drawImage(Wl.top(def.obj === O.BWALL_M ? '#7a8088' : '#8a6a44'), ex - 32, ey - wh);
     } else { const s = DSZ.Props.get(o); ctx.globalAlpha = ok ? 0.7 : 0.45; ctx.drawImage(s.c, i[0] - s.ox, i[1] - s.oy); }
     ctx.restore();
   }
