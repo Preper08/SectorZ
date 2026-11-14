@@ -80,17 +80,19 @@
   it('radio', 'Radio', 'misc', { w: 2, h: 1, col: '#555' });
   // ---- clothing / bags
   // upper body (BODY slot): only ONE at a time; a VEST is a separate slot worn over it.
-  // Trade-off: more protection or warmth = a bigger footprint (more carried weight + bag space)
-  it('tshirt', 'T-shirt', 'clothes', { slot: 'body', def: 0, col: '#5a7a9a', desc: 'Plain and worn.' });
-  it('flannel', 'Flannel Shirt', 'clothes', { w: 1, h: 2, slot: 'body', def: 3, warm: 9, col: '#9c3a34', desc: 'Light work shirt. Cheap and common.' });
-  it('sweater', 'Wool Sweater', 'clothes', { w: 2, h: 2, slot: 'body', def: 2, warm: 18, col: '#b8862e', desc: 'Very warm, but no real protection.' });
-  it('jacket', 'Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 8, warm: 10, col: '#4a5a6a' });
-  it('hoodie', 'Hoodie', 'clothes', { w: 2, h: 2, slot: 'body', def: 5, warm: 14, col: '#6a4a4a' });
-  it('leather', 'Leather Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 12, warm: 6, col: '#3e2e26', desc: 'Tough hide. Poor insulation.' });
-  it('padded', 'Padded Jacket', 'clothes', { w: 2, h: 3, slot: 'body', def: 16, warm: 5, col: '#38414e', desc: 'Best body armour, but bulky and cold.' });
-  it('wintercoat', 'Winter Coat', 'clothes', { w: 3, h: 2, slot: 'body', def: 5, warm: 26, col: '#a5602c', desc: 'Warmest coat. Huge and heavy.' });
-  // vest slot: worn over the BODY clothing, drawn as an overlay layer
-  it('vest', 'Kevlar Vest', 'clothes', { w: 2, h: 2, slot: 'vest', def: 38, warm: 4, col: '#3a4046', desc: 'Reduces bite damage.' });
+  // Trade-off: more protection or warmth = a bigger footprint (more carried weight + bag
+  // space) and, for most items, more pockets. The t-shirt has NO pockets.
+  // storage (cols/rows) is the item's own pocket grid.
+  it('tshirt', 'T-shirt', 'clothes', { slot: 'body', def: 0, col: '#5a7a9a', desc: 'Plain and worn. No pockets.' });
+  it('flannel', 'Flannel Shirt', 'clothes', { w: 1, h: 2, slot: 'body', def: 3, warm: 9, cols: 2, rows: 1, col: '#9c3a34', desc: 'Light work shirt. Two chest pockets.' });
+  it('sweater', 'Wool Sweater', 'clothes', { w: 2, h: 2, slot: 'body', def: 2, warm: 18, cols: 2, rows: 1, col: '#b8862e', desc: 'Very warm. Two loose pockets.' });
+  it('jacket', 'Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 8, warm: 10, cols: 3, rows: 2, col: '#4a5a6a', desc: 'Roomy side pockets.' });
+  it('hoodie', 'Hoodie', 'clothes', { w: 2, h: 2, slot: 'body', def: 5, warm: 14, cols: 3, rows: 2, col: '#6a4a4a', desc: 'Big kangaroo pocket.' });
+  it('leather', 'Leather Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 12, warm: 6, cols: 2, rows: 2, col: '#3e2e26', desc: 'Tough hide. Four zip pockets.' });
+  it('padded', 'Padded Jacket', 'clothes', { w: 2, h: 3, slot: 'body', def: 16, warm: 5, cols: 3, rows: 2, col: '#38414e', desc: 'Best body armour, but bulky and cold.' });
+  it('wintercoat', 'Winter Coat', 'clothes', { w: 3, h: 2, slot: 'body', def: 5, warm: 26, cols: 4, rows: 2, col: '#a5602c', desc: 'Warmest coat. Huge pockets.' });
+  // vest slot: worn over the BODY clothing, drawn as an overlay layer; more pockets than any body item
+  it('vest', 'Kevlar Vest', 'clothes', { w: 2, h: 2, slot: 'vest', def: 38, warm: 4, cols: 4, rows: 3, col: '#3a4046', desc: 'Reduces bite damage. Many pouches.' });
   it('helmet', 'Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#4c5436' });
   it('cap', 'Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#4a6a8a' });
   // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags)

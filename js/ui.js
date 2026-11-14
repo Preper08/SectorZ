@@ -15,7 +15,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'g-pants', 'pantstitle', 'g-bag', 'bagtitle', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver']) els[id] = $(id);
     els.ver.textContent = 'v' + C.VERSION;
     // tabs
     document.querySelectorAll('#win .tabs button').forEach(b => b.addEventListener('click', () => UI.showTab(b.dataset.tab)));
@@ -84,7 +84,7 @@
     if (d.type === 'light' && it.bat !== undefined) add('Battery', Math.round(it.bat) + '%'); if (it.burn !== undefined) add('Burn time', Math.round(it.burn) + 's');
     if (it.fuel !== undefined && d.type === 'fuel') add('Fuel', Math.round(it.fuel) + ' / ' + d.maxfuel);
     if (d.sick) add('Risk', 'Sickness');
-    if (d.cols) add(d.slot === 'legs' ? 'Pockets' : 'Storage', d.cols + ' × ' + d.rows);
+    if (d.cols) add(d.slot === 'bag' ? 'Storage' : 'Pockets', d.cols + ' × ' + d.rows);
     if (d.quiet !== undefined) add('Noise', d.quiet);
     add('Size', d.w + ' × ' + d.h);
     return '<div class="t">' + d.type + '</div><b>' + d.name + (it.q > 1 ? ' ×' + it.q : '') + '</b>' + (d.desc ? '<div class="d">' + d.desc + '</div>' : '') + '<div class="s">' + rows.join('') + '</div>';
@@ -95,8 +95,11 @@
   function hideTip() { hovered = null; els.tip.classList.add('hidden'); }
 
   // ------------------------------------------------------------------ inventory rendering
-  function gridEl(name) { return name === 'bag' ? els['g-bag'] : name === 'pants' ? els['g-pants'] : els['g-loot']; }
-  function gridObj(name) { const P = S.player.inv; return name === 'bag' ? P.bagGrid : name === 'pants' ? P.pantsGrid : (UI.loot && UI.loot.grid); }
+  // storage grids are dynamic: one section per equipped item that provides capacity (bag,
+  // legs, body, vest). gridEls maps a slot name to its grid element, rebuilt each renderInv.
+  let gridEls = {};
+  function gridObj(name) { const P = S.player.inv; return name === 'loot' ? (UI.loot && UI.loot.grid) : Inv.gridOf(P, name); }
+  function gridEl(name) { return name === 'loot' ? els['g-loot'] : gridEls[name]; }
   function itemEl(it, name) {
     const d = I[it.id], [w, h] = Inv.size(it), e = document.createElement('div'); e.className = 'gi';
     e.style.cssText = 'left:' + (it.x * CELL) + 'px;top:' + (it.y * CELL) + 'px;width:' + (w * CELL) + 'px;height:' + (h * CELL) + 'px';
@@ -114,7 +117,7 @@
     return e;
   }
   function renderGrid(name) {
-    const el = gridEl(name), g = gridObj(name); if (!g) { el.style.display = 'none'; return; }
+    const el = gridEl(name), g = gridObj(name); if (!el) return; if (!g) { el.style.display = 'none'; return; }
     el.style.display = 'block'; el.style.width = (g.w * CELL + 2) + 'px'; el.style.height = (g.h * CELL + 2) + 'px'; el.innerHTML = '';
     for (const it of g.items) el.appendChild(itemEl(it, name));
   }
@@ -137,13 +140,17 @@
   function renderInv() {
     if (!S) return; renderEquip(); renderCondition();
     const P = S.player.inv;
-    // the pants pockets replace the old fixed 'Pockets' grid: the section title becomes
-    // the main storage header while trousers are worn, and hides when they are not
-    els['pantstitle'].classList.toggle('hidden', !P.pantsGrid);
-    els['pantstitle'].textContent = P.equip.legs ? I[P.equip.legs.id].name + ' pockets  ' + P.pantsGrid.w + '×' + P.pantsGrid.h : 'Pockets';
-    els['g-pants'].classList.toggle('hidden', !P.pantsGrid);
-    renderGrid('pants');
-    els['bagtitle'].style.display = P.bagGrid ? '' : 'none'; els['bagtitle'].textContent = P.equip.bag ? I[P.equip.bag.id].name + '  ' + P.bagGrid.w + '×' + P.bagGrid.h : 'Bag'; renderGrid('bag');
+    // one storage section per equipped item that provides capacity; capacity is in the title.
+    // order follows Inv.STORE (bag first, then legs, body, vest).
+    const col = els.gridcol; col.innerHTML = ''; gridEls = {};
+    for (const slot of Inv.STORE) {
+      const g = Inv.gridOf(P, slot); if (!g) continue;
+      const it = P.equip[slot], name = it ? I[it.id].name : (slot === 'bag' ? 'Bag' : slot);
+      const h = document.createElement('h4'); h.textContent = name + '  ' + g.w + '×' + g.h; col.appendChild(h);
+      const d = document.createElement('div'); d.className = 'grid'; d.dataset.slot = slot; col.appendChild(d);
+      gridEls[slot] = d;
+    }
+    renderGrid('bag'); renderGrid('legs'); renderGrid('body'); renderGrid('vest');
     if (UI.loot) { els.lootcol.classList.remove('hidden'); els.loottitle.textContent = UI.loot.title; renderGrid('loot'); } else els.lootcol.classList.add('hidden');
     renderHot(true);
   }
@@ -227,7 +234,7 @@
   function clearHL() { document.querySelectorAll('.cellhl').forEach(n => n.remove()); document.querySelectorAll('.eqslot.hl').forEach(n => n.classList.remove('hl')); }
   function target(e) {
     const t = document.elementFromPoint(e.clientX, e.clientY); if (!t) return null;
-    const grid = t.closest && t.closest('.grid'); if (grid) { const name = grid.id === 'g-bag' ? 'bag' : grid.id === 'g-pants' ? 'pants' : 'loot'; return { type: 'grid', name, el: grid }; }
+    const grid = t.closest && t.closest('.grid'); if (grid) { const name = grid.dataset.slot || (grid.id === 'g-loot' ? 'loot' : 'bag'); return { type: 'grid', name, el: grid }; }
     const hs = t.closest && t.closest('.hslot'); if (hs) return { type: 'hot', idx: +hs.dataset.slot, el: hs };
     const eq = t.closest && t.closest('.eqslot'); if (eq) return { type: 'equip', slot: eq.dataset.eq, el: eq };
     if (t.closest && t.closest('#win')) return { type: 'panel' };
@@ -259,10 +266,10 @@
       if (placed && P.sel < 0 && def.type !== 'food') P.sel = t.idx;
     } else if (t && t.type === 'equip') {
       const slot = def.type === 'clothes' ? def.slot : def.type === 'bag' ? 'bag' : def.type === 'light' ? 'light' : null;
-      if (slot === t.slot) { const prev = P.equip[slot]; P.equip[slot] = it; if (slot === 'bag') { Inv.refreshBag(P, DSZ.Game.dropFn(S)); } if (prev) { const left = Inv.give(P, prev); if (left) DSZ.Game.dropItem(S, S.player.x, S.player.y, left); } placed = true; DSZ.Game.refreshEquipVisuals(S); }
+      if (slot === t.slot) { const prev = P.equip[slot]; P.equip[slot] = it; if (Inv.STORE.indexOf(slot) >= 0) { Inv.refreshSlot(P, slot, DSZ.Game.dropFn(S)); } if (prev) { const left = Inv.give(P, prev); if (left) DSZ.Game.dropItem(S, S.player.x, S.player.y, left); } placed = true; DSZ.Game.refreshEquipVisuals(S); }
     } else if (t && t.type === 'world') { DSZ.Game.dropItem(S, S.player.x + Math.cos(S.player.ang) * 0.8, S.player.y + Math.sin(S.player.ang) * 0.8, it); placed = true; A.play('click'); }
     if (!placed) revert(d);
-    else if (d.origin.type === 'equip' && d.origin.slot === 'bag') { Inv.refreshBag(P, DSZ.Game.dropFn(S)); }
+    else if (d.origin.type === 'equip' && Inv.STORE.indexOf(d.origin.slot) >= 0) { Inv.refreshSlot(P, d.origin.slot, DSZ.Game.dropFn(S)); }
     if (d.origin.type === 'equip') DSZ.Game.refreshEquipVisuals(S);
     UI.drag = null; els.dragghost.classList.add('hidden'); clearHL(); UI.refresh(); A.play('click', null, null, 0.3);
   }
@@ -277,7 +284,7 @@
     const P = S.player.inv, G = DSZ.Game; hideTip();
     if (from === 'equip') { const slot = Object.keys(P.equip).find(k => P.equip[k] === it); if (!Inv.unequip(P, slot, G.dropFn(S))) G.toast(S, 'No room'); G.refreshEquipVisuals(S); }
     else if (from === 'loot') { Inv.remove(UI.loot.grid, it); const left = Inv.give(P, it); if (left) { Inv.place(UI.loot.grid, left, left.x || 0, left.y || 0); Inv.addTo(UI.loot.grid, left); G.toast(S, 'Not enough space'); } else A.play('pickup'); }
-    else if (UI.loot && (from === 'pants' || from === 'bag') && !(I[it.id].type === 'food' && false)) { Inv.remove(gridObj(from), it); if (Inv.addTo(UI.loot.grid, it) !== 0) { Inv.addTo(gridObj(from), it); G.toast(S, 'Container is full'); } else A.play('click'); }
+    else if (UI.loot && from !== 'equip' && from !== 'loot') { Inv.remove(gridObj(from), it); if (Inv.addTo(UI.loot.grid, it) !== 0) { Inv.addTo(gridObj(from), it); G.toast(S, 'Container is full'); } else A.play('click'); }
     else { G.useItem(S, it); }
     UI.refresh();
   }
@@ -419,6 +426,6 @@
     renderBuild();
     if (S.sleeping) { /* handled in render via fade */ }
   };
-  function invSig() { const P = S.player.inv; const f = g => g ? g.items.map(i => i.id + i.q + i.x + i.y + (i.mag || '') + (i.dur ? (i.dur | 0) : '')).join(',') : ''; return f(P.pantsGrid) + '|' + f(P.bagGrid) + '|' + (UI.loot ? f(UI.loot.grid) : '') + '|' + Object.values(P.equip).map(i => i ? i.id : '-').join(''); }
+  function invSig() { const P = S.player.inv; const f = g => g ? g.items.map(i => i.id + i.q + i.x + i.y + (i.mag || '') + (i.dur ? (i.dur | 0) : '')).join(',') : ''; return Inv.STORE.map(s => f(Inv.gridOf(P, s))).join('#') + '|' + (UI.loot ? f(UI.loot.grid) : '') + '|' + Object.values(P.equip).map(i => i ? i.id : '-').join(''); }
   UI.fps = t => { if (DSZ.settings.showFps) els.fps.textContent = t; };
 })();

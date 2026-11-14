@@ -50,16 +50,21 @@
   };
 
   // ---- player inventory
+  // Storage capacity comes from equipment: the bag plus every worn garment that defines
+  // cols/rows. BODY shirts/jackets, the VEST and the LEGS all hold pockets; the t-shirt is
+  // the only body item with none, and head/feet never store. Total room is the SUM of all
+  // equipped grids. Fill order is bag first, then legs, body, vest (big items land in the bag).
+  Inv.STORE = ['bag', 'legs', 'body', 'vest'];
   Inv.newPlayer = function () {
     // starter outfit assigned here once (game.js does not re-equip the base clothing):
-    // t-shirt + shorts worn (the shorts' 1x1 pocket is the only storage), bare feet, no vest
-    const P = { pockets: null, bag: null, bagGrid: null, equip: { head: null, body: Inv.make('tshirt'), vest: null, legs: Inv.make('shorts'), feet: null, bag: null, light: null }, hot: [null, null, null, null, null, null], sel: -1 };
-    Inv.refreshPants(P);
+    // t-shirt (no pockets) + shorts (2x1 pocket), bare feet, no vest
+    const P = { pockets: null, grids: { bag: null, legs: null, body: null, vest: null }, equip: { head: null, body: Inv.make('tshirt'), vest: null, legs: Inv.make('shorts'), feet: null, bag: null, light: null }, hot: [null, null, null, null, null, null], sel: -1 };
+    Inv.refreshAll(P);
     return P;
   };
-  // storage grids in order: the bag grid first (large items overflow there), then the pants
-  // pockets (small essentials); the old fixed 6x2 'pockets' grid is gone
-  Inv.grids = P => P.bagGrid ? (P.pantsGrid ? [P.bagGrid, P.pantsGrid] : [P.bagGrid]) : (P.pantsGrid ? [P.pantsGrid] : []);
+  Inv.gridOf = function (P, slot) { return P.grids ? (P.grids[slot] || null) : null; };
+  // ordered list of the non-empty storage grids (bag first). Total capacity = the sum of these.
+  Inv.grids = function (P) { const out = []; for (const s of Inv.STORE) { const g = Inv.gridOf(P, s); if (g) out.push(g); } return out; };
   Inv.give = function (P, it) { // returns leftover item or null
     for (const g of Inv.grids(P)) { if (Inv.addTo(g, it) === 0) return null; }
     return it;
@@ -87,33 +92,37 @@
   Inv.removeItem = function (P, it) {
     for (const g of Inv.grids(P)) { const i = g.items.indexOf(it); if (i >= 0) { g.items.splice(i, 1); return true; } }
     for (let i = 0; i < P.hot.length; i++) if (P.hot[i] === it) { P.hot[i] = null; return true; }
-    for (const k in P.equip) if (P.equip[k] === it) { P.equip[k] = null; if (k === 'bag') Inv.refreshBag(P); if (k === 'legs') Inv.refreshPants(P); return true; }
+    for (const k in P.equip) if (P.equip[k] === it) { P.equip[k] = null; if (Inv.STORE.indexOf(k) >= 0) Inv.refreshSlot(P, k); return true; }
     return false;
   };
-  Inv.refreshBag = function (P, dropFn) {
-    const b = P.equip.bag, d = b && I[b.id];
-    const old = P.bagGrid;
-    if (!b) { P.bagGrid = null; if (old) for (const it of old.items) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); } return; }
-    if (!old || old.w !== d.cols || old.h !== d.rows) {
-      const ng = Inv.grid(d.cols, d.rows);
-      if (old) for (const it of old.items) { if (Inv.addTo(ng, it) !== 0) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); } }
-      P.bagGrid = ng;
+  // rebuild the storage grid that follows one equipment slot. If the new garment holds less
+  // than the old one, the overflow is pushed to the other grids and finally to dropFn so that
+  // nothing is ever silently lost.
+  Inv.refreshSlot = function (P, slot, dropFn) {
+    if (!P.grids) P.grids = { bag: null, legs: null, body: null, vest: null };
+    const it = P.equip[slot], d = it && I[it.id];
+    const cap = d && d.cols && d.rows ? [d.cols, d.rows] : null;
+    const old = P.grids[slot];
+    if (!cap) {
+      P.grids[slot] = null;
+      if (old) for (const o of old.items) { const left = Inv.give(P, o); if (left && dropFn) dropFn(left); }
+      return;
+    }
+    if (!old || old.w !== cap[0] || old.h !== cap[1]) {
+      const ng = Inv.grid(cap[0], cap[1]);
+      P.grids[slot] = ng;
+      if (old) for (const o of old.items) { if (Inv.addTo(ng, o) !== 0) { const left = Inv.give(P, o); if (left && dropFn) dropFn(left); } }
     }
   };
-  // pants pocket grid: size comes from the equipped legs item (cols/rows), same pattern as bags
-  Inv.refreshPants = function (P, dropFn) {
-    const l = P.equip.legs, d = l && I[l.id];
-    const old = P.pantsGrid;
-    if (!l || !d.cols) { P.pantsGrid = null; if (old) for (const it of old.items) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); } return; }
-    if (!old || old.w !== d.cols || old.h !== d.rows) {
-      const ng = Inv.grid(d.cols, d.rows);
-      if (old) for (const it of old.items) { if (Inv.addTo(ng, it) !== 0) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); } }
-      P.pantsGrid = ng;
-    }
-  };
+  // refresh every storage slot (used on load / migration)
+  Inv.refreshAll = function (P, dropFn) { for (const s of Inv.STORE) Inv.refreshSlot(P, s, dropFn); };
+  // backwards-compatible aliases (bag / legs were the original drivers)
+  Inv.refreshBag = function (P, dropFn) { Inv.refreshSlot(P, 'bag', dropFn); };
+  Inv.refreshPants = function (P, dropFn) { Inv.refreshSlot(P, 'legs', dropFn); };
   // old saves: add the new LEGS/VEST slots, move a vest stuck in the body slot to the vest slot,
   // and give legacy characters the starter clothing they never had. The old fixed 6x2 'pockets'
-  // grid is absorbed: its items move into the pants pockets / bag, then the field is dropped.
+  // grid is absorbed: its items move into the storage grids, then the field is dropped. The old
+  // flat bagGrid / pantsGrid fields migrate into the new P.grids map.
   Inv.migrateEquip = function (P, dropFn) {
     let changed = false;
     if (!('legs' in P.equip)) { P.equip.legs = null; changed = true; }
@@ -124,13 +133,14 @@
     // legacy characters wore an implicit t-shirt/shorts: make it explicit
     if (!P.equip.body) { P.equip.body = Inv.make('tshirt'); changed = true; }
     if (!P.equip.legs) { P.equip.legs = Inv.make('shorts'); changed = true; }
-    // absorb the legacy fixed pockets grid into the new storage (pants pockets first, then the bag)
+    // migrate the old flat grids into the new per-slot map
+    if (!P.grids) { P.grids = { bag: P.bagGrid || null, legs: P.pantsGrid || null, body: null, vest: null }; changed = true; }
+    // absorb the legacy fixed pockets grid into the new storage, then drop the field
     if (P.pockets && P.pockets.items && P.pockets.items.length) {
-      Inv.refreshPants(P);
-      for (const it of P.pockets.items) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); }
-      P.pockets = null; changed = true;
-    }
-    if (changed) Inv.refreshPants(P);
+      const stray = P.pockets.items.slice(); P.pockets = null; changed = true;
+      for (const it of stray) { const left = Inv.give(P, it); if (left && dropFn) dropFn(left); }
+    } else if (P.pockets) { P.pockets = null; changed = true; }
+    if (changed) Inv.refreshAll(P, dropFn);
     return changed;
   };
   Inv.equip = function (P, it, dropFn) { // equip clothing / bag / light; returns true
@@ -139,15 +149,13 @@
     if (!slot) return false;
     Inv.removeItem(P, it);
     const prev = P.equip[slot]; P.equip[slot] = it;
-    if (slot === 'bag') { P.equip.bag = null; const keep = P.bagGrid; P.equip.bag = it; Inv.refreshBag(P, dropFn); }
-    if (slot === 'legs') Inv.refreshPants(P, dropFn); // pocket grid follows the trousers
+    if (Inv.STORE.indexOf(slot) >= 0) Inv.refreshSlot(P, slot, dropFn); // capacity follows the garment
     if (prev) { const left = Inv.give(P, prev); if (left && dropFn) dropFn(left); }
     return true;
   };
   Inv.unequip = function (P, slot, dropFn) {
     const it = P.equip[slot]; if (!it) return false;
-    if (slot === 'bag') { P.equip.bag = null; Inv.refreshBag(P, dropFn); const left = Inv.give(P, it); if (left && dropFn) dropFn(left); return true; }
-    if (slot === 'legs') { P.equip.legs = null; Inv.refreshPants(P, dropFn); const left = Inv.give(P, it); if (left && dropFn) dropFn(left); return true; }
+    if (Inv.STORE.indexOf(slot) >= 0) { P.equip[slot] = null; Inv.refreshSlot(P, slot, dropFn); const left = Inv.give(P, it); if (left && dropFn) dropFn(left); return true; }
     const left = Inv.give(P, it); if (left) return false;
     P.equip[slot] = null; return true;
   };
