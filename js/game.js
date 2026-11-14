@@ -403,6 +403,9 @@
     p.vx += (mx * spd - p.vx) * Math.min(1, dt * 14); p.vy += (my * spd - p.vy) * Math.min(1, dt * 14);
     const sp = Math.hypot(p.vx, p.vy); p.moving = sp > 0.3;
     if (sp > 0.01) { const r = W.moveCircle(p.x, p.y, p.vx * dt, p.vy * dt, 0.27); p.x = r.x; p.y = r.y; E.pushFromCars(S, p, 0.27); S.stats.distance += sp * dt / 1000; }
+    // always resolve any overlap (a door closed on the player, a car shoved them into geometry)
+    // so they can never be permanently trapped; cheap no-op when they are in the clear
+    const u = W.unstick(p.x, p.y, 0.27); p.x = u[0]; p.y = u[1];
     if (p.running && p.moving) p.stamina = Math.max(0, p.stamina - 13 * dt); else p.stamina = Math.min(100, p.stamina + (p.moving ? 6 : 14) * dt);
     if (p.moving) { p.stepT -= dt * sp / 2.4; if (p.stepT <= 0) { p.stepT = 1; const shoe = P.equip.feet ? I[P.equip.feet.id] : null; const base = shoe && shoe.quiet !== undefined ? shoe.quiet : 4; const nz = p.running ? 9 : (p.sneak ? 1.2 : (p.crouch ? Math.min(2.2, base * 0.55) : base)); A.play(p.running ? 'stepRun' : 'step', p.x, p.y, p.sneak ? 0.3 : (p.crouch ? 0.4 : 0.6), 20); E.noise(S, p.x, p.y, nz); } }
     p.ph += sp * dt * 5.3;

@@ -142,6 +142,28 @@
       if (this.hitCircle(nx, ny, r)) { ny = py; hy = true; }
       return { x: nx, y: ny, hitX: hx, hitY: hy };
     },
+    // If the circle is somehow overlapping a solid tile (a door closed on it, a car pushed it
+    // into geometry, etc), moveCircle would block every direction and the entity would be stuck
+    // forever. This resolves the overlap by snapping to the nearest genuinely free spot: it
+    // tests the four ways out of each overlapped tile and keeps the closest one that is not
+    // inside any solid, so the entity pops out without ever tunnelling through a wall.
+    // Returns the (possibly unchanged) position. Cheap no-op when not overlapping.
+    unstick(px, py, r) {
+      if (!this.hitCircle(px, py, r)) return [px, py];
+      const x0 = Math.floor(px - r), x1 = Math.floor(px + r), y0 = Math.floor(py - r), y1 = Math.floor(py + r);
+      let bx = px, by = py, bd = Infinity;
+      const eps = 0.001;
+      for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+        if (!this.isSolid(tx, ty)) continue;
+        const cand = [[tx - r - eps, py], [tx + 1 + r + eps, py], [px, ty - r - eps], [px, ty + 1 + r + eps]];
+        for (const c of cand) {
+          if (this.hitCircle(c[0], c[1], r)) continue; // still inside something - not a valid exit
+          const d = (c[0] - px) * (c[0] - px) + (c[1] - py) * (c[1] - py);
+          if (d < bd) { bd = d; bx = c[0]; by = c[1]; }
+        }
+      }
+      return [bx, by];
+    },
     // DDA raycast. returns distance to first opaque tile hit, or null if clear to max. (origin tile ignored)
     raycast(x0, y0, x1, y1) {
       const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
