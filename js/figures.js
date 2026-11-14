@@ -166,6 +166,54 @@
     hoodie: (J, cap, shirt) => {
       cap([J.neck[0] - 0.01, 0, J.neck[2] - 0.01], [J.neck[0] + 0.1, 0, J.neck[2] - 0.14], 0.09, shirt); // hood bump behind the neck
       cap([J.pel[0] + 0.04, 0, J.pel[2] + 0.05], [J.pel[0] + 0.04, 0, J.pel[2] + 0.18], 0.03, shirt); // drawstring
+    },
+    // flannel shirt: open collar + a plaid grid (dark bands) on the chest front
+    flannel: (J, cap, shirt) => {
+      const dk = [shirt[0] * 0.55, shirt[1] * 0.55, shirt[2] * 0.55];
+      cap([J.neck[0] - 0.02, -0.07, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.07, J.neck[2] - 0.02], 0.055, shirt); // collar
+      const xf = J.pel[0] + 0.155;
+      for (const t of [0.28, 0.52, 0.76]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf, -0.11, z], [xf, 0.11, z], 0.014, dk); } // horizontal plaid
+      cap([xf, -0.06, J.pel[2] + 0.06], [xf, -0.06, J.neck[2] - 0.06], 0.014, dk); // vertical plaid
+      cap([xf, 0.06, J.pel[2] + 0.06], [xf, 0.06, J.neck[2] - 0.06], 0.014, dk);
+    },
+    // wool sweater: chunky rolled collar + knit ridges + ribbed hem
+    sweater: (J, cap, shirt) => {
+      const lt = [shirt[0] * 1.2, shirt[1] * 1.2, shirt[2] * 1.2];
+      cap([J.neck[0] - 0.01, -0.085, J.neck[2] - 0.04], [J.neck[0] - 0.01, 0.085, J.neck[2] - 0.04], 0.07, lt); // rolled collar
+      const xf = J.pel[0] + 0.15;
+      for (const t of [0.22, 0.42, 0.62, 0.82]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf, -0.1, z], [xf, 0.1, z], 0.012, lt); } // knit ridges
+      cap([J.pel[0] - 0.02, -0.15, J.pel[2] + 0.1], [J.pel[0] + 0.15, -0.15, J.pel[2] + 0.1], 0.032, lt); // ribbed hem
+      cap([J.pel[0] - 0.02, 0.15, J.pel[2] + 0.1], [J.pel[0] + 0.15, 0.15, J.pel[2] + 0.1], 0.032, lt);
+    },
+    // leather jacket: open front + zip line + two zip chest pockets (shiny)
+    leather: (J, cap, shirt) => {
+      const hi = [Math.min(255, shirt[0] * 1.7 + 30), Math.min(255, shirt[1] * 1.7 + 30), Math.min(255, shirt[2] * 1.7 + 30)];
+      cap([J.pel[0] + 0.03, 0, J.pel[2] + 0.06], [J.neck[0], 0, J.neck[2] - 0.08], 0.16, shirt, { hem: true }); // open front
+      cap([J.neck[0] - 0.02, -0.075, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.075, J.neck[2] - 0.02], 0.06, shirt); // collar
+      const xf = J.pel[0] + 0.155;
+      cap([xf, 0, J.pel[2] + 0.09], [xf, 0, J.neck[2] - 0.1], 0.012, hi); // zipper
+      cap([xf, -0.09, J.pel[2] + 0.2], [xf, -0.09, J.pel[2] + 0.3], 0.014, hi); // chest pockets
+      cap([xf, 0.09, J.pel[2] + 0.2], [xf, 0.09, J.pel[2] + 0.3], 0.014, hi);
+    },
+    // padded jacket: chest plate + shoulder pads + quilting lines (armoured look)
+    padded: (J, cap, shirt) => {
+      const dk = [shirt[0] * 0.7, shirt[1] * 0.7, shirt[2] * 0.7];
+      cap([J.pel[0] + 0.05, 0, J.pel[2] + 0.1], [J.neck[0] + 0.02, 0, J.neck[2] - 0.1], 0.14, shirt, { plate: true }); // chest plate
+      cap([J.shL[0] + 0.02, -0.2, J.shL[2] + 0.01], [J.shL[0] + 0.02, -0.02, J.shL[2] + 0.01], 0.085, shirt); // shoulder pads
+      cap([J.shR[0] + 0.02, 0.2, J.shR[2] + 0.01], [J.shR[0] + 0.02, 0.02, J.shR[2] + 0.01], 0.085, shirt);
+      const xf = J.pel[0] + 0.19;
+      for (const t of [0.25, 0.5, 0.75]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf, -0.1, z], [xf, 0.1, z], 0.011, dk); } // quilting
+    },
+    // winter coat: wide fur collar + double-breasted front + long hem over the hips
+    wintercoat: (J, cap, shirt) => {
+      const fur = [Math.min(255, shirt[0] * 1.4 + 40), Math.min(255, shirt[1] * 1.4 + 40), Math.min(255, shirt[2] * 1.4 + 40)];
+      const dk = [shirt[0] * 0.5, shirt[1] * 0.5, shirt[2] * 0.5];
+      cap([J.neck[0] - 0.02, -0.13, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.13, J.neck[2] - 0.02], 0.105, fur); // fur collar
+      cap([J.pel[0] + 0.03, 0, J.pel[2] + 0.08], [J.neck[0], 0, J.neck[2] - 0.08], 0.16, shirt, { hem: true }); // open front
+      const xf = J.pel[0] + 0.15;
+      cap([xf, -0.07, J.pel[2] + 0.1], [xf, -0.07, J.neck[2] - 0.1], 0.013, dk); // button line
+      cap([J.pel[0] + 0.02, -0.15, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.15, J.pel[2] + 0.02], 0.155, shirt); // long hem
+      cap([J.pel[0] + 0.02, -0.14, J.pel[2] - 0.09], [J.pel[0] + 0.02, 0.14, J.pel[2] - 0.09], 0.135, shirt); // hem skirt
     }
   };
 
