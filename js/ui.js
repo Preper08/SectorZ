@@ -93,6 +93,18 @@
     els.deathstats.innerHTML = '<span>Time survived</span><span>' + Math.floor(hrs / 24) + ' d ' + Math.floor(hrs % 24) + ' h</span><span>Zombies killed</span><span>' + s.stats.kills + '</span><span>Containers searched</span><span>' + s.stats.looted + '</span><span>Structures built</span><span>' + s.stats.built + '</span><span>Distance on foot</span><span>' + s.stats.distance.toFixed(1) + ' km</span>';
   };
   UI.hideDeath = function () { UI.open.death = false; els.death.classList.add('hidden'); };
+  // Full reset of transient UI state when a game starts or loads, so nothing (open windows,
+  // overlays, active popups, drag, held keys) carries over from the previous session.
+  // Persistent settings such as God Mode are handled separately and are NOT touched here.
+  UI.resetGame = function () {
+    cancelDrag(); hideTip();
+    UI.loot = null; UI._isig = '';
+    UI.open.win = false; UI.open.map = false; UI.open.menu = false; UI.open.settings = false;
+    UI.open.controls = false; UI.open.tv = false; UI.open.death = false;
+    for (const el of [els.win, els.mapwin, els.pause, els.settings, els.controls, els.death, els.tvwin, els.lootcol]) el.classList.add('hidden');
+    for (const k in In.keys) In.keys[k] = false; // drop any key held across the transition
+    In.mouse.down = In.mouse.rdown = false;
+  };
 
   // ------------------------------------------------------------------ tooltip
   function itemTip(it) {

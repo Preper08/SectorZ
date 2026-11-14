@@ -51,14 +51,17 @@
     R.dirtyAll();
     S = Game.newGame(seed, saved || null);
     S.title = false; S.cinema = 0; S.paused = false;
-    UI.setState(S); UI.showLoading(true, 'Starting…', 1); await wait(60);
+    UI.setState(S); UI.resetGame(); UI.showLoading(true, 'Starting…', 1); await wait(60);
     UI.showLoading(false); UI.open.win = false; UI.open.menu = false; UI.open.title = false;
     document.getElementById('hud').classList.remove('hidden');
     A.init(); A.setVolume(); A.startAmbient();
     Main.mode = 'play'; R.dirtyAll();
     UI.refresh();
   }
-  Main.startNew = () => begin(null);
+  // New Game must always start clean: developer mode is a persisted setting, so clear it here
+  // (and save it) before generating the world, otherwise a previously enabled God Mode would be
+  // re-applied by Game.newGame and hand the new character the full admin kit. Continue keeps it.
+  Main.startNew = () => { DSZ.settings.godmode = false; DSZ.saveSettings(); begin(null); };
   Main.cont = () => { const d = Game.readSave(); if (d) begin(d); else begin(null); };
   Main.toTitle = function () {
     A.engine(false); UI.hideDeath(); UI.closeWin(); UI.closeMap(); document.getElementById('pause').classList.add('hidden');
