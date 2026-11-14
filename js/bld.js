@@ -75,6 +75,36 @@
 
   function floorRect(r, g) { for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) W.ground[W.idx(x, y)] = g; }
 
+  // A door must connect the two spaces on either side of the wall it sits in. The recursive
+  // room split can drop a perpendicular partition right against a door, box the door in, or
+  // even line up several doors into a dead stack. For any door with no clear opposite pair,
+  // remove ONE blocking neighbour so it always leads somewhere. Only this building's own
+  // interior wall or a redundant interior door is removed - never a perimeter wall or the
+  // front door - so the building envelope and its entrance are preserved.
+  function repairDoors(b) {
+    const passable = (x, y) => { const S = (ax, ay) => W.isSolid(ax, ay); return (!S(x - 1, y) && !S(x + 1, y)) || (!S(x, y - 1) && !S(x, y + 1)); };
+    const onEdge = (x, y) => x === b.x || y === b.y || x === b.x + b.w - 1 || y === b.y + b.h - 1;
+    const front = b.frontDoor;
+    for (const d of b.doors) {
+      const x = d[0], y = d[1];
+      if (!W.getObj(x, y) || passable(x, y)) continue;
+      const S = (ax, ay) => W.isSolid(ax, ay);
+      // prefer opening the straight neighbour opposite an already-open side, then any neighbour
+      const ordered = [];
+      if (!S(x, y - 1)) ordered.push([x, y + 1]);
+      if (!S(x, y + 1)) ordered.push([x, y - 1]);
+      if (!S(x - 1, y)) ordered.push([x + 1, y]);
+      if (!S(x + 1, y)) ordered.push([x - 1, y]);
+      for (const dd of [[0, -1], [0, 1], [-1, 0], [1, 0]]) ordered.push([x + dd[0], y + dd[1]]);
+      for (const [ax, ay] of ordered) {
+        const o = W.getObj(ax, ay); if (!o) continue;
+        const ownWall = o.t === O.WALL && o.b === b.id && !onEdge(ax, ay);
+        const redundantDoor = D[o.t].door && o.b === b.id && !onEdge(ax, ay) && !(front && front[0] === ax && front[1] === ay);
+        if (ownWall || redundantDoor) { W.setObj(ax, ay, null); if (passable(x, y)) break; }
+      }
+    }
+  }
+
   Bld.make = function (o) {
     const rng = o.rng, id = W.blds.length;
     const b = {
@@ -157,6 +187,7 @@
     }
 
     // interior content
+    repairDoors(b);
     Bld.furnish(b, rooms, rng, o);
     // roof boundaries
     return b;

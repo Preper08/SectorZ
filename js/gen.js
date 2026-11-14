@@ -1,7 +1,7 @@
 /* Dead SectorZ — procedural town generation (roads, blocks, props, cars, spawns) */
 (function () {
   'use strict';
-  const DSZ = window.DSZ, U = DSZ.U, O = DSZ.O, G = DSZ.G, W = DSZ.World, C = DSZ.C, Bld = DSZ.Bld;
+  const DSZ = window.DSZ, U = DSZ.U, O = DSZ.O, G = DSZ.G, W = DSZ.World, C = DSZ.C, Bld = DSZ.Bld, D = DSZ.OBJDEF;
   const Gen = DSZ.Gen = { carSpecs: [], zombieSpawns: [], playerSpawn: [30, 30], marks: new Map(), poi: [] };
   let rng;
 
@@ -319,6 +319,19 @@
     for (const b of W.blds) if (b && b.kind === 'shop' && b.shop === 'hardware') { b.shop = 'guns'; b.name = 'guns'; for (const p of b.props) if (p.t === O.SHELF) p.loot = 'guns'; break; }
     streets();
     forest();
+    // A door must lead somewhere. Interior partitions are handled per building (Bld.repairDoors),
+    // but street/yard props (trash cans, hydrants, etc) are placed after the buildings and can
+    // still end up blocking a door. Clear any non-wall object that leaves a door boxed in, so no
+    // door is ever a dead end.
+    for (let y = 1; y < C.H - 1; y++) for (let x = 1; x < C.W - 1; x++) {
+      const o = W.getObj(x, y); if (!o || !D[o.t].door) continue;
+      const s = (ax, ay) => W.isSolid(ax, ay);
+      if ((!s(x - 1, y) && !s(x + 1, y)) || (!s(x, y - 1) && !s(x, y + 1))) continue;
+      for (const [ax, ay] of [[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]]) {
+        const wo = W.getObj(ax, ay);
+        if (wo && !D[wo.t].wall && !D[wo.t].door) { W.removeObj(ax, ay); if ((!s(x - 1, y) && !s(x + 1, y)) || (!s(x, y - 1) && !s(x, y + 1))) break; }
+      }
+    }
     // player spawn
     const sh = startHouse || W.blds[1];
     sh.locked = false; const fd = W.getObj(sh.frontDoor[0], sh.frontDoor[1]); if (fd) { fd.locked = false; fd.open = false; }
