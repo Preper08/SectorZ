@@ -202,28 +202,49 @@
   // shorts keep the shins bare; trousers/cargo cover them to the ankle; cargo adds
   // visible side pockets. entries receive (J, cap, pr, skin, col)
   const LEGS_FIGS = {
-    // shorts: thigh-length shorts, shins and feet stay bare skin
+    // shorts: light beige/khaki, thigh-length with a rolled cuff; shins and feet stay bare skin
     shorts: (J, cap, pr, skin, col, legR) => {
-      cap(J.hipL, J.kneeL, legR, col); cap(J.hipR, J.kneeR, legR, col);
-      cap(J.kneeL, J.footL, 0.07, skin); cap(J.kneeR, J.footR, 0.07, skin);
+      const hemL = lerp3(J.hipL, J.kneeL, 0.62), hemR = lerp3(J.hipR, J.kneeR, 0.62);
+      cap(J.hipL, hemL, legR * 1.08, col); cap(J.hipR, hemR, legR * 1.08, col);
+      // rolled cuff: a slightly lighter, wider band at the hem
+      const cuff = [col[0] * 1.12, col[1] * 1.12, col[2] * 1.12];
+      cap(lerp3(J.hipL, J.kneeL, 0.55), hemL, legR * 1.16, cuff);
+      cap(lerp3(J.hipR, J.kneeR, 0.55), hemR, legR * 1.16, cuff);
+      // bare skin shins
+      cap(hemL, J.footL, 0.068, skin); cap(hemR, J.footR, 0.068, skin);
     },
-    // trousers: full-length legs down to the ankle, slightly thicker
+    // trousers: grey, slim tapered legs to the ankle with a pressed centre crease
     trousers: (J, cap, pr, skin, col, legR) => {
-      cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.075, col);
-      cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.075, col);
+      cap(J.hipL, J.kneeL, legR * 0.94, col); cap(J.kneeL, J.footL, 0.066, col);
+      cap(J.hipR, J.kneeR, legR * 0.94, col); cap(J.kneeR, J.footR, 0.066, col);
+      // pressed crease: a thin light line down the front of each leg, both segments
+      const crease = [col[0] * 1.18, col[1] * 1.18, col[2] * 1.18];
+      cap(J.hipL, J.kneeL, 0.012, crease, { d: (pr(J.hipL).d + pr(J.kneeL).d) / 2 + 0.04 });
+      cap(J.kneeL, J.footL, 0.012, crease, { d: (pr(J.kneeL).d + pr(J.footL).d) / 2 + 0.04 });
+      cap(J.hipR, J.kneeR, 0.012, crease, { d: (pr(J.hipR).d + pr(J.kneeR).d) / 2 + 0.04 });
+      cap(J.kneeR, J.footR, 0.012, crease, { d: (pr(J.kneeR).d + pr(J.footR).d) / 2 + 0.04 });
     },
-    // jeans: full-length legs, slightly bluish, thinner than trousers
+    // jeans: denim blue, baggy thick legs to the ankle with a rolled cuff
     jeans: (J, cap, pr, skin, col, legR) => {
-      cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.072, col);
-      cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.072, col);
+      cap(J.hipL, J.kneeL, legR * 1.12, col); cap(J.kneeL, J.footL, 0.085, col);
+      cap(J.hipR, J.kneeR, legR * 1.12, col); cap(J.kneeR, J.footR, 0.085, col);
+      // cuff: a darker rolled band just above the ankle
+      const cuff = [col[0] * 0.82, col[1] * 0.82, col[2] * 0.82];
+      cap(lerp3(J.kneeL, J.footL, 0.82), J.footL, 0.093, cuff);
+      cap(lerp3(J.kneeR, J.footR, 0.82), J.footR, 0.093, cuff);
+      // front fly seam
+      cap(J.hipL, lerp3(J.hipL, J.kneeL, 0.3), 0.012, [col[0] * 1.35 + 25, col[1] * 1.35 + 25, col[2] * 1.35 + 25], { d: pr(J.hipL).d + 0.04 });
     },
-    // tracksuit pants: full-length, slimmer with a light side stripe
+    // tracksuit pants: full-length, slimmer with a light side stripe that follows each leg bone
     tracksuit: (J, cap, pr, skin, col, legR) => {
       cap(J.hipL, J.kneeL, legR * 0.92, col); cap(J.kneeL, J.footL, 0.065, col);
       cap(J.hipR, J.kneeR, legR * 0.92, col); cap(J.kneeR, J.footR, 0.065, col);
       const lite = [col[0] * 1.5 + 40, col[1] * 1.5 + 40, col[2] * 1.5 + 40];
-      cap(J.hipL, J.footL, 0.018, lite, { d: pr(J.hipL).d + 0.04 });
-      cap(J.hipR, J.footR, 0.018, lite, { d: pr(J.hipR).d + 0.04 });
+      // stripe drawn per bone segment so it bends with the knee and keeps correct depth
+      cap(J.hipL, J.kneeL, 0.018, lite, { d: (pr(J.hipL).d + pr(J.kneeL).d) / 2 + 0.04 });
+      cap(J.kneeL, J.footL, 0.018, lite, { d: (pr(J.kneeL).d + pr(J.footL).d) / 2 + 0.04 });
+      cap(J.hipR, J.kneeR, 0.018, lite, { d: (pr(J.hipR).d + pr(J.kneeR).d) / 2 + 0.04 });
+      cap(J.kneeR, J.footR, 0.018, lite, { d: (pr(J.kneeR).d + pr(J.footR).d) / 2 + 0.04 });
     },
     // cargo pants: full-length + pocket patches on both thighs
     cargopants: (J, cap, pr, skin, col, legR) => {

@@ -112,7 +112,7 @@
   };
 
   // ---------------------------------------------------------------- equipment visuals
-  const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], vest: [58, 64, 70], helmet: [76, 86, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], fannypack: [74, 74, 82], tshirt: [90, 122, 154], shorts: [84, 98, 126], trousers: [74, 79, 96], cargopants: [90, 98, 72], sneakers: [138, 138, 138] };
+  const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], vest: [58, 64, 70], helmet: [76, 86, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], fannypack: [74, 74, 82], tshirt: [90, 122, 154], shorts: [200, 180, 138], jeans: [58, 90, 140], trousers: [138, 143, 150], tracksuit: [60, 90, 72], cargopants: [90, 98, 72], sneakers: [138, 138, 138] };
   // p.look carries only what the figure renderer consumes: an id per equipment slot
   // (selects the draw entry in CLOTHING/VEST/HEADWEAR/FOOTWEAR/LEGS_FIGS) and its colour
   Game.refreshEquipVisuals = function (S) {
