@@ -320,7 +320,7 @@
         shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.7 * (z.sc || 1), z.alpha === undefined ? 1 : z.alpha);
       } else if (it.t === 3) {
         const c = it.a, s = DSZ.CarArt.get(c.kind, c.color, c.state, c.ang), i = iso(c.x, c.y);
-        shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.9);
+        shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.9 * DSZ.CarArt.SCALE);
       } else if (it.t === 5) {
         const s = S.player.sprite; if (s) { const i = iso(S.player.x, S.player.y); shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.75); }
       }
@@ -770,10 +770,10 @@
     // cars: headlights + brake/interior
     for (const c of S.cars) {
       if (!c.lightsOn || Math.abs(c.x - px) > 40 || Math.abs(c.y - py) > 40) continue;
-      const ca = Math.cos(c.ang), sa = Math.sin(c.ang), fx = c.x + ca * 1.0, fy = c.y + sa * 1.0;
+      const ca = Math.cos(c.ang), sa = Math.sin(c.ang), front = DSZ.CarArt.reach(c.kind), fx = c.x + ca * front, fy = c.y + sa * front;
       castLight(fx, fy, 15, [255, 244, 210], 1.05, c.ang - 0.42, c.ang + 0.42, 44, 1, true);
       castLight(fx, fy, 6, [255, 240, 200], 0.55, c.ang - 0.95, c.ang + 0.95, 30, 1, true);
-      if (c.braking || c.rev) castLight(c.x - ca * 1.2, c.y - sa * 1.2, 3.2, c.rev ? [255, 255, 255] : [255, 30, 20], 0.5, null, null, 16, 1, false);
+      if (c.braking || c.rev) castLight(c.x - ca * front, c.y - sa * front, 3.2, c.rev ? [255, 255, 255] : [255, 30, 20], 0.5, null, null, 16, 1, false);
     }
     // player lights
     if (!p.driving || true) {
@@ -823,8 +823,8 @@
       else if (l.kind === 'traffic') continue;
     }
     for (const c of S.cars) {
-      if (!c.lightsOn) continue; const ca = Math.cos(c.ang), sa = Math.sin(c.ang);
-      for (const s of [-0.32, 0.32]) { const wx = c.x + ca * 1.12 - sa * s, wy = c.y + sa * 1.12 + ca * s, i = iso(wx, wy); ctx.globalAlpha = 0.9; ctx.drawImage(sprites.flare, i[0] - 22, i[1] - 0.45 * ZU - 22, 44, 44); }
+      if (!c.lightsOn) continue; const ca = Math.cos(c.ang), sa = Math.sin(c.ang), front = DSZ.CarArt.reach(c.kind), halfW = DSZ.CarArt.halfW(c.kind);
+      for (const s of [-halfW * 0.62, halfW * 0.62]) { const wx = c.x + ca * front - sa * s, wy = c.y + sa * front + ca * s, i = iso(wx, wy); ctx.globalAlpha = 0.9; ctx.drawImage(sprites.flare, i[0] - 22, i[1] - 0.45 * ZU - 22, 44, 44); }
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }

@@ -23,7 +23,7 @@
     o.dead = !working;
   }
   Gen.addCar = function (x, y, ang, state, kind) {
-    for (const c of Gen.carSpecs) if (Math.hypot(c.x - x, c.y - y) < 3.2) return null;
+    for (const c of Gen.carSpecs) if (Math.hypot(c.x - x, c.y - y) < 4.4) return null;
     const spec = { x, y, ang, state: state || 'wreck', kind: kind || U.pick(rng, ['sedan', 'sedan', 'hatch', 'van', 'pickup', 'taxi']), color: R(10), seed: R(99999) };
     Gen.carSpecs.push(spec); return spec;
   };
@@ -328,7 +328,7 @@
     // forest zombies
     for (let i = 0; i < 22; i++) { const x = rng() < 0.5 ? 2 + rng() * 9 : C.W - 11 + rng() * 9, y = 20 + rng() * (C.H - 40); if (!W.isSolid(Math.floor(x), Math.floor(y))) addZ(x, y); }
     // remove cars overlapping solid tiles / buildings
-    Gen.carSpecs = Gen.carSpecs.filter(c => { const tx = Math.floor(c.x), ty = Math.floor(c.y); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (W.isSolid(tx + dx, ty + dy) || W.room[W.idx(tx + dx, ty + dy)]) return false; return W.inb(tx, ty); });
+    Gen.carSpecs = Gen.carSpecs.filter(c => { const tx = Math.floor(c.x), ty = Math.floor(c.y); for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (W.isSolid(tx + dx, ty + dy) || W.room[W.idx(tx + dx, ty + dy)]) return false; return W.inb(tx, ty); });
     Gen.zombieSpawns = Gen.zombieSpawns.filter(z => W.inb(Math.floor(z[0]), Math.floor(z[1])) && !W.isSolid(Math.floor(z[0]), Math.floor(z[1])));
     // window lights for lit houses
     for (const b of W.blds) if (b && b.lit) {

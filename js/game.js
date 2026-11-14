@@ -189,7 +189,7 @@
   Game.refuelNearby = function (S, it) {
     const p = S.player; if (!it) { for (const x of Inv.all(p.inv)) if (x.id === 'gascan' && x.fuel > 0) { it = x; break; } }
     if (!it || !(it.fuel > 0)) { Game.toast(S, 'You need a gas can with fuel.'); return false; }
-    let car = p.driving; if (!car) for (const c of S.cars) if (c.drivable && Math.hypot(c.x - p.x, c.y - p.y) < 3) { car = c; break; }
+    let car = p.driving; if (!car) for (const c of S.cars) if (c.drivable && Math.hypot(c.x - p.x, c.y - p.y) < DSZ.CarArt.reach(c.kind) + 1.5) { car = c; break; }
     if (!car) { Game.toast(S, 'No vehicle nearby.'); return false; }
     const amt = Math.min(it.fuel, car.maxfuel - car.fuel); if (amt <= 0.5) { Game.toast(S, 'Tank is full.'); return false; }
     it.fuel -= amt; if (DSZ.settings.godmode) it.fuel = Math.max(it.fuel, it.maxfuel || 100); // god mode: endless fuel
@@ -240,7 +240,7 @@
     const g = W.groundAt(tx, ty); if (g === DSZ.G.ASPHALT) return false;
     const p = S.player; if (Math.abs(p.x - (tx + 0.5)) < 0.75 && Math.abs(p.y - (ty + 0.5)) < 0.75) return false;
     for (const z of S.zombies) if (!z.dead && Math.abs(z.x - (tx + 0.5)) < 0.7 && Math.abs(z.y - (ty + 0.5)) < 0.7) return false;
-    for (const c of S.cars) { if (Math.abs(c.x - tx) > 3 || Math.abs(c.y - ty) > 3) continue; for (const q of E.carCircles(c, [])) if (Math.hypot(q[0] - tx - 0.5, q[1] - ty - 0.5) < 1.0) return false; }
+    for (const c of S.cars) { if (Math.abs(c.x - tx) > 5 || Math.abs(c.y - ty) > 5) continue; for (const q of E.carCircles(c, [])) if (Math.hypot(q[0] - tx - 0.5, q[1] - ty - 0.5) < q[2]) return false; }
     return true;
   }
   function updateBuild(S, dt) {
@@ -282,7 +282,7 @@
       else if (o.pump) consider('pump', o, cx, cy, 'E  Siphon fuel' + (o.fuelLeft === undefined || o.fuelLeft > 0 ? '' : ' (empty)'), 1.6);
     }
     for (const z of S.zombies) if (z.dead && z.deadT <= 0 && Math.hypot(z.x - p.x, z.y - p.y) < 1.5) consider('corpse', z, z.x, z.y, z.grid || z.searched ? 'E  Open corpse' : 'E  Search body', 1.5, 0.1);
-    for (const c of S.cars) { if (Math.abs(c.x - p.x) > 3.2 || Math.abs(c.y - p.y) > 3.2) continue; const dd = Math.min(...E.carCircles(c, []).map(q => Math.hypot(q[0] - p.x, q[1] - p.y) - 0.5)); if (dd < 1.4) { const label = c.drivable ? 'E  Drive' + (c.fuel < c.maxfuel - 5 && Inv.has(p.inv, 'gascan') ? '    G  Refuel' : '') : (c.dead ? 'Burnt out' : 'E  Search vehicle'); if (!(c.dead && !c.drivable)) consider('car', c, c.x, c.y, label, 3, dd * 0.6); } }
+    for (const c of S.cars) { if (Math.abs(c.x - p.x) > 4.6 || Math.abs(c.y - p.y) > 4.6) continue; const dd = Math.min(...E.carCircles(c, []).map(q => Math.hypot(q[0] - p.x, q[1] - p.y) - q[2])); if (dd < 1.5) { const label = c.drivable ? 'E  Drive' + (c.fuel < c.maxfuel - 5 && Inv.has(p.inv, 'gascan') ? '    G  Refuel' : '') : (c.dead ? 'Burnt out' : 'E  Search vehicle'); if (!(c.dead && !c.drivable)) consider('car', c, c.x, c.y, label, DSZ.CarArt.reach(c.kind) + 1.2, dd * 0.6); } }
     return best;
   }
   function doInteract(S) {
@@ -348,9 +348,18 @@
   };
   Game.exitCar = function (S, eject) {
     const p = S.player, c = p.driving; if (!c) return;
-    const ca = Math.cos(c.ang), sa = Math.sin(c.ang); let ok = false;
-    for (const side of [-1, 1, -1.6, 1.6, 2.2, -2.2]) { const x = c.x - sa * side * 1.2, y = c.y + ca * side * 1.2; if (!W.hitCircle(x, y, 0.3)) { p.x = x; p.y = y; ok = true; break; } }
-    if (!ok) { const f = W.freeNear(c.x, c.y, 4); p.x = f[0]; p.y = f[1]; }
+    const ca = Math.cos(c.ang), sa = Math.sin(c.ang), off = DSZ.CarArt.halfW(c.kind) + 0.6;
+    const clearOfCars = (x, y) => {
+      for (const o of S.cars) { if (o === c) continue; if (Math.abs(o.x - x) > 5 || Math.abs(o.y - y) > 5) continue; for (const q of E.carCircles(o, [])) if (Math.hypot(q[0] - x, q[1] - y) < q[2] + 0.35) return false; }
+      return true;
+    };
+    let ok = false;
+    // step out to either side of the (possibly large) car; widen the search until a free spot is found
+    for (const d of [off, off + 1.2, off + 2.4]) { for (const side of [-1, 1, -1.7, 1.7, 2.4, -2.4]) {
+      const x = c.x - sa * side * d, y = c.y + ca * side * d;
+      if (!W.hitCircle(x, y, 0.3) && clearOfCars(x, y)) { p.x = x; p.y = y; ok = true; break; }
+    } if (ok) break; }
+    if (!ok) { const f = W.freeNear(c.x, c.y, 6); p.x = f[0]; p.y = f[1]; }
     p.driving = null; c.engineOn = false; c.lightsOn = false; A.engine(false); A.play('door', c.x, c.y, 0.8);
   };
   Game.trySleep = function (S) {
@@ -380,7 +389,7 @@
       if (In.pressed('KeyH')) { A.play('horn', c.x, c.y, 1.2, 70); E.noise(S, c.x, c.y, 45); }
       if (In.pressed('KeyG')) Game.refuelNearby(S);
       if (c.engineOn) { A.engine(true, Math.min(1, Math.abs(c.speed) / 12 + (k.thr ? 0.18 : 0.05)), 1); if (c.fuel <= 0) c.engineOn = false; } else A.engine(false);
-      if (In.pressed('KeyE') && !ui.blockKeys()) Game.exitCar(S);
+      if (In.pressed('KeyE') && !ui.blockKeys()) { Game.exitCar(S); S.focus = (p.dead || S.build.active) ? null : findFocus(S); return; }
       p.x = c.x; p.y = c.y; p.moving = false; p.crouch = false; p.pose.crouch = false; p.pose.legs = 'idle'; S.stats.distance += Math.abs(c.speed) * dt / 1000;
       // keep the focus marker on the current car (findFocus returns the 'E Exit vehicle' target
       // while driving); without this the early return leaves a stale marker at the old position

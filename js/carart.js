@@ -4,7 +4,14 @@
   const DSZ = window.DSZ, U = DSZ.U, G3 = DSZ.G3;
   const CarArt = DSZ.CarArt = { NANG: 48 };
   const COLORS = [[168, 44, 38], [44, 76, 128], [196, 196, 190], [36, 36, 40], [126, 130, 134], [64, 106, 74], [204, 166, 54], [118, 66, 38], [176, 96, 44], [96, 46, 96]];
-  const KINDS = {
+  // Vehicles were authored at roughly 50% of their true size: a sedan was 2.3 x 0.98 x 0.82
+  // world units, while the player is ~1.76 units tall (so cars looked tiny next to the player
+  // and zombies). CAR_SCALE brings every vehicle up to its real proportions relative to the
+  // world. All car-local lengths are scaled from one place and the collision shapes below are
+  // derived from the scaled dims, so visuals, collision and interaction ranges stay consistent.
+  const CAR_SCALE = 1.85;
+  CarArt.SCALE = CAR_SCALE;
+  const RAW = {
     sedan: { L: 2.3, W: 0.98, hh: 0.5, cab: [-0.62, 0.5, -0.4, 0.2], ch: 0.82, wb: 0.72 },
     hatch: { L: 2.0, W: 0.94, hh: 0.5, cab: [-0.86, 0.46, -0.66, 0.22], ch: 0.86, wb: 0.62 },
     taxi: { L: 2.3, W: 0.98, hh: 0.5, cab: [-0.62, 0.5, -0.4, 0.2], ch: 0.82, wb: 0.72, taxi: true, fixed: [226, 184, 40] },
@@ -12,23 +19,39 @@
     van: { L: 2.6, W: 1.04, hh: 0.64, cab: [-1.2, 0.95, -1.18, 0.55], ch: 1.18, wb: 0.84, van: true },
     pickup: { L: 2.55, W: 1.04, hh: 0.56, cab: [-0.15, 0.78, -0.02, 0.5], ch: 0.92, wb: 0.82, pickup: true }
   };
+  const KINDS = {};
+  for (const k in RAW) {
+    const r = RAW[k], o = { L: r.L * CAR_SCALE, W: r.W * CAR_SCALE, hh: r.hh * CAR_SCALE, ch: r.ch * CAR_SCALE, wb: r.wb * CAR_SCALE, cab: r.cab.map(v => v * CAR_SCALE) };
+    if (r.taxi) o.taxi = true; if (r.police) o.police = true; if (r.van) o.van = true; if (r.pickup) o.pickup = true;
+    if (r.fixed) o.fixed = r.fixed;
+    // derived collision capsule (used for walls, entities and car-vs-car):
+    // col  = circle radius for physics/entities, wcol = circle radius for tile collision,
+    // colOff = how far the two end circles sit from the centre along the heading.
+    o.col = 0.5 * CAR_SCALE;
+    o.wcol = 0.42 * CAR_SCALE;
+    o.colOff = Math.max(0, o.L / 2 - o.col);
+    KINDS[k] = o;
+  }
+  CarArt.K = function (kind) { return KINDS[kind] || KINDS.sedan; };
+  CarArt.reach = function (kind) { const K = KINDS[kind] || KINDS.sedan; return K.colOff + K.col; };
+  CarArt.halfW = function (kind) { return (KINDS[kind] || KINDS.sedan).W / 2; };
   CarArt.kinds = KINDS;
 
   function body(kind, col, state) {
-    const K = KINDS[kind], faces = [], L = K.L / 2, Wd = K.W / 2;
+    const K = KINDS[kind], faces = [], L = K.L / 2, Wd = K.W / 2, S = CAR_SCALE;
     let c = K.fixed || COLORS[col % COLORS.length];
     if (state === 'burnt') c = [30, 26, 24];
     else if (state === 'wreck') c = [c[0] * 0.78, c[1] * 0.76, c[2] * 0.72];
     const dark = [20, 20, 22], rust = [120, 62, 30], glassCol = state === 'burnt' ? [8, 8, 8] : (state === 'wreck' ? [38, 48, 52] : [26, 38, 50]);
     const wr = state === 'wreck' || state === 'burnt', seed = (kind.length * 977 + col * 131) | 0;
     // wheels
-    const wy = Wd + 0.02, ww = 0.13, wl = 0.3, wz = state === 'wreck' ? 0.28 : 0.3, wb = K.wb;
+    const wy = Wd + 0.02 * S, ww = 0.13 * S, wl = 0.3 * S, wz = (state === 'wreck' ? 0.28 : 0.3) * S, wb = K.wb;
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
       const flat = wr && ((sx + sy + seed) & 1);
       faces.push(...G3.box(sx * wb - wl / 2, sy > 0 ? wy - ww : -wy, 0, sx * wb + wl / 2, sy > 0 ? wy : -wy + ww, flat ? wz * 0.6 : wz, [16, 16, 18], { top: [30, 30, 34], noEdge: true }));
     }
     // lower body
-    const lb = G3.box(-L, -Wd, 0.1, L, Wd, K.hh, c, { top: [c[0] * 1.12, c[1] * 1.12, c[2] * 1.12] });
+    const lb = G3.box(-L, -Wd, 0.1 * S, L, Wd, K.hh, c, { top: [c[0] * 1.12, c[1] * 1.12, c[2] * 1.12] });
     const trim = (x, w, h) => { x.fillStyle = 'rgba(0,0,0,0.5)'; x.fillRect(0, h * 0.62, w, 1.5); x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(0, h * 0.62 + 1.5, w, 1); };
     const stains = (x, w, h) => {
       if (!wr) return; const r = U.mulberry32(seed + w);
@@ -69,22 +92,22 @@
     // cabin
     const cb = K.cab, cz = K.hh, ch = K.ch;
     if (K.van) {
-      const cf = G3.box(cb[0], -Wd * 0.96, cz, 1.0, Wd * 0.96, ch, c, { top: [c[0] * 1.08, c[1] * 1.08, c[2] * 1.08] });
+      const cf = G3.box(cb[0], -Wd * 0.96, cz, 1.0 * S, Wd * 0.96, ch, c, { top: [c[0] * 1.08, c[1] * 1.08, c[2] * 1.08] });
       for (const f of cf) { if (f.role === 'px') { f.glass = true; f.glassCol = glassCol; f.inset = 0.86; if (state === 'wreck') f.crack = seed + 5; } else if (f.role === 'py' || f.role === 'ny') { f.d = (x, w, h) => { x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(w * 0.7, h * 0.18, w * 0.26, h * 0.5); x.fillStyle = glassCol.length ? G3.shade(glassCol, 1.4) : '#222'; x.fillRect(w * 0.72, h * 0.22, w * 0.22, h * 0.42); stains(x, w, h); }; } else if (f.role === 'nx') { f.d = (x, w, h) => { x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(w * 0.1, h * 0.1, w * 0.36, h * 0.3); x.fillRect(w * 0.54, h * 0.1, w * 0.36, h * 0.3); x.fillStyle = 'rgba(0,0,0,0.5)'; x.fillRect(w / 2 - 1, 0, 2, h); stains(x, w, h); }; } faces.push(f); }
     } else if (K.pickup) {
       const cab = G3.frustum([cb[0], cb[1], -Wd * 0.94, Wd * 0.94, cz], [cb[2], cb[3], -Wd * 0.84, Wd * 0.84, ch], c, { top: [c[0] * 1.1, c[1] * 1.1, c[2] * 1.1], glassF: true, glassB: true, glassS: true });
       for (const f of cab) if (f.glass) { f.glassCol = glassCol; if (state === 'wreck') f.crack = seed + f.role.length; }
       faces.push(...cab);
       // bed rails
-      const bx0 = -L, bx1 = cb[0] - 0.02;
-      faces.push(...G3.box(bx0, -Wd, cz, bx1, -Wd + 0.08, cz + 0.2, c), ...G3.box(bx0, Wd - 0.08, cz, bx1, Wd, cz + 0.2, c), ...G3.box(bx0, -Wd, cz, bx0 + 0.07, Wd, cz + 0.2, c));
-      faces.push(...G3.box(bx0 + 0.07, -Wd + 0.08, cz - 0.02, bx1, Wd - 0.08, cz + 0.02, [34, 32, 30], { noEdge: true }));
+      const bx0 = -L, bx1 = cb[0] - 0.02 * S;
+      faces.push(...G3.box(bx0, -Wd, cz, bx1, -Wd + 0.08 * S, cz + 0.2 * S, c), ...G3.box(bx0, Wd - 0.08 * S, cz, bx1, Wd, cz + 0.2 * S, c), ...G3.box(bx0, -Wd, cz, bx0 + 0.07 * S, Wd, cz + 0.2 * S, c));
+      faces.push(...G3.box(bx0 + 0.07 * S, -Wd + 0.08 * S, cz - 0.02 * S, bx1, Wd - 0.08 * S, cz + 0.02 * S, [34, 32, 30], { noEdge: true }));
     } else {
       const cab = G3.frustum([cb[0], cb[1], -Wd * 0.9, Wd * 0.9, cz], [cb[2], cb[3], -Wd * 0.78, Wd * 0.78, ch], c, { top: [c[0] * 1.12, c[1] * 1.12, c[2] * 1.12], glassF: true, glassB: true, glassS: true });
       for (const f of cab) if (f.glass) { f.glassCol = glassCol; f.inset = state === 'burnt' ? 0.9 : 0.8; if (state === 'wreck') f.crack = seed + f.role.length * 3; }
       faces.push(...cab);
-      if (K.taxi) faces.push(...G3.box((cb[2] + cb[3]) / 2 - 0.12, -0.14, ch, (cb[2] + cb[3]) / 2 + 0.12, 0.14, ch + 0.1, [240, 236, 200]));
-      if (K.police) { const lx = (cb[2] + cb[3]) / 2; faces.push(...G3.box(lx - 0.07, -0.26, ch, lx + 0.07, 0.0, ch + 0.08, [200, 40, 40]), ...G3.box(lx - 0.07, 0.0, ch, lx + 0.07, 0.26, ch + 0.08, [50, 80, 220])); }
+      if (K.taxi) faces.push(...G3.box((cb[2] + cb[3]) / 2 - 0.12 * S, -0.14 * S, ch, (cb[2] + cb[3]) / 2 + 0.12 * S, 0.14 * S, ch + 0.1 * S, [240, 236, 200]));
+      if (K.police) { const lx = (cb[2] + cb[3]) / 2; faces.push(...G3.box(lx - 0.07 * S, -0.26 * S, ch, lx + 0.07 * S, 0.0, ch + 0.08 * S, [200, 40, 40]), ...G3.box(lx - 0.07 * S, 0.0, ch, lx + 0.07 * S, 0.26 * S, ch + 0.08 * S, [50, 80, 220])); }
     }
     return faces;
   }

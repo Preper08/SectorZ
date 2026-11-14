@@ -110,11 +110,19 @@
   function rebuildHash(S) { hash.clear(); for (const z of S.zombies) { if (z.dead || !z.active) continue; const k = ((z.y / CELL) | 0) * GW + ((z.x / CELL) | 0); let a = hash.get(k); if (!a) hash.set(k, a = []); a.push(z); } }
   function neighbours(z, fn) { const cx = (z.x / CELL) | 0, cy = (z.y / CELL) | 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const a = hash.get((cy + dy) * GW + cx + dx); if (a) for (const o of a) if (o !== z) fn(o); } }
 
-  E.carCircles = function (c, out) { const ca = Math.cos(c.ang), sa = Math.sin(c.ang); out.length = 0; for (const o of [-0.8, 0, 0.8]) out.push([c.x + ca * o, c.y + sa * o, 0.5]); return out; };
+  // Collision capsule for a vehicle: two circles at the front and rear plus one in the
+  // middle, sized from the kind's dims (see CarArt.kinds). Drives wall collision, entity
+  // pushing, car-vs-car and the interaction/reach ranges, so everything scales with the art.
+  E.carCircles = function (c, out) {
+    const ca = Math.cos(c.ang), sa = Math.sin(c.ang), K = DSZ.CarArt.K(c.kind), r = K.col, o = K.colOff;
+    out.length = 0;
+    out.push([c.x - ca * o, c.y - sa * o, r], [c.x, c.y, r], [c.x + ca * o, c.y + sa * o, r]);
+    return out;
+  };
   const tmpC = [];
   function pushFromCars(S, e, r) {
     for (const c of S.cars) {
-      if (Math.abs(c.x - e.x) > 2.6 || Math.abs(c.y - e.y) > 2.6) continue;
+      if (Math.abs(c.x - e.x) > 4.4 || Math.abs(c.y - e.y) > 4.4) continue;
       E.carCircles(c, tmpC);
       for (const k of tmpC) { const dx = e.x - k[0], dy = e.y - k[1], d = Math.hypot(dx, dy), m = r + k[2]; if (d < m && d > 1e-4) { const f = (m - d) / d; const nx = e.x + dx * f, ny = e.y + dy * f; if (!W.hitCircle(nx, ny, r * 0.8)) { e.x = nx; e.y = ny; } } }
     }
@@ -209,7 +217,7 @@
         spd *= 0.15;
       } else if (z.state === 'chase' && dist < 0.78 + z.r * 0.4 && z.cool <= 0 && !p.dead && !p.driving) {
         z.atkT = 0.55; z.cool = z.rate + Math.random() * 0.4; z.hitDone = false; z.ang = Math.atan2(dy, dx);
-      } else if (z.state === 'chase' && p.driving && dist < 1.6 && z.cool <= 0) { z.cool = 1.0; E.damageCar(S, p.driving, z.dmg * 0.6, z.x, z.y); A.play('thud', z.x, z.y, 0.7); }
+      } else if (z.state === 'chase' && p.driving && dist < DSZ.CarArt.reach(p.driving.kind) + 0.8 && z.cool <= 0) { z.cool = 1.0; E.damageCar(S, p.driving, z.dmg * 0.6, z.x, z.y); A.play('thud', z.x, z.y, 0.7); }
       // --- integrate
       const tvx = mx * spd, tvy = my * spd;
       z.vx += (tvx - z.vx) * Math.min(1, dt * 7); z.vy += (tvy - z.vy) * Math.min(1, dt * 7);
@@ -288,7 +296,7 @@
         endT = h[0]; if (pierce <= 0) break;
       }
       // cars
-      for (const c of S.cars) { if (c === p.driving) continue; if (Math.hypot(c.x - ox, c.y - oy) > range + 2) continue; E.carCircles(c, tmpC); for (const q of tmpC) { const t = rayCircle(ox, oy, dx, dy, q[0], q[1], 0.5); if (t !== null && t < endT) { endT = t; E.sparks(S, ox + dx * t, oy + dy * t, 0.7, 4); E.damageCar(S, c, def.dmg * 0.25, ox, oy, true); } } }
+      for (const c of S.cars) { if (c === p.driving) continue; if (Math.hypot(c.x - ox, c.y - oy) > range + 3) continue; E.carCircles(c, tmpC); for (const q of tmpC) { const t = rayCircle(ox, oy, dx, dy, q[0], q[1], q[2]); if (t !== null && t < endT) { endT = t; E.sparks(S, ox + dx * t, oy + dy * t, 0.7, 4); E.damageCar(S, c, def.dmg * 0.25, ox, oy, true); } } }
       if (wall && wall.t <= endT + 0.01) { const o = W.getObj(wall.tx, wall.ty); endT = wall.t; E.sparks(S, ox + dx * wall.t, oy + dy * wall.t, 1.0, 5); if (o && D[o.t].hp && (D[o.t].window || D[o.t].wall)) E.damageObject(S, o, def.dmg * 0.6, p); }
       S.bullets.push({ x0: ox, y0: oy, x1: ox + dx * endT, y1: oy + dy * endT, t: 0, max: 0.09 });
     }
@@ -388,21 +396,21 @@
     for (let s = 0; s < steps; s++) {
       const mx = c.vx * dt / steps, my = c.vy * dt / steps;
       const nx = c.x + mx, ny = c.y + my; let blockX = false, blockY = false;
-      E.carCircles({ x: nx, y: c.y, ang: c.ang }, cp); for (const q of cp) if (W.hitCircle(q[0], q[1], 0.42)) blockX = true;
-      E.carCircles({ x: c.x, y: ny, ang: c.ang }, cp); for (const q of cp) if (W.hitCircle(q[0], q[1], 0.42)) blockY = true;
+      E.carCircles({ x: nx, y: c.y, ang: c.ang }, cp); for (const q of cp) if (W.hitCircle(q[0], q[1], K.wcol)) blockX = true;
+      E.carCircles({ x: c.x, y: ny, ang: c.ang }, cp); for (const q of cp) if (W.hitCircle(q[0], q[1], K.wcol)) blockY = true;
       if (!blockX) c.x = nx; else { hit = Math.max(hit, Math.abs(c.vx)); c.vx *= -0.25; }
       if (!blockY) c.y = ny; else { hit = Math.max(hit, Math.abs(c.vy)); c.vy *= -0.25; }
       if (blockX || blockY) { c.speed *= 0.4; }
     }
     // rotation collision (stuck against walls)
-    E.carCircles(c, cp); let pen = false; for (const q of cp) if (W.hitCircle(q[0], q[1], 0.4)) pen = true; if (pen) { c.x -= c.vx * dt * 1.3; c.y -= c.vy * dt * 1.3; c.vx *= 0.5; c.vy *= 0.5; }
+    E.carCircles(c, cp); let pen = false; for (const q of cp) if (W.hitCircle(q[0], q[1], K.wcol * 0.95)) pen = true; if (pen) { c.x -= c.vx * dt * 1.3; c.y -= c.vy * dt * 1.3; c.vx *= 0.5; c.vy *= 0.5; }
     // cars vs cars
-    for (const o of S.cars) { if (o === c || Math.abs(o.x - c.x) > 3.2 || Math.abs(o.y - c.y) > 3.2) continue; const A1 = E.carCircles(c, []), B1 = E.carCircles(o, []); for (const a of A1) for (const b of B1) { const dx = a[0] - b[0], dy = a[1] - b[1], d = Math.hypot(dx, dy), m = a[2] + b[2]; if (d < m && d > 1e-4) { const f = (m - d) / d * 0.5; c.x += dx * f; c.y += dy * f; o.x -= dx * f * 0.4; o.y -= dy * f * 0.4; const rel = Math.hypot(c.vx - o.vx, c.vy - o.vy); if (rel > 2.5) { hit = Math.max(hit, rel); o.vx += c.vx * 0.3; o.vy += c.vy * 0.3; E.damageCar(S, o, rel * 2, c.x, c.y); } c.vx *= 0.7; c.vy *= 0.7; } } }
+    for (const o of S.cars) { if (o === c || Math.abs(o.x - c.x) > 5 || Math.abs(o.y - c.y) > 5) continue; const A1 = E.carCircles(c, []), B1 = E.carCircles(o, []); for (const a of A1) for (const b of B1) { const dx = a[0] - b[0], dy = a[1] - b[1], d = Math.hypot(dx, dy), m = a[2] + b[2]; if (d < m && d > 1e-4) { const f = (m - d) / d * 0.5; c.x += dx * f; c.y += dy * f; o.x -= dx * f * 0.4; o.y -= dy * f * 0.4; const rel = Math.hypot(c.vx - o.vx, c.vy - o.vy); if (rel > 2.5) { hit = Math.max(hit, rel); o.vx += c.vx * 0.3; o.vy += c.vy * 0.3; E.damageCar(S, o, rel * 2, c.x, c.y); } c.vx *= 0.7; c.vy *= 0.7; } } }
     if (hit > 3.2) { const dmg = (hit - 2.5) * 6; E.damageCar(S, c, dmg, c.x, c.y); S.cam.shake = Math.min(1.2, (S.cam.shake || 0) + hit * 0.06); A.play('carHit', c.x, c.y, Math.min(1.4, hit * 0.15)); E.noise(S, c.x, c.y, 24); E.sparks(S, c.x + nfx, c.y + nfy, 0.5, 8); E.debris(S, c.x + nfx, c.y + nfy, 0.5, 5, '#888'); if (driven && hit > 6) G.hurtPlayer(S, (hit - 5) * 2.2, c.x, c.y, 'crash'); }
     // run over zombies
     if (Math.abs(vf) > 2.2) for (const z of S.zombies) {
-      if (z.dead || Math.abs(z.x - c.x) > 2.2 || Math.abs(z.y - c.y) > 2.2) continue;
-      for (const q of E.carCircles(c, [])) { const d = Math.hypot(z.x - q[0], z.y - q[1]); if (d < 0.5 + z.r + 0.15) { const dmg = Math.abs(vf) * 15; E.hurtZombie(S, z, dmg, Math.atan2(c.vy, c.vx), Math.abs(vf) * 0.7); A.play('thud', z.x, z.y, 1); c.vx *= 0.97; c.vy *= 0.97; if (z.type === 'brute') E.damageCar(S, c, 4, z.x, z.y); S.cam.shake = Math.min(1, (S.cam.shake || 0) + 0.2); break; } }
+      if (z.dead || Math.abs(z.x - c.x) > 3.6 || Math.abs(z.y - c.y) > 3.6) continue;
+      for (const q of E.carCircles(c, [])) { const d = Math.hypot(z.x - q[0], z.y - q[1]); if (d < q[2] + z.r + 0.15) { const dmg = Math.abs(vf) * 15; E.hurtZombie(S, z, dmg, Math.atan2(c.vy, c.vx), Math.abs(vf) * 0.7); A.play('thud', z.x, z.y, 1); c.vx *= 0.97; c.vy *= 0.97; if (z.type === 'brute') E.damageCar(S, c, 4, z.x, z.y); S.cam.shake = Math.min(1, (S.cam.shake || 0) + 0.2); break; } }
     }
     // visuals: skid marks, fuel, noise
     const slip = Math.abs(vl);
