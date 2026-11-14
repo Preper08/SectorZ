@@ -282,7 +282,7 @@
       else if (o.pump) consider('pump', o, cx, cy, 'E  Siphon fuel' + (o.fuelLeft === undefined || o.fuelLeft > 0 ? '' : ' (empty)'), 1.6);
     }
     for (const z of S.zombies) if (z.dead && z.deadT <= 0 && Math.hypot(z.x - p.x, z.y - p.y) < 1.5) consider('corpse', z, z.x, z.y, z.grid || z.searched ? 'E  Open corpse' : 'E  Search body', 1.5, 0.1);
-    for (const c of S.cars) { if (Math.abs(c.x - p.x) > 4.6 || Math.abs(c.y - p.y) > 4.6) continue; const dd = Math.min(...E.carCircles(c, []).map(q => Math.hypot(q[0] - p.x, q[1] - p.y) - q[2])); if (dd < 1.5) { const label = c.drivable ? 'E  Drive' + (c.fuel < c.maxfuel - 5 && Inv.has(p.inv, 'gascan') ? '    G  Refuel' : '') : (c.dead ? 'Burnt out' : 'E  Search vehicle'); if (!(c.dead && !c.drivable)) consider('car', c, c.x, c.y, label, DSZ.CarArt.reach(c.kind) + 1.2, dd * 0.6); } }
+    for (const c of S.cars) { if (Math.abs(c.x - p.x) > 4.6 || Math.abs(c.y - p.y) > 4.6) continue; const dd = Math.min(...E.carCircles(c, []).map(q => Math.hypot(q[0] - p.x, q[1] - p.y) - q[2])); if (dd < 1.5) { const label = c.drivable ? 'E  Drive    T  Search' + (c.fuel < c.maxfuel - 5 && Inv.has(p.inv, 'gascan') ? '    G  Refuel' : '') : (c.dead ? 'Burnt out' : 'E  Search vehicle'); if (!(c.dead && !c.drivable)) consider('car', c, c.x, c.y, label, DSZ.CarArt.reach(c.kind) + 1.2, dd * 0.6); } }
     return best;
   }
   function doInteract(S) {
@@ -313,9 +313,7 @@
       }
       case 'car': {
         const c = f.ref; if (p.driving) { Game.exitCar(S); break; }
-        if (c.drivable) Game.enterCar(S, c); else { // search the wreck
-          if (c.grid) DSZ.UI.openLoot('Vehicle', c.grid, c); else S.search = { kind: 'car', o: c, t: 0, total: 1.4 };
-        }
+        if (c.drivable) Game.enterCar(S, c); else Game.searchVehicle(S, c); // E drives a working car, searches a wreck
         break;
       }
       case 'bed': Game.trySleep(S); break;
@@ -435,6 +433,7 @@
       if (In.pressed('KeyR') && !S.build.active) Game.reload(S);
       if (In.pressed('KeyQ')) Game.dropSelected(S);
       if (In.pressed('KeyG')) Game.refuelNearby(S);
+      if (In.pressed('KeyT')) Game.searchNearbyVehicle(S);
     }
     // reload progress
     if (p.reload > 0) { p.reload -= dt; if (p.reload <= 0) { const it = p.reloadItem, d = I[it.id]; const need = d.mag - it.mag, have = Inv.count(P, d.ammo), n = Math.min(need, have); Inv.take(P, d.ammo, n); it.mag += n; Game.toast(S, 'Reloaded'); } if (held(S) !== p.reloadItem) p.reload = 0; }
@@ -466,11 +465,30 @@
     } else if (In.pressed('KeyE') && !ui.blockKeys()) doInteract(S);
     if (In.down('KeyE') && S.focus && S.focus.kind === 'door' && S.focus.ref.locked && !S.focus.ref.open && !S.prying && In.down('KeyE') && !In.pressed('KeyE') && (Inv.has(P, 'crowbar') || Inv.has(P, 'axe'))) S.prying = { o: S.focus.ref, t: 0, total: 2.4 };
   }
+  // start (or resume) searching a vehicle; works for wrecks and for drivable cars
+  // (so a working car also has a trunk to loot). Opens the loot window if already searched.
+  Game.searchVehicle = function (S, c) {
+    if (c.grid) { DSZ.UI.openLoot(c.drivable ? 'Vehicle (trunk)' : 'Vehicle', c.grid, c); return; }
+    S.search = { kind: 'car', o: c, t: 0, total: 1.4 };
+  };
+  // key T: search the nearest vehicle (wreck or drivable) the player is standing next to,
+  // without needing to aim at it precisely
+  Game.searchNearbyVehicle = function (S) {
+    const p = S.player; if (p.driving || p.dead) return;
+    let best = null, bd = 1e9;
+    for (const c of S.cars) {
+      const dd = Math.min(...E.carCircles(c, []).map(q => Math.hypot(q[0] - p.x, q[1] - p.y) - q[2]));
+      if (dd < 1.5 && dd < bd) { bd = dd; best = c; }
+    }
+    if (best) Game.searchVehicle(S, best);
+    else Game.toast(S, 'No vehicle nearby to search.');
+    return !!best;
+  };
   Game.finishSearch = function (S, s) {
     const o = s.o;
     if (s.kind === 'cont') { o.searched = true; const g = Inv.fillContainer(o, rnd); S.stats.looted++; DSZ.UI.openLoot(D[o.t].cont.name, g, o); }
     else if (s.kind === 'corpse') { o.searched = true; o.grid = Inv.grid(4, 3); for (const r of DSZ.rollLoot(rnd, 'zombie', 0)) Inv.addTo(o.grid, Inv.make(r.id, r.q, r)); DSZ.UI.openLoot('Corpse', o.grid, o); }
-    else { o.grid = Inv.grid(5, 3); for (const r of DSZ.rollLoot(rnd, rnd() < 0.5 ? 'car' : 'cartrunk', 0)) Inv.addTo(o.grid, Inv.make(r.id, r.q, r)); DSZ.UI.openLoot('Vehicle', o.grid, o); }
+    else { o.searched = true; o.grid = Inv.grid(5, 3); for (const r of DSZ.rollLoot(rnd, rnd() < 0.5 ? 'car' : 'cartrunk', 0)) Inv.addTo(o.grid, Inv.make(r.id, r.q, r)); DSZ.UI.openLoot(o.drivable ? 'Vehicle (trunk)' : 'Vehicle', o.grid, o); }
     A.play('pickup');
   };
 
