@@ -83,7 +83,7 @@
   // Trade-off: more protection or warmth = a bigger footprint (more carried weight + bag
   // space) and, for most items, more pockets. The t-shirt has NO pockets.
   // storage (cols/rows) is the item's own pocket grid.
-  it('tshirt', 'T-shirt', 'clothes', { slot: 'body', def: 0, col: '#5a7a9a', desc: 'Plain and worn. No pockets.' });
+  it('tshirt', 'T-shirt', 'clothes', { slot: 'body', def: 0, col: '#e8e8e8', desc: 'Plain and worn. No pockets.' });
   it('flannel', 'Flannel Shirt', 'clothes', { w: 1, h: 2, slot: 'body', def: 3, warm: 9, cols: 2, rows: 1, col: '#9c3a34', desc: 'Light work shirt. Two chest pockets.' });
   it('sweater', 'Wool Sweater', 'clothes', { w: 2, h: 2, slot: 'body', def: 2, warm: 18, cols: 2, rows: 1, col: '#b8862e', desc: 'Very warm. Two loose pockets.' });
   it('jacket', 'Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 8, warm: 10, cols: 3, rows: 2, col: '#4a5a6a', desc: 'Roomy side pockets.' });
