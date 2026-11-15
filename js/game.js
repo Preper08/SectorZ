@@ -540,12 +540,14 @@
     const H = S.horde, p = S.player;
     const isNight = night > 0.35;
     if (isNight && !H.active) { // dusk: a new night begins
-      H.active = true; H.announced = false; H.night = S.day; H.spawned = 0;
+      H.active = true; H.announced = false; H.night = S.day; H.spawned = 0; H.killed = 0;
       H.left = Math.round(10 + S.day * 3.5); // grows with the day count
       H.surgeT = 18; // first wave shortly after dark
     } else if (!isNight && H.active) { // dawn: night survived
       H.active = false; H.nights++;
-      if (H.left > 0 || H.spawned > 0) { Game.toast(S, 'You survived the night.', 'good'); S.stats.nights = H.nights; }
+      const kills = H.killed || 0;
+      Game.toast(S, 'Dawn. You survived night ' + H.night + (kills > 0 ? ' - ' + kills + ' put down.' : '.'), 'good');
+      S.stats.nights = H.nights;
     }
     if (!H.active) return;
     if (!H.announced) { H.announced = true; Game.toast(S, 'Night ' + S.day + ': they are coming...', 'bad'); A.play('scream', p.x, p.y, 1.1); }
@@ -651,7 +653,7 @@
   function savePayload(S, mods, base) {
     const p = S.player;
     return {
-      horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights },
+      horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights, killed: S.horde.killed || 0 },
       v: 1, seed: S.seed, hour: S.hour, day: S.day, stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
       player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
       mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))

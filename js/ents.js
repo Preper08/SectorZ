@@ -147,6 +147,7 @@
   };
   E.killZombie = function (S, z, ang) {
     z.dead = true; z.deadT = 0.55; z.state = 'dead'; z.face = Math.cos(ang - z.ang) > 0; S.stats.kills++;
+    if (z.horde && S.horde && S.horde.active) S.horde.killed = (S.horde.killed || 0) + 1;
     E.blood(S, z.x, z.y, ang, 12, 0.6);
     E.decal(S, { type: 'blood', x: z.x, y: z.y, r: 0.55 + Math.random() * 0.4, a: 0.8 });
     if (Math.random() < 0.22) S.zombies.length; // keep for loot

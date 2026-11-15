@@ -15,7 +15,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch']) els[id] = $(id);
     els.ver.textContent = 'v' + C.VERSION;
     els.tvx.onclick = () => UI.closeTV(); els.tvclose.onclick = () => UI.closeTV();
     // tabs
@@ -447,6 +447,11 @@
       let st = ''; if (DSZ.settings.godmode) st += '<span class="warn">GOD MODE</span>'; if (p.bleed > 0) st += '<span>Bleeding</span>'; if (p.infection > 30) st += '<span>Infected</span>'; else if (p.infection > 0) st += '<span class="warn">Feverish</span>'; if (p.broken) st += '<span>Broken leg</span>'; if (p.food < 25) st += '<span class="warn">Hungry</span>'; if (p.water < 25) st += '<span class="warn">Thirsty</span>'; if (p.energy < 20) st += '<span class="warn">Tired</span>'; if (p.reload > 0) st += '<span class="warn">Reloading</span>';
       if (els.vitals.querySelector('#status').innerHTML !== st) els.vitals.querySelector('#status').innerHTML = st;
       const h = Math.floor(S.hour), m = Math.floor((S.hour - h) * 60); els.clk.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); els.dayl.textContent = 'Day ' + S.day;
+      const H = S.horde;
+      if (H && H.active) {
+        const alive = S.zombies.reduce((a, z) => a + (!z.dead && z.horde ? 1 : 0), 0);
+        els.nightw.classList.remove('hidden'); els.nightw.textContent = 'NIGHT \u00b7 ' + (H.left + alive) + ' LEFT';
+      } else { els.nightw.classList.add('hidden'); }
       els.wx.textContent = S.weather.rain > 0.7 ? 'Storm' : (S.weather.rain > 0.15 ? 'Rain' : (DSZ.Render.daylight(S.hour) < 0.3 ? 'Night' : 'Clear'));
       drawMini();
       const sig = S.toasts.map(t => t.text + t.kind).join('|'); if (sig !== toastSig) { toastSig = sig; els.toasts.innerHTML = S.toasts.map(t => '<div class="toast ' + t.kind + '">' + t.text + '</div>').join(''); }
