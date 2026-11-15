@@ -655,7 +655,10 @@
     S.saveT -= dt; if (S.saveT <= 0) { S.saveT = 60; Game.saveBegin(S); }
     Game.saveStep(4);
   };
-  function updateWorldLite(S, dt) { S.time += dt; S.hour += dt * 24 / C.DAY_LEN; E.updateParticles(S, dt); E.updateZombies(S, dt); E.updateCars(S, dt); updateCamera(S, dt); S.cam.zoom += (1.25 - S.cam.zoom) * dt; }
+  // Death screen: keep the world visibly alive (particles, zombies, cars, the slow camera
+  // pullback) but do NOT advance the in-game clock. S.time still ticks because several
+  // animations read it, but the hour is frozen so the HUD clock stops at the moment of death.
+  function updateWorldLite(S, dt) { S.time += dt; E.updateParticles(S, dt); E.updateZombies(S, dt); E.updateCars(S, dt); updateCamera(S, dt); S.cam.zoom += (1.25 - S.cam.zoom) * dt; }
 
   // ---------------------------------------------------------------- save / load
   let saveJob = null;
