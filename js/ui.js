@@ -90,7 +90,7 @@
     const why = { bite: 'Torn apart by the dead.', blast: 'Caught in an explosion.', crash: 'Killed in a crash.', hunger: 'You starved to death.', thirst: 'You died of thirst.', bleeding: 'You bled out.', infection: 'The infection took you.' }[s.deathCause] || 'You did not make it.';
     els.deathwhy.textContent = why;
     const hrs = ((s.day - 1) * 24 + s.hour - C.START_HOUR);
-    els.deathstats.innerHTML = '<span>Time survived</span><span>' + Math.floor(hrs / 24) + ' d ' + Math.floor(hrs % 24) + ' h</span><span>Zombies killed</span><span>' + s.stats.kills + '</span><span>Containers searched</span><span>' + s.stats.looted + '</span><span>Structures built</span><span>' + s.stats.built + '</span><span>Distance on foot</span><span>' + s.stats.distance.toFixed(1) + ' km</span>';
+    els.deathstats.innerHTML = '<span>Time survived</span><span>' + Math.floor(hrs / 24) + ' d ' + Math.floor(hrs % 24) + ' h</span><span>Nights survived</span><span>' + (s.stats.nights || 0) + '</span><span>Zombies killed</span><span>' + s.stats.kills + '</span><span>Containers searched</span><span>' + s.stats.looted + '</span><span>Structures built</span><span>' + s.stats.built + '</span><span>Distance on foot</span><span>' + s.stats.distance.toFixed(1) + ' km</span>';
   };
   UI.hideDeath = function () { UI.open.death = false; els.death.classList.add('hidden'); };
   // Full reset of transient UI state when a game starts or loads, so nothing (open windows,

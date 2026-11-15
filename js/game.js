@@ -13,7 +13,8 @@
     const S = Game.S = {
       seed, time: 0, hour: C.START_HOUR, day: 1, cam: { x: 0, y: 0, zoom: 1, tz: 1, shake: 0 }, player: null, zombies: [], cars: [], drops: [], particles: [], decals: [], bullets: [], glowLights: [], noiseEvents: [],
       weather: { rain: 0, target: 0, t: 60 + Math.random() * 60, flash: 0, thunder: 0, lt: 30 }, stats: { kills: 0, distance: 0, looted: 0, built: 0 }, muzzle: 0, focus: null, build: { active: false, def: null, tile: null, ok: false, rot: 0, tab: 'Walls' },
-      carInput: { thr: 0, str: 0, hand: false }, toasts: [], state: 'play', search: null, prying: null, sleeping: null, spawnT: 20, saveT: 60, cinema: 0, paused: false, mouse: { wx: 0, wy: 0 }
+      carInput: { thr: 0, str: 0, hand: false }, toasts: [], state: 'play', search: null, prying: null, sleeping: null, spawnT: 20, saveT: 60, cinema: 0, paused: false, mouse: { wx: 0, wy: 0 },
+      horde: { night: 0, active: false, announced: false, surgeT: 0, spawned: 0, left: 0, nights: 0 }
     };
     const sp = Gn.playerSpawn;
     const p = S.player = {
@@ -529,9 +530,53 @@
     // toasts decay
     for (let i = S.toasts.length - 1; i >= 0; i--) { S.toasts[i].t -= dt; if (S.toasts[i].t <= 0) S.toasts.splice(i, 1); }
   }
+  // ---- nightly horde: every night a growing crowd converges on the player.
+  // A full in-game day is C.DAY_LEN seconds; night starts when daylight drops below 0.35
+  // and ends at dawn. Each night announces itself, then releases waves of zombies from
+  // just outside the player's view and drives them toward the player via the flow field
+  // (they path around buildings and bash what blocks them). The size scales with the
+  // number of nights survived, so later nights are genuinely dangerous.
+  function updateHorde(S, dt, night) {
+    const H = S.horde, p = S.player;
+    const isNight = night > 0.35;
+    if (isNight && !H.active) { // dusk: a new night begins
+      H.active = true; H.announced = false; H.night = S.day; H.spawned = 0;
+      H.left = Math.round(10 + S.day * 3.5); // grows with the day count
+      H.surgeT = 18; // first wave shortly after dark
+    } else if (!isNight && H.active) { // dawn: night survived
+      H.active = false; H.nights++;
+      if (H.left > 0 || H.spawned > 0) { Game.toast(S, 'You survived the night.', 'good'); S.stats.nights = H.nights; }
+    }
+    if (!H.active) return;
+    if (!H.announced) { H.announced = true; Game.toast(S, 'Night ' + S.day + ': they are coming...', 'bad'); A.play('scream', p.x, p.y, 1.1); }
+    H.surgeT -= dt;
+    if (H.surgeT > 0 || H.left <= 0) return;
+    // wait for the player to be outside sight so they don't pop in on screen
+    const batch = Math.min(H.left, 4 + Math.floor(S.day / 2));
+    const spawned = spawnHordeWave(S, batch, night);
+    if (spawned > 0) {
+      H.left -= spawned; H.spawned += spawned;
+      const alive = S.zombies.reduce((a, z) => a + (!z.dead ? 1 : 0), 0);
+      const near = S.zombies.reduce((a, z) => a + (!z.dead && Math.hypot(z.x - p.x, z.y - p.y) < 22 ? 1 : 0), 0);
+      if (near > 40 + S.day * 4) H.surgeT = 6; else H.surgeT = 9 + Math.random() * 7;
+    } else {
+      H.surgeT = 3; // could not find a spot this tick; try again soon
+    }
+  }
+  function spawnHordeWave(S, n, night) {
+    const p = S.player; let made = 0;
+    for (let k = 0; k < n; k++) {
+      const a = Math.random() * 6.28, d = 24 + Math.random() * 10, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+      if (!W.inb(Math.floor(x), Math.floor(y)) || W.isSolid(Math.floor(x), Math.floor(y)) || W.insideBuilding(x, y) || W.los(p.x, p.y, x, y) && d < 30) continue;
+      const w = [['walker', 74], ['runner', 8 + S.day * 2], ['brute', 3 + S.day * 0.4], ['crawler', 5]];
+      const type = U.weighted(Math.random, w);
+      const z = E.spawnZombie(S, x, y, type); z.state = 'chase'; z.sleeper = false; z.alert = 30; z.tx = p.x; z.ty = p.y; z.horde = true;
+      made++;
+    }
+    return made;
+  }
   function updateWorld(S, dt) {
-    const w = S.weather;
-    S.time += dt; S.hour += dt * 24 / C.DAY_LEN * (S.sleeping ? 1 : 1); if (S.hour >= 24) { S.hour -= 24; S.day++; Game.toast(S, 'Day ' + S.day); }
+    const w = S.weather;    S.time += dt; S.hour += dt * 24 / C.DAY_LEN * (S.sleeping ? 1 : 1); if (S.hour >= 24) { S.hour -= 24; S.day++; Game.toast(S, 'Day ' + S.day); }
     w.t -= dt; if (w.t <= 0) { w.t = 90 + Math.random() * 180; w.target = U.weighted(Math.random, [[0, 5], [0.45, 2], [1, 2]]); }
     w.rain += (w.target - w.rain) * Math.min(1, dt * 0.2);
     w.flash = Math.max(0, w.flash - dt * 2.2);
@@ -539,6 +584,7 @@
     if (w.thunder > 0) { w.thunder -= dt; if (w.thunder <= 0) { A.play('explosion', S.player.x, S.player.y, 0.5, 400); } }
     const night = 1 - DSZ.Render.daylight(S.hour); A.setAmbient(night, w.rain);
     A.setListener(S.player.x, S.player.y);
+    updateHorde(S, dt, night);
     // rain splashes
     if (w.rain > 0.1 && Math.random() < dt * w.rain * 40) { const a = Math.random() * 6.28, d = Math.random() * 10; E.particle(S, { type: 'splash', x: S.player.x + Math.cos(a) * d, y: S.player.y + Math.sin(a) * d, z: 0, vx: 0, vy: 0, vz: 0, life: 0.35 }); }
     // dynamic zombie spawns around the player
@@ -605,6 +651,7 @@
   function savePayload(S, mods, base) {
     const p = S.player;
     return {
+      horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights },
       v: 1, seed: S.seed, hour: S.hour, day: S.day, stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
       player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
       mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
@@ -643,6 +690,7 @@
   Game.deleteSave = () => { try { localStorage.removeItem('dsz_save'); } catch (e) { /* */ } };
   Game.applySave = function (S, d) {
     const p = S.player; S.hour = d.hour; S.day = d.day; Object.assign(S.stats, d.stats); S.weather.rain = d.weather.rain; S.weather.target = d.weather.target;
+    if (d.horde) Object.assign(S.horde, d.horde);
     Object.assign(p, d.player); p.inv = d.player.inv; Inv.migrateEquip(p.inv, Game.dropFn(S)); Inv.refreshAll(p.inv, Game.dropFn(S)); p.dead = false; p.vx = p.vy = 0;
     for (const idx of d.removed || []) { const x = idx % C.W, y = (idx / C.W) | 0; const o = W.getObj(x, y); if (o && !o.base) { W.removeObj(x, y); } }
     for (const m of d.mods || []) { const o = W.getObj(m.x, m.y); if (!o) continue; if (m.grid) o.grid = m.grid; if (m.searched) o.searched = true; if (m.broken) o.broken = true; if (m.open !== undefined) o.open = m.open; if (m.locked !== undefined) o.locked = m.locked; if (m.hp !== undefined) o.hp = m.hp; if (m.chop) o.chop = m.chop; W.refresh(m.x, m.y); }

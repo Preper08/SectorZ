@@ -180,7 +180,7 @@
       }
       if (p.driving && dist < 9 && !p.driving.dead) sees = sees || W.los(z.x, z.y, p.x, p.y);
       if (sees) { if (z.state !== 'chase') { z.state = 'chase'; A.play(Math.random() < 0.3 ? 'scream' : 'groan', z.x, z.y, 0.9); } z.lostT = 0; z.tx = p.x; z.ty = p.y; z.sleeper = false; }
-      else if (z.state === 'chase') { z.lostT += dt; if (z.lostT > 7) { z.state = 'investigate'; z.alert = 5; } }
+      else if (z.state === 'chase') { z.lostT += dt; if (z.lostT > (z.horde ? 600 : 7)) { z.state = 'investigate'; z.alert = 5; } }
       if (z.alert > 0) { z.alert -= dt; if (z.alert <= 0 && z.state === 'investigate') z.state = 'idle'; }
       z.groan -= dt; if (z.groan <= 0) { z.groan = (z.state === 'chase' ? 4 : 11) + Math.random() * 10; if (dist < 24) A.play('groan', z.x, z.y, z.state === 'chase' ? 0.8 : 0.45); }
       // --- decide movement
