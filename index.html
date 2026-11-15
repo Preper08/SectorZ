@@ -24,6 +24,7 @@
   </div>
   <div id="topright">
     <div id="clock" class="panel"><b id="clk">17:12</b><span id="dayl">DAY 1</span><span id="wx"></span><span id="nightw" class="warn hidden"></span></div>
+    <div id="diffTag" class="panel">DIFFICULTY <b id="dlab">Normal</b></div>
     <div id="minimap" class="panel"><canvas id="mm" width="200" height="200"></canvas></div>
   </div>
   <div id="toasts"></div>
@@ -123,6 +124,11 @@
     <div class="tmenu">
       <button class="btn big" id="t-continue">Continue</button>
       <button class="btn big" id="t-new">New game</button>
+      <div class="diffrow"><span class="difflbl">Difficulty</span><div class="diffbtns" id="diffbtns">
+        <button class="btn diff" data-diff="easy">Easy</button>
+        <button class="btn diff" data-diff="normal">Normal</button>
+        <button class="btn diff" data-diff="hard">Hard</button>
+      </div></div>
       <button class="btn big" id="t-controls">Controls</button>
       <button class="btn big" id="t-settings">Settings</button>
     </div>

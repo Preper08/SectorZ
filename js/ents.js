@@ -53,7 +53,11 @@
   // ------------------------------------------------------------ zombies
   E.spawnZombie = function (S, x, y, type, seed) {
     const T = ZT[type] || ZT.walker; seed = seed === undefined ? (Math.random() * 1e6) | 0 : seed;
-    const z = { x, y, vx: 0, vy: 0, ang: Math.random() * 6.28, type, hp: T.hp, maxhp: T.hp, speed: T.speed * (0.85 + Math.random() * 0.3), dmg: T.dmg, r: T.r, sc: T.sc, rate: T.rate, seed, state: 'idle', alert: 0, tx: x, ty: y, wander: Math.random() * 4, cool: 0, atkT: 0, ph: Math.random() * 6.28, dead: false, deadT: 0, alpha: 1, flash: 0, burn: 0, groan: 3 + Math.random() * 12, limp: Math.random() < 0.3, sleeper: Math.random() < 0.35, bash: 0, lostT: 0, stuck: 0, spikeT: 0, id: ++E.zid };
+    // difficulty scales toughness and bite damage; speed/behaviour are untouched so the
+    // zombies still feel like the same creatures, just harder or softer hitting
+    const pw = DSZ.DIFFCUR ? DSZ.DIFFCUR.zPower : 1;
+    const hp = Math.round(T.hp * pw), dmg = T.dmg * pw;
+    const z = { x, y, vx: 0, vy: 0, ang: Math.random() * 6.28, type, hp, maxhp: hp, speed: T.speed * (0.85 + Math.random() * 0.3), dmg, r: T.r, sc: T.sc, rate: T.rate, seed, state: 'idle', alert: 0, tx: x, ty: y, wander: Math.random() * 4, cool: 0, atkT: 0, ph: Math.random() * 6.28, dead: false, deadT: 0, alpha: 1, flash: 0, burn: 0, groan: 3 + Math.random() * 12, limp: Math.random() < 0.3, sleeper: Math.random() < 0.35, bash: 0, lostT: 0, stuck: 0, spikeT: 0, id: ++E.zid };
     z.spec = DSZ.Fig.zombieSpec(seed, type);
     z.pose = { arms: 'down', af: 0, legs: type === 'crawler' ? 'crawl' : 'idle', lf: 0, limp: z.limp };
     S.zombies.push(z); return z;

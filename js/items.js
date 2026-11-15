@@ -151,6 +151,10 @@
     const out = [];
     let n = T.n[0] + ((rng() * (T.n[1] - T.n[0] + 1)) | 0) + (bonus || 0);
     if (T.none && rng() < T.none) return out;
+    // difficulty scales how much loot a container holds: fewer rolls on Hard, more on
+    // Easy. Whole-number friendly so a single-item container stays single on Normal.
+    const lm = DSZ.DIFFCUR ? DSZ.DIFFCUR.loot : 1;
+    if (lm !== 1) { const rolls = n, scaled = Math.round(n * lm); if (scaled > rolls) n = scaled; else { n = 0; for (let i = 0; i < rolls; i++) if (rng() < lm) n++; } }
     for (let i = 0; i < n; i++) {
       const id = U.weighted(rng, T.t), d = I[id];
       let q = 1;

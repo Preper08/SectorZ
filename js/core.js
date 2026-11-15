@@ -97,8 +97,29 @@
 
   DSZ.settings = {
     renderScale: 1, lightRes: 0.25, blur: true, grain: true, bloom: true, shadows: true,
-    volume: 0.7, music: 0.5, quality: 'auto', showFps: false, godmode: false
+    volume: 0.7, music: 0.5, quality: 'auto', showFps: false, godmode: false, difficulty: 'normal'
   };
+  // Difficulty presets. "normal" is deliberately all 1.0 - it is exactly the game as it
+  // played before this system existed, so the default balance is untouched. Everything the
+  // presets touch already existed; they only scale its numbers. Kept in one table so a
+  // value can be tuned in a single place.
+  //   zDensity - how many zombies populate the world at generation
+  //   horde    - size of the nightly horde
+  //   zPower   - zombie HP and damage
+  //   loot     - amount of loot in containers
+  //   needs    - hunger/thirst drain speed
+  //   infect   - chance and speed of infection
+  //   start    - starting food/water supplies
+  DSZ.DIFF = {
+    easy:   { name: 'Easy',   zDensity: 0.7, horde: 0.7,  zPower: 0.8,  loot: 1.4, needs: 0.75, infect: 0.6, start: 1.3 },
+    normal: { name: 'Normal', zDensity: 1.0, horde: 1.0,  zPower: 1.0,  loot: 1.0, needs: 1.0,  infect: 1.0, start: 1.0 },
+    hard:   { name: 'Hard',   zDensity: 1.4, horde: 1.3,  zPower: 1.25, loot: 0.7, needs: 1.3,  infect: 1.5, start: 0.75 }
+  };
+  DSZ.DIFF_KEYS = ['easy', 'normal', 'hard'];
+  // Live preset for the running game. Set at the start of newGame() from the chosen
+  // difficulty (or the one stored in a save), so every system reads the same numbers.
+  DSZ.DIFFCUR = DSZ.DIFF.normal;
+  DSZ.diff = () => DSZ.DIFFCUR;
   try {
     const s = JSON.parse(localStorage.getItem('dsz_settings') || 'null');
     if (s) Object.assign(DSZ.settings, s);

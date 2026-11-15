@@ -8,10 +8,14 @@
   // ---------------------------------------------------------------- new game
   Game.newGame = function (seed, saved) {
     seed = seed || ((Math.random() * 1e9) | 0);
+    // Difficulty: a loaded save keeps its own; a fresh game uses the chosen setting.
+    const diffKey = (saved && saved.difficulty) || DSZ.settings.difficulty || 'normal';
+    const difficulty = DSZ.DIFF_KEYS.indexOf(diffKey) >= 0 ? diffKey : 'normal';
+    DSZ.DIFFCUR = DSZ.DIFF[difficulty];
     DSZ.Gen.generate(seed);
     const Gn = DSZ.Gen;
     const S = Game.S = {
-      seed, time: 0, hour: C.START_HOUR, day: 1, cam: { x: 0, y: 0, zoom: 1, tz: 1, shake: 0 }, player: null, zombies: [], cars: [], drops: [], particles: [], decals: [], bullets: [], glowLights: [], noiseEvents: [],
+      seed, time: 0, hour: C.START_HOUR, day: 1, difficulty: difficulty, cam: { x: 0, y: 0, zoom: 1, tz: 1, shake: 0 }, player: null, zombies: [], cars: [], drops: [], particles: [], decals: [], bullets: [], glowLights: [], noiseEvents: [],
       weather: { rain: 0, target: 0, t: 60 + Math.random() * 60, flash: 0, thunder: 0, lt: 30 }, stats: { kills: 0, distance: 0, looted: 0, built: 0 }, muzzle: 0, focus: null, build: { active: false, def: null, tile: null, ok: false, rot: 0, tab: 'Walls' },
       carInput: { thr: 0, str: 0, hand: false }, toasts: [], state: 'play', search: null, prying: null, sleeping: null, spawnT: 20, saveT: 60, cinema: 0, paused: false, mouse: { wx: 0, wy: 0 },
       horde: { night: 0, active: false, announced: false, surgeT: 0, spawned: 0, left: 0, nights: 0 }
@@ -27,8 +31,18 @@
     Inv.equip(P, Inv.make('fannypack'));
     P.equip.light = Inv.make('flashlight', 1, { bat: 100 });
     Inv.give(P, Inv.make('hammer')); Inv.give(P, Inv.make('bandage', 2)); Inv.give(P, Inv.make('water')); Inv.give(P, Inv.make('beans'));
+    // difficulty: starting supplies (a new game only - loaded saves restore their own).
+    // Food/water start values scale, and the easy/hard extremes hand out one extra or one
+    // fewer water/beans, so a fresh start feels meaningfully different without new items.
+    const Ds = DSZ.DIFFCUR;
+    if (!saved && Ds && Ds.start !== 1) {
+      p.food = Math.min(100, Math.round(p.food * Ds.start));
+      p.water = Math.min(100, Math.round(p.water * Ds.start));
+      if (Ds.start > 1) { Inv.give(P, Inv.make('water')); Inv.give(P, Inv.make('beans')); }
+      else if (Ds.start < 1) { Inv.take(P, 'water', 1); }
+    }
     P.sel = -1;
-    // world population
+    // world population (Gen.generate already scaled the list by difficulty density)
     for (const z of Gn.zombieSpawns) E.spawnZombie(S, z[0], z[1], z[2]);
     for (const c of Gn.carSpecs) E.spawnCar(S, c);
     // guarantee a drivable car near the start
@@ -141,8 +155,9 @@
     A.play('hurt', p.x, p.y, 1); if (type === 'bite') A.play('bite', p.x, p.y, 1);
     E.blood(S, p.x, p.y, Math.atan2(p.y - sy, p.x - sx), 6, 0.3);
     if (type === 'bite') {
+      const inf = DSZ.DIFFCUR ? DSZ.DIFFCUR.infect : 1;
       if (Math.random() < 0.3 * (1 - red)) { p.bleed = Math.min(3, p.bleed + 1); Game.toast(S, 'You are bleeding!', 'bad'); }
-      if (Math.random() < 0.16 * (1 - red) && p.infection <= 0) { p.infection = 5; Game.toast(S, 'You were bitten... infected.', 'bad'); }
+      if (Math.random() < 0.16 * inf * (1 - red) && p.infection <= 0) { p.infection = 5; Game.toast(S, 'You were bitten... infected.', 'bad'); }
     }
     if (type === 'crash' && dmg > 18 && Math.random() < 0.35 && !p.broken) { p.broken = true; Game.toast(S, 'Your leg is broken!', 'bad'); }
     if (p.hp <= 0) Game.die(S, type);
@@ -500,10 +515,11 @@
     const god = DSZ.settings.godmode;
     if (god) { p.bleed = 0; p.infection = 0; p.stamina = 100; }
     const sleepMul = S.sleeping ? 0.4 : 1;
+    const needs = DSZ.DIFFCUR ? DSZ.DIFFCUR.needs : 1, inf = DSZ.DIFFCUR ? DSZ.DIFFCUR.infect : 1;
     if (!god) {
-      p.food = Math.max(0, p.food - 0.042 * dt * sleepMul * (p.running ? 1.5 : 1)); p.water = Math.max(0, p.water - 0.066 * dt * sleepMul * (p.running ? 1.6 : 1)); p.energy = Math.max(0, p.energy - 0.012 * dt * (S.sleeping ? 0 : 1));
+      p.food = Math.max(0, p.food - 0.042 * dt * sleepMul * needs * (p.running ? 1.5 : 1)); p.water = Math.max(0, p.water - 0.066 * dt * sleepMul * needs * (p.running ? 1.6 : 1)); p.energy = Math.max(0, p.energy - 0.012 * dt * (S.sleeping ? 0 : 1));
       let dmg = 0; if (p.food <= 0) dmg += 0.25; if (p.water <= 0) dmg += 0.4; if (p.energy <= 0) dmg += 0.1; if (p.bleed > 0) { dmg += 0.55 * p.bleed; p.bleed = Math.max(0, p.bleed - 0.012 * dt); if (Math.random() < dt * 1.2) E.blood(S, p.x, p.y, Math.random() * 6.28, 1, 0.1); }
-      if (p.infection > 0) { p.infection = Math.min(100, p.infection + 0.07 * dt); if (p.infection > 45) dmg += (p.infection - 45) * 0.01; if (p.infection >= 100) { Game.die(S, 'infection'); return; } }
+      if (p.infection > 0) { p.infection = Math.min(100, p.infection + 0.07 * inf * dt); if (p.infection > 45) dmg += (p.infection - 45) * 0.01; if (p.infection >= 100) { Game.die(S, 'infection'); return; } }
       if (dmg > 0) { p.hp -= dmg * dt; if (p.hp <= 0) { Game.die(S, p.water <= 0 ? 'thirst' : (p.food <= 0 ? 'hunger' : (p.bleed > 0 ? 'bleeding' : 'infection'))); return; } }
     }
     else if (p.food > 45 && p.water > 45 && p.hp < 100 && p.infection < 20) p.hp = Math.min(100, p.hp + (S.sleeping ? 0.8 : 0.16) * dt);
@@ -541,7 +557,7 @@
     const isNight = night > 0.35;
     if (isNight && !H.active) { // dusk: a new night begins
       H.active = true; H.announced = false; H.night = S.day; H.spawned = 0; H.killed = 0;
-      H.left = Math.round(10 + S.day * 3.5); // grows with the day count
+      H.left = Math.round((10 + S.day * 3.5) * (DSZ.DIFFCUR ? DSZ.DIFFCUR.horde : 1)); // grows with the day count and the difficulty
       H.surgeT = 18; // first wave shortly after dark
     } else if (!isNight && H.active) { // dawn: night survived
       H.active = false; H.nights++;
@@ -654,7 +670,7 @@
     const p = S.player;
     return {
       horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights, killed: S.horde.killed || 0 },
-      v: 1, seed: S.seed, hour: S.hour, day: S.day, stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
+      v: 1, seed: S.seed, hour: S.hour, day: S.day, difficulty: S.difficulty || 'normal', stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
       player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
       mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
     };
@@ -692,6 +708,9 @@
   Game.deleteSave = () => { try { localStorage.removeItem('dsz_save'); } catch (e) { /* */ } };
   Game.applySave = function (S, d) {
     const p = S.player; S.hour = d.hour; S.day = d.day; Object.assign(S.stats, d.stats); S.weather.rain = d.weather.rain; S.weather.target = d.weather.target;
+    // keep the running difficulty in sync with the save (a save always wins over the menu)
+    const dk = DSZ.DIFF_KEYS.indexOf(d.difficulty) >= 0 ? d.difficulty : 'normal';
+    S.difficulty = dk; DSZ.DIFFCUR = DSZ.DIFF[dk];
     if (d.horde) Object.assign(S.horde, d.horde);
     Object.assign(p, d.player); p.inv = d.player.inv; Inv.migrateEquip(p.inv, Game.dropFn(S)); Inv.refreshAll(p.inv, Game.dropFn(S)); p.dead = false; p.vx = p.vy = 0;
     for (const idx of d.removed || []) { const x = idx % C.W, y = (idx / C.W) | 0; const o = W.getObj(x, y); if (o && !o.base) { W.removeObj(x, y); } }
