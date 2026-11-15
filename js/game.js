@@ -521,6 +521,10 @@
       let dmg = 0; if (p.food <= 0) dmg += 0.25; if (p.water <= 0) dmg += 0.4; if (p.energy <= 0) dmg += 0.1; if (p.bleed > 0) { dmg += 0.55 * p.bleed; p.bleed = Math.max(0, p.bleed - 0.012 * dt); if (Math.random() < dt * 1.2) E.blood(S, p.x, p.y, Math.random() * 6.28, 1, 0.1); }
       if (p.infection > 0) { p.infection = Math.min(100, p.infection + 0.07 * inf * dt); if (p.infection > 45) dmg += (p.infection - 45) * 0.01; if (p.infection >= 100) { Game.die(S, 'infection'); return; } }
       if (dmg > 0) { p.hp -= dmg * dt; if (p.hp <= 0) { Game.die(S, p.water <= 0 ? 'thirst' : (p.food <= 0 ? 'hunger' : (p.bleed > 0 ? 'bleeding' : 'infection'))); return; } }
+      // Waking regeneration for normal players: recover slowly when well fed, hydrated,
+      // undamaged this frame and uninfected. Guarded by !S.sleeping so it never stacks
+      // with updateSleep()'s faster 3 HP/s recovery.
+      else if (!S.sleeping && p.food > 45 && p.water > 45 && p.hp < 100 && p.infection < 20) p.hp = Math.min(100, p.hp + 0.16 * dt);
     }
     else if (p.food > 45 && p.water > 45 && p.hp < 100 && p.infection < 20) p.hp = Math.min(100, p.hp + (S.sleeping ? 0.8 : 0.16) * dt);
     if (p.food < 15 && !p.warnedF) { p.warnedF = 1; Game.toast(S, 'You are starving.', 'bad'); } if (p.food > 25) p.warnedF = 0;
