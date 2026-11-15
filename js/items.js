@@ -150,11 +150,18 @@
     const T = L[table]; if (!T) return [];
     const out = [];
     let n = T.n[0] + ((rng() * (T.n[1] - T.n[0] + 1)) | 0) + (bonus || 0);
-    if (T.none && rng() < T.none) return out;
-    // difficulty scales how much loot a container holds: fewer rolls on Hard, more on
-    // Easy. Whole-number friendly so a single-item container stays single on Normal.
+    // Difficulty scales how much loot a container holds. The multiplier touches three
+    // things so the whole curve moves, not just the number of item types:
+    //   - the "nothing here" chance: fewer empty containers on Easy, more on Hard
+    //   - the number of rolls, scaled so the EXPECTED count is exactly n*loot (a table
+    //     whose n is 1 on Normal still becomes 2 now and then on Easy, and 0 on Hard)
+    // Normal is loot 1.0, which short-circuits, so its output is byte-for-byte unchanged.
     const lm = DSZ.DIFFCUR ? DSZ.DIFFCUR.loot : 1;
-    if (lm !== 1) { const rolls = n, scaled = Math.round(n * lm); if (scaled > rolls) n = scaled; else { n = 0; for (let i = 0; i < rolls; i++) if (rng() < lm) n++; } }
+    if (lm !== 1) {
+      if (T.none) { if (rng() < Math.min(0.95, T.none / lm)) return out; }
+      const sc = n * lm, lo = Math.floor(sc);
+      n = lo + (rng() < sc - lo ? 1 : 0);
+    } else if (T.none && rng() < T.none) return out;
     for (let i = 0; i < n; i++) {
       const id = U.weighted(rng, T.t), d = I[id];
       let q = 1;
