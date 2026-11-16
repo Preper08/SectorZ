@@ -4,7 +4,7 @@
   const DSZ = window.DSZ;
   let ac = null, master = null, sfxBus = null, musBus = null, noiseBuf = null;
   let lx = 0, ly = 0;
-  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null;
+  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0;
 
   function mkNoise() {
     const len = ac.sampleRate * 2, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
@@ -173,15 +173,18 @@
       if (!ac) return;
       if (on && !tvMus) {
         const t0 = ac.currentTime + 0.05;
+        // generation token: a stale arpeggio timer from a previous set must never revive the bed
+        const gen = tvGen = (tvGen + 1);
         const bed = ac.createGain(); bed.gain.value = 0; bed.connect(musBus);
         const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 2400; filt.Q.value = 0.8;
         filt.connect(bed);
-        // chord bed: A minor-ish rolling pad that loops every 4s
+        // chord bed: A minor-ish rolling pad; kept quiet so it sits UNDER gunfire, footsteps and
+        // the ambient wind instead of drowning them out.
         const pads = [];
         const chord = [220, 261.63, 329.63, 392];   // A3 C4 E4 G4
         for (const fr of chord) {
           const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fr;
-          const g = ac.createGain(); g.gain.value = 0.045;
+          const g = ac.createGain(); g.gain.value = 0.016;
           const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1200;
           o.connect(lp); lp.connect(g); g.connect(filt); o.start(t0);
           pads.push({ o, g });
@@ -195,36 +198,39 @@
         const patt = [880, 659.25, 783.99, 659.25, 987.77, 783.99, 880, 659.25];
         let step = 0;
         const blip = () => {
-          if (!tvMus) return;
+          if (!tvMus || tvGen !== gen) return;
           const now = ac.currentTime;
           const o = ac.createOscillator(); o.type = 'triangle';
           o.frequency.value = patt[step % patt.length];
           const g = ac.createGain();
           g.gain.setValueAtTime(0.0001, now);
-          g.gain.exponentialRampToValueAtTime(0.055, now + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.022, now + 0.02);
           g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
           o.connect(g); g.connect(filt); o.start(now); o.stop(now + 0.26);
           // bass thump every 4th step
           if (step % 4 === 0) {
             bassG.gain.cancelScheduledValues(now);
             bassG.gain.setValueAtTime(0.0, now);
-            bassG.gain.linearRampToValueAtTime(0.12, now + 0.01);
+            bassG.gain.linearRampToValueAtTime(0.05, now + 0.01);
             bassG.gain.exponentialRampToValueAtTime(0.0005, now + 0.32);
           }
           step++;
         };
-        tvMus = { bed, filt, pads, bass, bassG, timer: null, step };
-        bed.gain.setTargetAtTime(0.5, ac.currentTime, 0.6);   // fade the bed in
+        tvMus = { bed, filt, pads, bass, bassG, timer: null, step, gen };
+        bed.gain.setTargetAtTime(0.32, ac.currentTime, 0.6);   // fade the bed in, subdued
         const tick = () => { blip(); };
         tvMus.timer = setInterval(tick, 230);
         tick();
       } else if (!on && tvMus) {
         const m = tvMus; tvMus = null;
+        tvGen++;                                   // invalidate any in-flight arpeggio tick
         clearInterval(m.timer);
         try {
           m.bed.gain.setTargetAtTime(0.0001, ac.currentTime, 0.25);
           setTimeout(() => {
-            try { for (const p of m.pads) p.o.stop(); m.bass.stop(); } catch (e) { /* already stopped */ }
+            try { for (const p of m.pads) p.o.stop(); } catch (e) { /* already stopped */ }
+            try { m.bass.stop(); } catch (e) { /* already stopped */ }
+            try { m.bed.disconnect(); } catch (e) { /* already gone */ }
           }, 900);
         } catch (e) { /* ignore */ }
       }

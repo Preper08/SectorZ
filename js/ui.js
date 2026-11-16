@@ -169,6 +169,9 @@
   // Persistent settings such as God Mode are handled separately and are NOT touched here.
   UI.resetGame = function () {
     cancelDrag(); hideTip();
+    // the TV may be open on the commentary channel: stop its music before dropping the flag,
+    // otherwise the bed keeps playing (and stacking) after the new game starts
+    if (A.tvMusic) A.tvMusic(false);
     UI.loot = null; UI._isig = '';
     UI.open.win = false; UI.open.map = false; UI.open.menu = false; UI.open.settings = false;
     UI.open.controls = false; UI.open.tv = false; UI.open.death = false;
@@ -580,6 +583,9 @@
     S = state; if (!S) return;
     const p = S.player;
     if (UI.open.tv) renderTV(dt);
+    // safety net: the commentary bed must never outlive the popup. If the window is gone but the
+    // channel is still tuned to 2 (e.g. a transition bypassed closeTV), silence it here.
+    else if (UI.tvChannel === 2) { UI.tvChannel = 1; if (A.tvMusic) A.tvMusic(false); }
     els.cursor.classList.toggle('ui', UI.blockMouse());
     if (!UI.open.title) {
       // key handling
