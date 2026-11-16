@@ -84,8 +84,12 @@
         const w = Math.sin(ph) * 0.12;
         J.handR = [J.shR[0] + 0.5 + w, 0.3, 0.1]; J.handL = [J.shL[0] + 0.5 - w, -0.3, 0.1];
         J.elR = [J.shR[0] + 0.25, 0.32, 0.18]; J.elL = [J.shL[0] + 0.25, -0.32, 0.18];
-        J.footL = [-0.9 + Math.sin(ph) * 0.06, -0.1, 0.08]; J.footR = [-0.9 - Math.sin(ph) * 0.06, 0.1, 0.08];
-        J.kneeL = [-0.5, -0.12, 0.1]; J.kneeR = [-0.5, 0.12, 0.1];
+        // Trail the legs behind the rotated hips instead of placing them at fixed world
+        // coordinates: with the body lying forward the hips sit far along +x, so absolute
+        // values here stretched each thigh to well over twice its real length.
+        const hxL = J.hipL[0], hxR = J.hipR[0], sw = Math.sin(ph) * 0.06;
+        J.kneeL = [hxL - 0.47, -0.12, 0.11]; J.kneeR = [hxR - 0.47, 0.12, 0.11];
+        J.footL = [hxL - 0.90 + sw, -0.1, 0.08]; J.footR = [hxR - 0.90 - sw, 0.1, 0.08];
       } else if (lf >= 3) { // dead: sprawl arms
         const sp = Math.min(1, (lf - 2) / 4);
         J.handL = lerp3(J.handL, [J.shL[0] + 0.1, -0.55, 0.08], sp); J.handR = lerp3(J.handR, [J.shR[0] - 0.1, 0.55, 0.08], sp);
