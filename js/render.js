@@ -275,7 +275,7 @@
         // the near wall still covers them. Only the walls that actually overlap the character on
         // screen are cleared - walls of that building further away stay solid, so the house keeps
         // its shape instead of turning into a wireframe.
-        else if (d.wall && o.b && tx + ty > pkey + 0.4 && W.blds[o.b] && W.blds[o.b]._hideW && wallCovers(tx, ty, selx, sely, selTop)) o.ft = 0.14;
+        else if (d.wall && tx + ty > pkey + 0.4 && wallCovers(tx, ty, selx, sely, selTop) && (o.base || (o.b && W.blds[o.b] && W.blds[o.b]._hideW))) o.ft = 0.14;
         else if (d.tall && tx + ty > pkey + 0.5 && tx + ty < pkey + 6 && Math.abs((tx - ty) - (px - py)) < 2.4) o.ft = 0.38;
         else o.ft = 1;
         o.fa = o.fa === undefined ? o.ft : o.fa + (o.ft - o.fa) * Math.min(1, dt * 9);
