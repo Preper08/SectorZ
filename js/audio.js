@@ -166,72 +166,125 @@
         engine.g.gain.setTargetAtTime((0.13 + rpm * 0.12) * (vol === undefined ? 1 : vol), t, 0.08);
       }
     },
-    // ---- TV news stinger: a short looping "breaking news" bed for channel 2 only.
-    // Fully procedural, built from a soft saw pad, a pulsing bass and a 16th-note arpeggio,
-    // so it needs no audio files and costs nothing while no TV is on that channel.
+    // ---- Channel 2: the breaking-news bed.
+    // A real bulletin bed is not melodic: it is a low sustained drone, a minor pad that breathes,
+    // a slow heartbeat pulse for urgency, a sparse teletype tick and an occasional tension swell
+    // that never resolves. Everything is procedural and kept under the ambient wind, gunfire and
+    // footsteps, so it colours the channel without drowning the game.
     tvMusic(on) {
       if (!ac) return;
       if (on && !tvMus) {
         const t0 = ac.currentTime + 0.05;
-        // generation token: a stale arpeggio timer from a previous set must never revive the bed
+        // generation token: a stale scheduler tick from a previous set must never revive the bed
         const gen = tvGen = (tvGen + 1);
         const bed = ac.createGain(); bed.gain.value = 0; bed.connect(musBus);
-        const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 2400; filt.Q.value = 0.8;
+        const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 900; filt.Q.value = 0.7;
         filt.connect(bed);
-        // chord bed: A minor-ish rolling pad; kept quiet so it sits UNDER gunfire, footsteps and
-        // the ambient wind instead of drowning them out.
-        const pads = [];
-        const chord = [220, 261.63, 329.63, 392];   // A3 C4 E4 G4
-        for (const fr of chord) {
-          const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fr;
-          const g = ac.createGain(); g.gain.value = 0.016;
-          const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1200;
+
+        // weight: two low saws an octave and a fifth apart, barely moving
+        const drone = [];
+        for (const spec of [[55, 0.017], [82.41, 0.011]]) {   // A1, E2
+          const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = spec[0];
+          o.detune.value = (Math.random() - 0.5) * 9;
+          const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 190;
+          const g = ac.createGain(); g.gain.value = spec[1];
           o.connect(lp); lp.connect(g); g.connect(filt); o.start(t0);
-          pads.push({ o, g });
+          drone.push(o);
         }
-        // bass pulse on a 0.5s grid
-        const bass = ac.createOscillator(); bass.type = 'square'; bass.frequency.value = 55;
-        const bassLp = ac.createBiquadFilter(); bassLp.type = 'lowpass'; bassLp.frequency.value = 220;
-        const bassG = ac.createGain(); bassG.gain.value = 0;
-        bass.connect(bassLp); bassLp.connect(bassG); bassG.connect(filt); bass.start(t0);
-        // arpeggio: schedule short blips on a repeating pattern using a small interval timer
-        const patt = [880, 659.25, 783.99, 659.25, 987.77, 783.99, 880, 659.25];
-        let step = 0;
-        const blip = () => {
-          if (!tvMus || tvGen !== gen) return;
-          const now = ac.currentTime;
-          const o = ac.createOscillator(); o.type = 'triangle';
-          o.frequency.value = patt[step % patt.length];
+
+        // pad: an A-minor triad under a slow filter LFO, so it breathes instead of droning
+        const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.055;
+        const lfoG = ac.createGain(); lfoG.gain.value = 240;
+        const padFilt = ac.createBiquadFilter(); padFilt.type = 'lowpass'; padFilt.frequency.value = 640; padFilt.Q.value = 1.2;
+        lfo.connect(lfoG); lfoG.connect(padFilt.frequency); lfo.start(t0); padFilt.connect(filt);
+        const pads = [];
+        for (const fr of [220, 261.63, 329.63]) {              // A3, C4, E4
+          const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = fr;
+          o.detune.value = (Math.random() - 0.5) * 7;
+          const g = ac.createGain(); g.gain.value = 0.011;
+          o.connect(g); g.connect(padFilt); o.start(t0);
+          pads.push(o);
+        }
+
+        // one low pulse: the "lub" of a lub-dub heartbeat, the bed's slow march
+        const pulse = (t, f, dur, gv) => {
+          const o = ac.createOscillator(); o.type = 'sine';
+          o.frequency.setValueAtTime(f, t);
+          o.frequency.exponentialRampToValueAtTime(f * 0.6, t + dur);
           const g = ac.createGain();
-          g.gain.setValueAtTime(0.0001, now);
-          g.gain.exponentialRampToValueAtTime(0.022, now + 0.02);
-          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-          o.connect(g); g.connect(filt); o.start(now); o.stop(now + 0.26);
-          // bass thump every 4th step
-          if (step % 4 === 0) {
-            bassG.gain.cancelScheduledValues(now);
-            bassG.gain.setValueAtTime(0.0, now);
-            bassG.gain.linearRampToValueAtTime(0.05, now + 0.01);
-            bassG.gain.exponentialRampToValueAtTime(0.0005, now + 0.32);
-          }
-          step++;
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(gv, t + 0.014);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          o.connect(g); g.connect(filt); o.start(t); o.stop(t + dur + 0.03);
         };
-        tvMus = { bed, filt, pads, bass, bassG, timer: null, step, gen };
-        bed.gain.setTargetAtTime(0.32, ac.currentTime, 0.6);   // fade the bed in, subdued
-        const tick = () => { blip(); };
-        tvMus.timer = setInterval(tick, 230);
-        tick();
+        // teletype tick: a dry click on a bandpassed noise burst
+        const tick = (t) => {
+          const s = ac.createBufferSource(); s.buffer = noiseBuf;
+          const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3300; bp.Q.value = 2.4;
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.007, t + 0.003);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+          s.connect(bp); bp.connect(g); g.connect(filt);
+          s.start(t, Math.random() * 1.4, 0.04);
+        };
+        // tension swell: a filtered noise rise that never resolves
+        const swell = (t) => {
+          const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+          const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3.2;
+          bp.frequency.setValueAtTime(200, t);
+          bp.frequency.linearRampToValueAtTime(1500, t + 2.6);
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.linearRampToValueAtTime(0.015, t + 2.1);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+          s.connect(bp); bp.connect(g); g.connect(filt);
+          s.start(t); s.stop(t + 2.9);
+        };
+        // opening sting: three low notes rising, the way a bulletin announces itself
+        const sting = (t) => {
+          const notes = [[146.83, 0], [174.61, 0.20], [220, 0.40]];   // D3, F3, A3 (D minor)
+          for (const n of notes) {
+            const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n[0];
+            const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1300;
+            const g = ac.createGain();
+            g.gain.setValueAtTime(0.0001, t + n[1]);
+            g.gain.exponentialRampToValueAtTime(0.026, t + n[1] + 0.03);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + n[1] + 0.55);
+            o.connect(lp); lp.connect(g); g.connect(filt);
+            o.start(t + n[1]); o.stop(t + n[1] + 0.6);
+          }
+        };
+
+        // scheduler: a slow heartbeat march, a teletype tick, an occasional swell
+        const sched = { nextBeat: 0.9, nextTick: 0.15, nextSwell: 6 + Math.random() * 5 };
+        const step = () => {
+          if (!tvMus || tvGen !== gen) return;
+          const now = ac.currentTime + 0.02;
+          if (now >= sched.nextBeat) {
+            pulse(now, 62, 0.34, 0.058);
+            pulse(now + 0.24, 52, 0.44, 0.04);             // the "dub"
+            sched.nextBeat = now + 1.75;
+          }
+          if (now >= sched.nextTick) { tick(now); sched.nextTick = now + 0.42 + Math.random() * 0.1; }
+          if (now >= sched.nextSwell) { swell(now + 0.05); sched.nextSwell = now + 9 + Math.random() * 6; }
+        };
+        tvMus = { bed, filt, drone, pads, lfo, timer: setInterval(step, 80), gen };
+        bed.gain.setTargetAtTime(0.30, ac.currentTime, 0.7);   // fade in, subdued
+        sting(ac.currentTime + 0.1);
+        step();
       } else if (!on && tvMus) {
         const m = tvMus; tvMus = null;
-        tvGen++;                                   // invalidate any in-flight arpeggio tick
+        tvGen++;                                   // invalidate any in-flight scheduler tick
         clearInterval(m.timer);
         try {
-          m.bed.gain.setTargetAtTime(0.0001, ac.currentTime, 0.25);
+          m.bed.gain.setTargetAtTime(0.0001, ac.currentTime, 0.22);
           setTimeout(() => {
-            try { for (const p of m.pads) p.o.stop(); } catch (e) { /* already stopped */ }
-            try { m.bass.stop(); } catch (e) { /* already stopped */ }
+            try { for (const o of m.drone) o.stop(); } catch (e) { /* already stopped */ }
+            try { for (const o of m.pads) o.stop(); } catch (e) { /* already stopped */ }
+            try { m.lfo.stop(); } catch (e) { /* already stopped */ }
             try { m.bed.disconnect(); } catch (e) { /* already gone */ }
-          }, 900);
+          }, 800);
         } catch (e) { /* ignore */ }
       }
     },
