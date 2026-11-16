@@ -52,12 +52,12 @@
     window.addEventListener('mouseup', dragUp);
     // Re-fit the inventory when the window is resized, so an open container never drifts
     // off screen after the player resizes the game.
-    window.addEventListener('resize', () => { if (UI.open.win && UI.open.tab === 'inv') renderInv(); });
+    window.addEventListener('resize', () => { fitHud(); if (UI.open.win && UI.open.tab === 'inv') renderInv(); });
     els.cursor.classList.remove('hidden');
     buildSettings(); buildControls();
     DSZ.on('death', s => UI.showDeath(s));
   };
-  UI.setState = s => { S = s; hotSig = ''; toastSig = ''; mapRendered = null; mmCanvas = null; };
+  UI.setState = s => { S = s; hotSig = ''; toastSig = ''; mapRendered = null; mmCanvas = null; fitHud(); };
 
   // ------------------------------------------------------------------ windows
   UI.showTab = function (t) {
@@ -107,6 +107,7 @@
     els.hotbar.classList.toggle('hidden', v);
     // closing to the title also cancels any open inventory, so drop its HUD-hiding state
     if (v) { els.hud.classList.remove('win-open'); els.hotbar.classList.remove('win-open'); }
+    else fitHud();
     $('t-continue').disabled = !DSZ.Game.hasSave(); if (v) { els.win.classList.add('hidden'); UI.open.win = false; UI.open.menu = false; els.pause.classList.add('hidden'); UI.open.death = false; els.death.classList.add('hidden'); UI.closeTV(); if (UI.syncDiff) UI.syncDiff(); }
   };
   UI.showLoading = function (v, txt, p) { $('loading').classList.toggle('hidden', !v); if (txt) $('ltxt').textContent = txt; if (p !== undefined) $('lbar').style.width = (p * 100) + '%'; };
@@ -178,6 +179,21 @@
     e.addEventListener('dblclick', () => quick(it, name));
     e.addEventListener('mouseenter', () => { hovered = it; showTip(it, e); }); e.addEventListener('mouseleave', hideTip);
     return e;
+  }
+  // The vitals panel (bottom-left) and the centred hotbar are both anchored to the bottom of
+  // the screen, so on narrower windows the hotbar overlaps the vitals and covers the
+  // stamina/energy bars. Measure the real boxes and, only when they actually collide, lift the
+  // vitals panel just above the hotbar. On wide screens nothing changes.
+  function fitHud() {
+    const v = els.vitals;
+    if (!v) return;
+    v.style.bottom = '';                                   // back to the CSS value, then re-test
+    if (els.hud.classList.contains('hidden')) return;      // title screen / death: nothing to do
+    const vr = v.getBoundingClientRect(), hr = els.hotbar.getBoundingClientRect();
+    if (!hr.width || !vr.width) return;                    // hotbar not laid out yet
+    const xOverlap = Math.min(vr.right, hr.right) - Math.max(vr.left, hr.left);
+    if (xOverlap <= 0) return;                             // side by side already
+    v.style.bottom = Math.round(window.innerHeight - hr.top + 10) + 'px';
   }
   // Largest cell size that still keeps the equipment column, the widest storage grid and
   // (when a container is open) the container column visible at the same time. The 276px
@@ -333,6 +349,7 @@
   function hotbarLift() {
     els.hotbar.classList.toggle('win-open', UI.open.win);
     els.hud.classList.toggle('win-open', UI.open.win);
+    fitHud();
   }
   function sizeGhost() { const d = UI.drag; if (!d) return; const [w, h] = Inv.size(d.it), g = els.dragghost; g.style.width = w * CELL + 'px'; g.style.height = h * CELL + 'px'; g.innerHTML = '<img src="' + img(d.it.id) + '"' + (d.it.rot ? ' style="transform:rotate(90deg)"' : '') + '>'; }
   function clearHL() { document.querySelectorAll('.cellhl').forEach(n => n.remove()); document.querySelectorAll('.eqslot.hl').forEach(n => n.classList.remove('hl')); }
