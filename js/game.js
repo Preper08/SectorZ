@@ -658,6 +658,7 @@
   // ---------------------------------------------------------------- main update
   Game.update = function (S, dt) {
     if (S.paused) return;
+    E.prepareCarCollisions(S);
     if (S.state === 'dead') { updateWorldLite(S, dt); return; }
     updateWorld(S, dt);
     updatePlayer(S, dt);

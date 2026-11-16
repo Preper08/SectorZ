@@ -8,6 +8,7 @@
   let cv, ctx, lm, lctx, LW = 0, LH = 0, tmp, tctx;
   let camIx = 0, camIy = 0, zoom = 1, T = 0;
   const chunks = new Map();
+  let roofStrips = new WeakMap(), roofFrame = 0, roofBakeBudget = 0;
   let bakeBudget = 3;
   const order = [], pool = [];
   let np = 0;
@@ -155,7 +156,7 @@
   R.dirtyAt = function (tx, ty) {
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) chunks.delete(chunkKey(Math.floor((tx + dx) / CH), Math.floor((ty + dy) / CH)));
   };
-  R.dirtyAll = function () { chunks.clear(); };
+  R.dirtyAll = function () { chunks.clear(); roofStrips = new WeakMap(); };
 
   // ---------------------------------------------------------------- helpers
   const iso = (wx, wy) => [(wx - wy) * 32, (wx + wy) * 16];
@@ -170,6 +171,8 @@
 
   // ---------------------------------------------------------------- frame
   R.frame = function (S, dt) {
+    roofFrame++; roofBakeBudget = 4;
+    R.stats.roofTiles = 0; R.stats.roofDraws = 0; R.stats.wallDraws = 0;
     T = S.time; zoom = S.cam.zoom * (R.zoomBoost || 1);
     const shake = S.cam.shake || 0, sxk = shake ? (Math.random() - 0.5) * shake * 6 : 0, syk = shake ? (Math.random() - 0.5) * shake * 6 : 0;
     const ci = iso(S.cam.x, S.cam.y); camIx = ci[0] + sxk; camIy = ci[1] + syk;
@@ -248,7 +251,14 @@
       }
       if (onScreen) {
         const rb = W.room[i];
-        if (rb && W.blds[rb].roofA > 0.02) pushItem(tx + ty + 1.02, 1, W.blds[rb], tx, ty);
+        if (rb && W.blds[rb].roofA > 0.02) {
+          const b = W.blds[rb], depth = tx + ty;
+          R.stats.roofTiles++;
+          const strip = b.roofA === 1 ? roofStrip(b, depth) : null;
+          if (strip) {
+            if (strip.frame !== roofFrame) { strip.frame = roofFrame; pushItem(depth + 1.02, 7, strip); }
+          } else pushItem(depth + 1.02, 1, b, tx, ty);
+        }
       }
     }
     // entities: same screen-space cull (their sprites are anchored at the ground point)
@@ -267,12 +277,13 @@
       const it = order[i];
       switch (it.t) {
         case 0: drawObj(it.a, it.b, it.c, S); break;
-        case 1: drawRoof(it.a, it.b, it.c); break;
+        case 1: drawRoof(it.a, it.b, it.c); R.stats.roofDraws++; break;
         case 2: drawZombie(it.a, S); break;
         case 3: drawCar(it.a, S); break;
         case 4: drawDrop(it.a, S); break;
         case 5: drawPlayer(S); break;
         case 6: drawParticle(it.a, S); break;
+        case 7: ctx.drawImage(it.a.c, it.a.x, it.a.y); R.stats.roofDraws++; break;
       }
     }
     // bullets / tracers
@@ -295,6 +306,49 @@
     drawPost(S, dl);
   };
 
+  const corpseLampCache = new WeakMap();
+  const shadowLightCells = new Map(), noShadowLights = [];
+  const LIGHT_CELL = 8;
+  let shadowLightVersion = -1;
+  function shadowLightsAt(x, y) {
+    if (shadowLightVersion !== W.lightsVersion) {
+      shadowLightCells.clear();
+      for (const light of W.lights) {
+        if (light.kind === 'window' || light.kind === 'traffic') continue;
+        const x0 = Math.floor((light.x - light.r) / LIGHT_CELL), x1 = Math.floor((light.x + light.r) / LIGHT_CELL);
+        const y0 = Math.floor((light.y - light.r) / LIGHT_CELL), y1 = Math.floor((light.y + light.r) / LIGHT_CELL);
+        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
+          const key = cx + ',' + cy;
+          let cell = shadowLightCells.get(key);
+          if (!cell) shadowLightCells.set(key, cell = []);
+          cell.push(light);
+        }
+      }
+      shadowLightVersion = W.lightsVersion;
+    }
+    return shadowLightCells.get(Math.floor(x / LIGHT_CELL) + ',' + Math.floor(y / LIGHT_CELL)) || noShadowLights;
+  }
+  function entityLamp(e) {
+    const settled = e.dead && e.deadT <= 0;
+    let cached = settled ? corpseLampCache.get(e) : null;
+    if (cached && cached.x === e.x && cached.y === e.y && cached.version === W.lightsVersion) return cached.shadow;
+    let best = null, bi = 0.18;
+    for (const L of shadowLightsAt(e.x, e.y)) {
+      const dx = e.x - L.x, dy = e.y - L.y;
+      if (Math.abs(dx) > L.r || Math.abs(dy) > L.r) continue;
+      const d = Math.hypot(dx, dy); if (d > L.r) continue;
+      const v = (1 - d / L.r) * L.a; if (v > bi) { bi = v; best = L; }
+    }
+    let shadow = null;
+    if (best) {
+      const dx = e.x - best.x, dy = e.y - best.y, d = Math.hypot(dx, dy) || 1, f = Math.min(2.4, 0.5 + d / (best.h || 3) * 0.9);
+      const dxn = dx / d, dyn = dy / d;
+      shadow = { sx: (dxn - dyn) * 32 / ZU * f, sy: (dxn + dyn) * 16 / ZU * f, intensity: bi };
+    }
+    if (settled) corpseLampCache.set(e, { x: e.x, y: e.y, version: W.lightsVersion, shadow });
+    return shadow;
+  }
+
   // ---------------------------------------------------------------- shadows
   function drawShadows(S, sun, tx0, ty0, tx1, ty1) {
     ctx.save();
@@ -307,7 +361,6 @@
       const hull = convexHull(pts);
       ctx.fillStyle = 'rgba(4,6,14,' + (str * 0.95) + ')'; ctx.beginPath(); hull.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.fill();
     }
-    ctx.restore();
     for (const it of order) {
       if (it.t === 0) {
         const o = it.a, d = D[o.t]; if (d.wall || d.low && d.h < 40 || d.thin && d.h < 100 || d.h < 24 || !d.solid && !d.tree) continue;
@@ -329,23 +382,19 @@
     for (const it of order) {
       if (it.t !== 2 && it.t !== 5) continue;
       const e = it.t === 5 ? S.player : it.a; if (!e.sprite || e.dead && e.deadT > 0) continue;
-      let best = null, bi = 0.18;
-      for (const L of W.lights) { if (L.kind === 'window' || L.kind === 'traffic') continue; const dx = e.x - L.x, dy = e.y - L.y, d = Math.hypot(dx, dy); if (d > L.r) continue; const v = (1 - d / L.r) * L.a; if (v > bi) { bi = v; best = L; } }
-      if (!best) continue;
-      const dx = e.x - best.x, dy = e.y - best.y, d = Math.hypot(dx, dy) || 1, f = Math.min(2.4, 0.5 + d / (best.h || 3) * 0.9);
-      const dxn = dx / d, dyn = dy / d, ls = { sx: (dxn - dyn) * 32 / ZU * f, sy: (dxn + dyn) * 16 / ZU * f };
+      const ls = entityLamp(e); if (!ls) continue;
       const i = iso(e.x, e.y);
-      shadowSprite(e.sprite, i[0], i[1], ls, bi * 0.55 * (1 - sun.dl * 0.7), 0.7);
+      shadowSprite(e.sprite, i[0], i[1], ls, ls.intensity * 0.55 * (1 - sun.dl * 0.7), 0.7);
     }
+    ctx.restore();
   }
   function shadowSprite(s, ax, ay, sun, alpha, hscale, extra) {
     if (alpha < 0.02) return;
     const sl = sil(s);
-    ctx.save(); ctx.globalAlpha = Math.min(0.7, alpha) * (extra === undefined ? 1 : extra);
+    ctx.globalAlpha = Math.min(0.7, alpha) * (extra === undefined ? 1 : extra);
     // local coords (u,v) with anchor at s.ox,s.oy ; height = -v
-    ctx.transform(1, 0, -sun.sx * hscale, -sun.sy * hscale * 1.0, ax, ay);
+    ctx.setTransform(zoom, 0, -sun.sx * hscale * zoom, -sun.sy * hscale * zoom, zoom * ax + R.VW / 2 - camIx * zoom, zoom * ay + R.VH / 2 - camIy * zoom);
     ctx.drawImage(sl, -s.ox, -s.oy);
-    ctx.restore();
   }
   function convexHull(pts) {
     pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -391,6 +440,7 @@
       default: return 'plain';
     }
   }
+  const wallParts = new WeakMap();
   function drawWall(o, d, tx, ty, a) {
     const wh = C.WH, Wl = DSZ.Walls;
     const nS = W.getObj(tx, ty + 1), nE = W.getObj(tx + 1, ty);
@@ -398,7 +448,9 @@
     let v = o.v | 0; if (o.t === O.WINDOW && o.broken) v = 1;
     const kind = wallKind(o), mat0 = wallMat(o), ex = (tx - ty) * 32, ey = (tx + ty) * 16;
     if (a < 0.99) ctx.globalAlpha = a;
-    const inner = (nx, ny) => { if (!o.b || o.t >= O.BWALL_W) return false; const i = ny * C.W + nx; return W.inb(nx, ny) && W.room[i] === o.b; };
+    const natural = o.b && o.t < O.BWALL_W;
+    const sInner = natural && W.inb(tx, ty + 1) && W.room[(ty + 1) * C.W + tx] === o.b;
+    const eInner = natural && W.inb(tx + 1, ty) && W.room[ty * C.W + tx + 1] === o.b;
     const drawS = !wallS, drawE = !wallE;
     // Doors, windows, shop fronts and garages are an opening in a wall: the art belongs on a
     // single face. When a tile shows two faces (a freestanding block, or both neighbours open)
@@ -407,14 +459,29 @@
     let sKind = kind, eKind = kind;
     if (kind !== 'plain' && drawS && drawE) {
       let useS;
-      if (o.b && o.t < O.BWALL_W) { const sExt = !inner(tx, ty + 1), eExt = !inner(tx + 1, ty); useS = !(eExt && !sExt); } // prefer the exterior face; tie -> south
+      if (natural) { const sExt = !sInner, eExt = !eInner; useS = !(eExt && !sExt); } // prefer the exterior face; tie -> south
       else useS = (o.f & 1) ? false : true; // base blocks: rotation picks the visible face
       sKind = useS ? kind : 'plain'; eKind = useS ? 'plain' : kind;
     }
-    if (drawS) { const mat = (inner(tx, ty + 1) || o.inner) ? (o.imat || mat0) : mat0; const f = Wl.get(mat, sKind, 'L', v); ctx.drawImage(f, ex - 32, ey + 16 - wh); }
-    if (drawE) { const mat = (inner(tx + 1, ty) || o.inner) ? (o.imat || mat0) : mat0; const f = Wl.get(mat, eKind, 'R', v); ctx.drawImage(f, ex, ey + 16 - wh); }
     const b = o.b && o.t < O.BWALL_W ? W.blds[o.b] : null;
-    if (!b || b.roofA < 0.98 || o.fa < 0.9) { ctx.drawImage(Wl.top(o.t >= O.BWALL_W ? (o.t === O.BWALL_M ? '#7a8088' : '#8a6a44') : '#5a5650'), ex - 32, ey - wh); }
+    const smat = (sInner || o.inner) ? (o.imat || mat0) : mat0, emat = (eInner || o.inner) ? (o.imat || mat0) : mat0;
+    const topColor = !b || b.roofA < 0.98 || o.fa < 0.9 ? (o.t >= O.BWALL_W ? (o.t === O.BWALL_M ? '#7a8088' : '#8a6a44') : '#5a5650') : null;
+    let parts = wallParts.get(o);
+    if (!parts || parts.drawS !== drawS || parts.drawE !== drawE || parts.smat !== smat || parts.emat !== emat || parts.sKind !== sKind || parts.eKind !== eKind || parts.v !== v || parts.topColor !== topColor) {
+      parts = { drawS, drawE, smat, emat, sKind, eKind, v, topColor,
+        left: drawS ? Wl.get(smat, sKind, 'L', v) : null,
+        right: drawE ? Wl.get(emat, eKind, 'R', v) : null,
+        top: topColor ? Wl.top(topColor) : null };
+      wallParts.set(o, parts);
+    }
+    if (a >= 0.99 && (parts.left && parts.right || parts.top && (parts.left || parts.right))) {
+      if (parts.block === undefined) parts.block = Wl.join(parts.left, parts.right, parts.top);
+      if (parts.block) { ctx.drawImage(parts.block, ex - 32, ey - wh); R.stats.wallDraws++; }
+    } else {
+      if (parts.left) { ctx.drawImage(parts.left, ex - 32, ey + 16 - wh); R.stats.wallDraws++; }
+      if (parts.right) { ctx.drawImage(parts.right, ex, ey + 16 - wh); R.stats.wallDraws++; }
+      if (parts.top) { ctx.drawImage(parts.top, ex - 32, ey - wh); R.stats.wallDraws++; }
+    }
     ctx.globalAlpha = 1;
     if (o.t === O.WINDOW && v === 3 && !o.broken) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 * a; ctx.drawImage(sprites.glow, ex - 22, ey - 60, 44, 44); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
     if (o.hit > 0) { o.hit -= 0.06; ctx.globalAlpha = Math.min(0.5, o.hit); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ex, ey - wh + 16); ctx.lineTo(ex + 32, ey - wh + 32); ctx.lineTo(ex + 32, ey + 16); ctx.lineTo(ex, ey + 32); ctx.lineTo(ex - 32, ey + 16); ctx.lineTo(ex - 32, ey - wh + 32); ctx.fill(); ctx.globalAlpha = 1; }
@@ -441,14 +508,48 @@
     if (edge) { ctx.globalAlpha = b.roofA * 0.25; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.moveTo(ex, ey - wh); ctx.lineTo(ex + 32, ey - wh + 16); ctx.lineTo(ex, ey - wh + 32); ctx.lineTo(ex - 32, ey - wh + 16); ctx.fill(); }
     ctx.globalAlpha = 1;
   }
+  function roofStrip(b, depth) {
+    let rows = roofStrips.get(b);
+    if (!rows) { rows = new Map(); roofStrips.set(b, rows); }
+    let strip = rows.get(depth); if (strip) return strip;
+    if (roofBakeBudget <= 0) return null;
+    roofBakeBudget--;
+    const tiles = []; let minX = Infinity, maxX = -Infinity;
+    for (let ty = b.y; ty < b.y + b.h; ty++) {
+      const tx = depth - ty;
+      if (tx < b.x || tx >= b.x + b.w || W.room[ty * C.W + tx] !== b.id) continue;
+      const ex = (tx - ty) * 32;
+      tiles.push([tx, ty, ex]); minX = Math.min(minX, ex); maxX = Math.max(maxX, ex);
+    }
+    if (!tiles.length) return null;
+    const ox = minX - 33, oy = depth * 16 - C.WH - 1;
+    const [c, x] = U.canvas2d(maxX - minX + 66, 34);
+    let rt = b._rt;
+    if (!rt) rt = b._rt = [roofTile(b.roof, 0), roofTile(b.roof, 1), roofTile(b.roof, 2), roofTile(b.roof, 3)];
+    for (const [tx, ty, ex] of tiles) {
+      const px = ex - ox;
+      x.globalAlpha = 1; x.drawImage(rt[(tx * 7 + ty * 13) & 3], px - 33, 0);
+      if (tx === b.x || ty === b.y || tx === b.x + b.w - 1 || ty === b.y + b.h - 1) {
+        x.globalAlpha = 0.25; x.fillStyle = '#000'; x.beginPath();
+        x.moveTo(px, 1); x.lineTo(px + 32, 17); x.lineTo(px, 33); x.lineTo(px - 32, 17); x.fill();
+      }
+    }
+    strip = { c, x: ox, y: oy, frame: -1 }; rows.set(depth, strip);
+    return strip;
+  }
 
   // ---------------------------------------------------------------- entities
   const CH_SCALE = 0.9; // characters drawn at 90% so cars, doors and props read correctly
+  const corpseSprites = new WeakMap();
   function drawZombie(z, S) {
-    const Fig = DSZ.Fig, s = Fig.get(z.spec, z.ang, z.pose); z.sprite = s;
+    const settled = z.dead && z.deadT <= 0;
+    let s = settled ? corpseSprites.get(z) : null;
+    if (!s) { s = DSZ.Fig.get(z.spec, z.ang, z.pose); if (settled) { corpseSprites.set(z, s); DSZ.Fig.forget(z.spec); } }
+    z.sprite = s;
     const i = iso(z.x, z.y), sc = (z.sc || 1) * CH_SCALE;
     ctx.globalAlpha = z.alpha === undefined ? 1 : z.alpha;
-    if (sc !== 1) { ctx.save(); ctx.translate(i[0], i[1]); ctx.scale(sc, sc); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore(); }
+    if (settled) ctx.drawImage(s.c, i[0] - s.ox * sc, i[1] - s.oy * sc, s.c.width * sc, s.c.height * sc);
+    else if (sc !== 1) { ctx.save(); ctx.translate(i[0], i[1]); ctx.scale(sc, sc); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore(); }
     else ctx.drawImage(s.c, i[0] - s.ox, i[1] - s.oy);
     if (z.flash > 0) { ctx.globalAlpha = Math.min(1, z.flash) * 0.75; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - s.oy); ctx.globalCompositeOperation = 'source-over'; }
     if (z.burn > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.8; const f = 0.8 + 0.2 * Math.sin(T * 25 + z.seed); ctx.drawImage(sprites.fire, i[0] - 16 * f, i[1] - 52 * f, 32 * f, 44 * f); ctx.globalCompositeOperation = 'source-over'; }
@@ -467,8 +568,12 @@
     ctx.globalAlpha = 1; const s = 26; ctx.drawImage(ic, i[0] - s / 2, i[1] - s + 2 - 4 - bob, s, s);
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.16 + 0.08 * Math.sin(T * 4 + d.y); ctx.drawImage(sprites.glow, i[0] - 18, i[1] - 24, 36, 36); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
+  const playerSpecs = new WeakMap(), emptyLook = {};
   function drawPlayer(S) {
-    const p = S.player; const spec = DSZ.Fig.playerSpec(p.look || {}); const s = DSZ.Fig.get(spec, p.ang, p.pose); p.sprite = s;
+    const p = S.player, look = p.look || emptyLook;
+    let spec = playerSpecs.get(look);
+    if (!spec) { spec = DSZ.Fig.playerSpec(look); playerSpecs.set(look, spec); }
+    const s = DSZ.Fig.get(spec, p.ang, p.pose); p.sprite = s;
     const i = iso(p.x, p.y);
     ctx.save(); ctx.translate(i[0], i[1]); ctx.scale(CH_SCALE, CH_SCALE); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
     // held item (hand anchor scaled with the sprite)
@@ -710,27 +815,47 @@
   }
 
   // ---------------------------------------------------------------- lighting
-  function lmPos(wx, wy) { const i = iso(wx, wy), ls = DSZ.settings.lightRes; return [((i[0] - camIx) * zoom + R.VW / 2) * ls, ((i[1] - camIy) * zoom + R.VH / 2) * ls]; }
+  function lmPos(wx, wy) { const ls = DSZ.settings.lightRes; return [(((wx - wy) * 32 - camIx) * zoom + R.VW / 2) * ls, (((wx + wy) * 16 - camIy) * zoom + R.VH / 2) * ls]; }
   const rays = new Float32Array(260);
+  const visibleLights = [];
+  const fanCache = new WeakMap();
+  const lightMasks = new WeakMap();
+  function cachedFan(owner, x, y, r, a0, a1, n) {
+    let fan = fanCache.get(owner);
+    if (!fan || fan.dist.length !== n) {
+      fan = { dist: new Float32Array(n), version: -1 }; fanCache.set(owner, fan);
+    }
+    if (fan.version !== W.opaqueVersion || fan.x !== x || fan.y !== y || fan.r !== r || fan.a0 !== a0 || fan.a1 !== a1) {
+      W.fan(x, y, r, a0, a1, n, fan.dist);
+      fan.x = x; fan.y = y; fan.r = r; fan.a0 = a0; fan.a1 = a1; fan.version = W.opaqueVersion;
+    }
+    return fan.dist;
+  }
   // draw one light into the lightmap; a0,a1 = angular limits (null = full circle)
-  function castLight(x, y, r, col, inten, a0, a1, nrays, ext, shadowed) {
+  function castLight(x, y, r, col, inten, a0, a1, nrays, ext, shadowed, owner) {
     const ls = DSZ.settings.lightRes, rx = r * SC * zoom * ls, ry = r * SC * 0.5 * zoom * ls;
     const c = lmPos(x, y);
     if (c[0] + rx < 0 || c[0] - rx > LW || c[1] + ry < 0 || c[1] - ry > LH) return;
     const bw = Math.ceil(rx * 2) + 4, bh = Math.ceil(ry * 2) + 4;
+    let mask = owner ? lightMasks.get(owner) : null;
+    if (mask && mask.x === x && mask.y === y && mask.r === r && mask.rx === rx && mask.ry === ry && mask.a0 === a0 && mask.a1 === a1 && mask.nrays === nrays && mask.ext === ext && mask.shadowed === shadowed && mask.version === W.opaqueVersion && mask.red === col[0] && mask.green === col[1] && mask.blue === col[2]) {
+      lctx.globalCompositeOperation = 'lighter'; lctx.globalAlpha = Math.min(1.4, inten);
+      lctx.drawImage(mask.c, c[0] - bw / 2, c[1] - bh / 2); lctx.globalAlpha = 1;
+      R.stats.lights++; return;
+    }
     if (bw > tmp.width || bh > tmp.height) { tmp.width = Math.max(tmp.width, bw); tmp.height = Math.max(tmp.height, bh); tctx = tmp.getContext('2d'); }
     tctx.globalCompositeOperation = 'source-over'; tctx.clearRect(0, 0, bw, bh);
     tctx.globalAlpha = 1; tctx.drawImage(lightSprite(col), 2, 2, rx * 2, ry * 2);
     const ox = c[0] - bw / 2, oy = c[1] - bh / 2, full = a0 === null || a0 === undefined;
     if (shadowed !== false) {
       const n = nrays || 56, s0 = full ? 0 : a0, s1 = full ? Math.PI * 2 : a1;
-      W.fan(x, y, r, s0, s1, n + 1, rays);
+      const distances = owner ? cachedFan(owner, x, y, r, s0, s1, n + 1) : W.fan(x, y, r, s0, s1, n + 1, rays);
       tctx.globalCompositeOperation = 'destination-in'; tctx.beginPath();
-      const tc = [bw / 2, bh / 2];
+      const tc = [bw / 2, bh / 2], dirs = full ? W.circleDirections(n + 1) : null;
       if (!full) tctx.moveTo(tc[0], tc[1]);
       for (let i = 0; i <= n; i++) {
-        const a = s0 + (s1 - s0) * (i / n), d = Math.min(r, rays[i] + (rays[i] < r - 0.01 ? ext : 0));
-        const q = lmPos(x + Math.cos(a) * d, y + Math.sin(a) * d);
+        const a = s0 + (s1 - s0) * (i / n), d = Math.min(r, distances[i] + (distances[i] < r - 0.01 ? ext : 0));
+        const q = lmPos(x + (dirs ? dirs[i * 2] : Math.cos(a)) * d, y + (dirs ? dirs[i * 2 + 1] : Math.sin(a)) * d);
         const px = q[0] - ox, py = q[1] - oy;
         if (i === 0 && full) tctx.moveTo(px, py); else tctx.lineTo(px, py);
       }
@@ -740,8 +865,17 @@
       for (let i = 0; i <= 18; i++) { const a = a0 + (a1 - a0) * i / 18, q = lmPos(x + Math.cos(a) * r, y + Math.sin(a) * r); tctx.lineTo(q[0] - ox, q[1] - oy); }
       tctx.closePath(); tctx.fillStyle = '#fff'; tctx.fill();
     }
+    let source = tmp;
+    if (owner) {
+      if (!mask) mask = {};
+      if (!mask.c || mask.c.width !== bw || mask.c.height !== bh) [mask.c, mask.ctx] = U.canvas2d(bw, bh);
+      else mask.ctx.clearRect(0, 0, bw, bh);
+      mask.ctx.drawImage(tmp, 0, 0, bw, bh, 0, 0, bw, bh);
+      Object.assign(mask, { x, y, r, rx, ry, a0, a1, nrays, ext, shadowed, version: W.opaqueVersion, red: col[0], green: col[1], blue: col[2] });
+      lightMasks.set(owner, mask); source = mask.c;
+    }
     lctx.globalCompositeOperation = 'lighter'; lctx.globalAlpha = Math.min(1.4, inten);
-    lctx.drawImage(tmp, 0, 0, bw, bh, ox, oy, bw, bh); lctx.globalAlpha = 1;
+    lctx.drawImage(source, 0, 0, bw, bh, ox, oy, bw, bh); lctx.globalAlpha = 1;
     R.stats.lights++;
   }
   function drawLighting(S, amb, dl, pb, tx0, ty0, tx1, ty1) {
@@ -764,7 +898,7 @@
     }
     const night = 1 - dl;
     // collect lights
-    const L = []; const px = p.x, py = p.y;
+    const L = visibleLights; L.length = 0; const px = p.x, py = p.y;
     if (dl < 0.92 || true) for (const l of W.lights) {
       if (l.x < tx0 - 12 || l.x > tx1 + 12 || l.y < ty0 - 12 || l.y > ty1 + 12) continue;
       if (dl > 0.82 && l.kind !== 'fire') continue;
@@ -778,7 +912,7 @@
       else if (l.flick === 2) f = 0.82 + 0.14 * Math.sin(T * 17 + l.seed) + 0.1 * Math.sin(T * 29 + l.seed * 2);
       else if (l.flick === 3) f = 0.75 + 0.25 * U.vnoise(T * 5 + l.seed, 2, 4);
       const sh = shadowCount < 14; if (sh) shadowCount++;
-      castLight(l.x, l.y, l.r, l.col, l.a * f * (l.kind === 'fire' ? 1.1 : 1), null, null, l.r > 6 ? 56 : 40, 1.0, sh);
+      castLight(l.x, l.y, l.r, l.col, l.a * f * (l.kind === 'fire' ? 1.1 : 1), null, null, l.r > 6 ? 56 : 40, 1.0, sh, l);
     }
     for (const g of S.glowLights) { const t = g.t / g.max; castLight(g.x, g.y, g.r * (1 + (1 - t) * 0.2), g.col, g.a * t, null, null, 36, 1, true); }
     // cars: headlights + brake/interior
@@ -806,13 +940,13 @@
     }
     if (S.muzzle > 0) castLight(p.x + Math.cos(p.aimAng) * 0.8, p.y + Math.sin(p.aimAng) * 0.8, 6.5, [255, 210, 130], S.muzzle * 1.6, null, null, 32, 1, true);
     // ---- vision mask (outside the player's line of sight is dark)
-    const vr = 26, nR = 150; W.fan(p.x, p.y, vr, 0, Math.PI * 2, nR + 1, rays.length >= nR + 1 ? rays : new Float32Array(nR + 1));
+    const vr = 26, nR = 150, visionRays = cachedFan(p, p.x, p.y, vr, 0, Math.PI * 2, nR + 1);
     const vis = 0.5 + night * 0.28 + (S.weather.rain * 0.04);
     lctx.globalCompositeOperation = 'source-over'; lctx.globalAlpha = 1;
     lctx.fillStyle = 'rgba(2,3,8,' + vis + ')'; lctx.beginPath(); lctx.rect(-4, -4, LW + 8, LH + 8);
     const eye = pb ? 0.0 : 0.0;
     for (let i = 0; i <= nR; i++) {
-      const a = i / nR * Math.PI * 2, d = rays[i] + (rays[i] < vr - 0.01 ? 3.2 : 0), q = lmPos(p.x + Math.cos(a) * d, p.y + Math.sin(a) * d);
+      const a = i / nR * Math.PI * 2, d = visionRays[i] + (visionRays[i] < vr - 0.01 ? 3.2 : 0), q = lmPos(p.x + Math.cos(a) * d, p.y + Math.sin(a) * d);
       i ? lctx.lineTo(q[0], q[1]) : lctx.moveTo(q[0], q[1]);
     }
     lctx.closePath(); lctx.fill('evenodd');

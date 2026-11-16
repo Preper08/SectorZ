@@ -181,4 +181,22 @@
     x.strokeStyle = 'rgba(255,255,255,0.1)'; x.lineWidth = 1; x.stroke();
     topCache.set(color, c); return c;
   };
+  const joined = new Map(), faceIds = new WeakMap();
+  let faceId = 0;
+  function idFor(face) {
+    if (!face) return 0;
+    let id = faceIds.get(face);
+    if (!id) { id = ++faceId; faceIds.set(face, id); }
+    return id;
+  }
+  Walls.join = function (left, right, top) {
+    if (!left && !right && !top) return null;
+    const key = idFor(left) + ',' + idFor(right) + ',' + idFor(top);
+    let c = joined.get(key); if (c) return c;
+    const pair = U.canvas2d(64, WH + 32); c = pair[0]; const x = pair[1];
+    if (left) x.drawImage(left, 0, 16);
+    if (right) x.drawImage(right, 32, 16);
+    if (top) x.drawImage(top, 0, 0);
+    joined.set(key, c); return c;
+  };
 })();

@@ -82,7 +82,7 @@
 
   const W = DSZ.World = {
     w: C.W, h: C.H, ground: null, obj: null, solid: null, opaque: null, room: null, blds: [], lights: [], cars: [], drops: [],
-    seed: 1, roads: null,
+    seed: 1, roads: null, lightsVersion: 0, opaqueVersion: 0,
     init(seed) {
       const n = this.w * this.h;
       this.seed = seed;
@@ -90,6 +90,8 @@
       this.solid = new Uint8Array(n); this.opaque = new Uint8Array(n); this.room = new Uint16Array(n);
       this.roadMask = new Uint8Array(n); // 1 = road (cars may drive), 2 = intersection/lines helper
       this.blds = [null]; this.lights = []; this.cars = []; this.drops = []; this.removed = [];
+      this.lightsVersion++;
+      this.opaqueVersion++;
       this.fade = new Float32Array(n);
     },
     idx(x, y) { return y * this.w + x; },
@@ -99,11 +101,13 @@
     isOpaque(x, y) { return (x < 0 || y < 0 || x >= this.w || y >= this.h) ? true : this.opaque[y * this.w + x] === 1; },
     refresh(x, y) {
       const i = y * this.w + x, o = this.obj[i];
-      if (!o) { this.solid[i] = 0; this.opaque[i] = 0; return; }
+      const wasOpaque = this.opaque[i];
+      if (!o) { this.solid[i] = 0; this.opaque[i] = 0; if (wasOpaque) this.opaqueVersion++; return; }
       const d = D[o.t];
       const open = (d.door && o.open);
       this.solid[i] = (d.solid && !open && !o.broken) ? 1 : 0;
       this.opaque[i] = (d.opaque && !open) ? 1 : 0;
+      if (this.opaque[i] !== wasOpaque) this.opaqueVersion++;
       if (o.broken && d.window) this.solid[i] = 0;
     },
     setObj(x, y, o) {
@@ -119,18 +123,22 @@
       if (!o.base) (this.removed || (this.removed = [])).push(y * this.w + x);
       this.obj[y * this.w + x] = null; this.refresh(x, y);
     },
-    addLight(l) { this.lights.push(l); return l; },
-    removeLight(l) { const i = this.lights.indexOf(l); if (i >= 0) this.lights.splice(i, 1); },
+    addLight(l) { this.lights.push(l); this.lightsVersion++; return l; },
+    removeLight(l) { const i = this.lights.indexOf(l); if (i >= 0) { this.lights.splice(i, 1); this.lightsVersion++; } },
     groundAt(x, y) { return this.inb(x, y) ? this.ground[y * this.w + x] : DSZ.G.FOREST; },
     buildingAt(x, y) { return this.inb(x, y) ? this.blds[this.room[y * this.w + x]] || null : null; },
 
     // circle-vs-tile collision: returns true if circle overlaps any solid tile
     hitCircle(px, py, r) {
       const x0 = Math.floor(px - r), x1 = Math.floor(px + r), y0 = Math.floor(py - r), y1 = Math.floor(py + r);
-      for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-        if (!this.isSolid(tx, ty)) continue;
-        const cx = U.clamp(px, tx, tx + 1), cy = U.clamp(py, ty, ty + 1), dx = px - cx, dy = py - cy;
-        if (dx * dx + dy * dy < r * r) return true;
+      const w = this.w, h = this.h, solid = this.solid, rr = r * r;
+      for (let ty = y0; ty <= y1; ty++) {
+        const row = ty * w, outsideY = ty < 0 || ty >= h, cy = U.clamp(py, ty, ty + 1), dy = py - cy;
+        for (let tx = x0; tx <= x1; tx++) {
+          if (!outsideY && tx >= 0 && tx < w && solid[row + tx] !== 1) continue;
+          const cx = U.clamp(px, tx, tx + 1), dx = px - cx;
+          if (dx * dx + dy * dy < rr) return true;
+        }
       }
       return false;
     },
@@ -168,6 +176,7 @@
     raycast(x0, y0, x1, y1) {
       const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
       if (len < 1e-6) return null;
+      const w = this.w, h = this.h, opaque = this.opaque;
       const rx = dx / len, ry = dy / len;
       let mx = Math.floor(x0), my = Math.floor(y0);
       const sx = rx > 0 ? 1 : -1, sy = ry > 0 ? 1 : -1;
@@ -178,7 +187,7 @@
       while (t < len) {
         if (tmx < tmy) { t = tmx; tmx += tdx; mx += sx; } else { t = tmy; tmy += tdy; my += sy; }
         if (t >= len) break;
-        if (this.isOpaque(mx, my)) return t;
+        if (mx < 0 || my < 0 || mx >= w || my >= h || opaque[my * w + mx] === 1) return t;
       }
       return null;
     },
@@ -187,6 +196,7 @@
     raycastSolid(x0, y0, x1, y1, ignoreLow) {
       const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
       if (len < 1e-6) return null;
+      const w = this.w, h = this.h, solid = this.solid, objects = this.obj;
       const rx = dx / len, ry = dy / len;
       let mx = Math.floor(x0), my = Math.floor(y0);
       const sx = rx > 0 ? 1 : -1, sy = ry > 0 ? 1 : -1;
@@ -197,8 +207,9 @@
       while (t < len) {
         if (tmx < tmy) { t = tmx; tmx += tdx; mx += sx; } else { t = tmy; tmy += tdy; my += sy; }
         if (t >= len) break;
-        if (this.isSolid(mx, my)) {
-          const o = this.getObj(mx, my);
+        const outside = mx < 0 || my < 0 || mx >= w || my >= h, i = my * w + mx;
+        if (outside || solid[i] === 1) {
+          const o = outside ? null : objects[i];
           if (ignoreLow && o && D[o.t].low) continue;
           return { t, tx: mx, ty: my };
         }
@@ -218,11 +229,26 @@
     }
   };
 
+  const circleDirections = new Map();
+  W.circleDirections = function (n) {
+    let dirs = circleDirections.get(n);
+    if (!dirs) {
+      dirs = new Float64Array(n * 2);
+      for (let i = 0; i < n; i++) {
+        const a = Math.PI * 2 * (i / (n - 1 || 1));
+        dirs[i * 2] = Math.cos(a); dirs[i * 2 + 1] = Math.sin(a);
+      }
+      circleDirections.set(n, dirs);
+    }
+    return dirs;
+  };
+
   // visibility fan: fills dist[] with distance (0..range) for each ray between a0..a1
   W.fan = function (ox, oy, range, a0, a1, n, dist) {
+    const dirs = a0 === 0 && a1 === Math.PI * 2 ? W.circleDirections(n) : null;
     for (let i = 0; i < n; i++) {
-      const a = a0 + (a1 - a0) * (i / (n - 1 || 1));
-      const ex = ox + Math.cos(a) * range, ey = oy + Math.sin(a) * range;
+      const a = dirs ? 0 : a0 + (a1 - a0) * (i / (n - 1 || 1));
+      const ex = ox + (dirs ? dirs[i * 2] : Math.cos(a)) * range, ey = oy + (dirs ? dirs[i * 2 + 1] : Math.sin(a)) * range;
       const t = W.raycast(ox, oy, ex, ey);
       dist[i] = t === null ? range : Math.min(range, t + 0.12);
     }
