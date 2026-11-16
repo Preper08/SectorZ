@@ -289,8 +289,11 @@
     for (let y = ty - 2; y <= ty + 2; y++) for (let x = tx - 2; x <= tx + 2; x++) {
       const o = W.getObj(x, y); if (!o) continue; const d = D[o.t], cx = x + 0.5, cy = y + 0.5;
       if (d.door) { const lab = o.open ? 'E  Close door' : (o.locked ? 'E  Locked' + (Inv.has(p.inv, 'crowbar') || Inv.has(p.inv, 'axe') ? ' (hold to pry)' : '') : 'E  Open door'); if (o.t === O.BGATE) consider('door', o, cx, cy, o.open ? 'E  Close gate' : 'E  Open gate', 1.9); else consider('door', o, cx, cy, lab, 1.9, 0.2); }
+      // A bed is a place to sleep first. World beds also hide loot underneath (they carry a
+      // cont), which stays reachable through the same secondary 'T' key vehicles use, so the
+      // sleep action is never shadowed by the container check.
+      else if (d.bed) { const label = d.cont ? 'E  Sleep    T  ' + (o.searched ? 'Open' : 'Search') : 'E  Sleep'; consider('bed', o, cx, cy, label, 1.7); }
       else if (d.cont) { const open = o.base || o.grid; consider('cont', o, cx, cy, (o.base ? 'E  Open ' : (o.searched ? 'E  Open ' : 'E  Search ')) + d.cont.name, 1.7); }
-      else if (d.bed) consider('bed', o, cx, cy, 'E  Sleep', 1.7);
       else if (d.station === 'fire' || d.station === 'furnace') consider('fire', o, cx, cy, o.lit ? 'E  Add fuel (' + Math.round(o.fuel) + 's)' : 'E  Light fire (needs log/sticks)', 1.8);
       else if (o.t === O.BRAIN) consider('rain', o, cx, cy, 'E  Collect water (' + Math.floor(o.water || 0) + ')', 1.8);
       else if (o.t === O.SINK) consider('sink', o, cx, cy, 'E  Fill bottle', 1.5);
@@ -449,7 +452,7 @@
       if (In.pressed('KeyR') && !S.build.active) Game.reload(S);
       if (In.pressed('KeyQ')) Game.dropSelected(S);
       if (In.pressed('KeyG')) Game.refuelNearby(S);
-      if (In.pressed('KeyT')) Game.searchNearbyVehicle(S);
+      if (In.pressed('KeyT')) { if (S.focus && S.focus.kind === 'bed' && D[S.focus.ref.t].cont) Game.searchBed(S, S.focus.ref); else Game.searchNearbyVehicle(S); }
     }
     // reload progress
     if (p.reload > 0) { p.reload -= dt; if (p.reload <= 0) { const it = p.reloadItem, d = I[it.id]; const need = d.mag - it.mag, have = Inv.count(P, d.ammo), n = Math.min(need, have); Inv.take(P, d.ammo, n); it.mag += n; Game.toast(S, 'Reloaded'); } if (held(S) !== p.reloadItem) p.reload = 0; }
@@ -499,6 +502,14 @@
     if (best) Game.searchVehicle(S, best);
     else Game.toast(S, 'No vehicle nearby to search.');
     return !!best;
+  };
+  // key T on a bed: reach the loot under a world bed without losing the sleep action.
+  // Beds without a cont (player-built) have nothing to search.
+  Game.searchBed = function (S, o) {
+    const d = D[o.t]; if (!d || !d.cont) return false;
+    if (o.grid) { DSZ.UI.openLoot(d.cont.name, o.grid, o); return true; }
+    S.search = { kind: 'cont', o, t: 0, total: 0.5 + (d.cont.w * d.cont.h) * 0.045 };
+    return true;
   };
   Game.finishSearch = function (S, s) {
     const o = s.o;
