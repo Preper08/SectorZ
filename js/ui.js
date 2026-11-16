@@ -73,6 +73,10 @@
   // ---- interactive TV: a large popup showing the enlarged broadcast of the set we are at.
   // movement and gameplay keys are blocked while open (UI.blockKeys/blockMouse); the mouse stays
   // available for the Close button. Closing restores play with the player state untouched.
+  // Stop every TV audio bed. Both beds are independent oscillators, so each one must be told
+  // explicitly - missing a call here is what let the channel-2 bed outlive the window earlier.
+  function tvAudioOff() { if (A.tvMusic) A.tvMusic(false); if (A.tvTerm) A.tvTerm(false); }
+
   UI.openTV = function (tv) {
     UI.open.tv = true; UI.tvT = 0;
     UI.tvRef = tv || null;
@@ -80,7 +84,7 @@
     UI.tvSeed = tv ? (((tv.x * 73856093) ^ (tv.y * 19349663)) >>> 0) % 1000 : 0;
     UI.tvChannel = 1;                                  // every set tunes in to channel 1 first
     UI.tvSwitch = 0;
-    if (A.tvMusic) A.tvMusic(false);                   // no TV music on channel 1
+    tvAudioOff();                                      // always open silent on channel 1
     buildTVChannels();
     els.tvch.textContent = tvChannelLabel();
     els.tvwin.classList.remove('hidden');
@@ -88,7 +92,7 @@
     if (S) S.paused = true; // freeze player movement and the world while watching (same as the pause menu)
     A.play('click');
   };
-  UI.closeTV = function () { if (!UI.open.tv) return; UI.open.tv = false; if (A.tvMusic) A.tvMusic(false); els.tvwin.classList.add('hidden'); if (S && !UI.open.menu) S.paused = false; A.play('click'); };
+  UI.closeTV = function () { if (!UI.open.tv) return; UI.open.tv = false; tvAudioOff(); els.tvwin.classList.add('hidden'); if (S && !UI.open.menu) S.paused = false; A.play('click'); };
   // Channel strip: one button per channel, wired to the same setTvChannel() the number keys use.
   function buildTVChannels() {
     const box = document.getElementById('tvchans');
@@ -118,8 +122,10 @@
     UI.tvSwitch = 0.28;                                // brief flicker on retune, like a real set
     els.tvch.textContent = tvChannelLabel();
     for (const b of document.querySelectorAll('#tvchans button')) b.classList.toggle('on', b.textContent === 'CH ' + ch);
-    // channel 2 is the studio commentary feed, so it carries its own news bed
-    A.tvMusic(ch === 2);
+    // each channel carries its own audio bed; silence everything, then start the new one
+    tvAudioOff();
+    if (A.tvMusic) A.tvMusic(ch === 2);
+    if (A.tvTerm) A.tvTerm(ch === 4);
     A.play('click', null, null, 0.35);
   }
   UI.setTvChannel = setTvChannel;
@@ -170,9 +176,9 @@
   // Persistent settings such as God Mode are handled separately and are NOT touched here.
   UI.resetGame = function () {
     cancelDrag(); hideTip();
-    // the TV may be open on the commentary channel: stop its music before dropping the flag,
-    // otherwise the bed keeps playing (and stacking) after the new game starts
-    if (A.tvMusic) A.tvMusic(false);
+    // a TV may be open on a channel with its own audio: stop every bed before dropping the flag,
+    // otherwise it keeps playing (and stacking) after the new game starts
+    tvAudioOff();
     UI.loot = null; UI._isig = '';
     UI.open.win = false; UI.open.map = false; UI.open.menu = false; UI.open.settings = false;
     UI.open.controls = false; UI.open.tv = false; UI.open.death = false;
@@ -586,7 +592,7 @@
     if (UI.open.tv) renderTV(dt);
     // safety net: no channel may outlive the popup. If the window is gone but a channel is still
     // tuned (e.g. a transition bypassed closeTV), reset to 1 and silence the commentary bed.
-    else if (UI.tvChannel !== 1) { UI.tvChannel = 1; if (A.tvMusic) A.tvMusic(false); }
+    else if (UI.tvChannel !== 1) { UI.tvChannel = 1; tvAudioOff(); }
     els.cursor.classList.toggle('ui', UI.blockMouse());
     if (!UI.open.title) {
       // key handling

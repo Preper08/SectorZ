@@ -4,7 +4,7 @@
   const DSZ = window.DSZ;
   let ac = null, master = null, sfxBus = null, musBus = null, noiseBuf = null;
   let lx = 0, ly = 0;
-  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0;
+  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0;
 
   function mkNoise() {
     const len = ac.sampleRate * 2, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
@@ -232,6 +232,116 @@
             try { m.bass.stop(); } catch (e) { /* already stopped */ }
             try { m.bed.disconnect(); } catch (e) { /* already gone */ }
           }, 900);
+        } catch (e) { /* ignore */ }
+      }
+    },
+    // ---- Channel 4: retro terminal audio. A quiet CRT mains hum plus a high flyback whine,
+    // irregular mechanical key clicks in typing bursts, and an occasional modem handshake
+    // followed by a data screech. All procedural; stops completely when the channel changes.
+    tvTerm(on) {
+      if (!ac) return;
+      if (on && !tvTermS) {
+        const gen = tvTgen = (tvTgen + 1);
+        const bus = ac.createGain(); bus.gain.value = 0; bus.connect(musBus);
+        // CRT hum: mains buzz through a resonant lowpass
+        const hum = ac.createOscillator(); hum.type = 'sawtooth'; hum.frequency.value = 60;
+        const humF = ac.createBiquadFilter(); humF.type = 'lowpass'; humF.frequency.value = 240; humF.Q.value = 4;
+        const humG = ac.createGain(); humG.gain.value = 0.011;
+        hum.connect(humF); humF.connect(humG); humG.connect(bus); hum.start();
+        // flyback whine, barely there
+        const whine = ac.createOscillator(); whine.type = 'sine'; whine.frequency.value = 7200;
+        const whineG = ac.createGain(); whineG.gain.value = 0.0022;
+        whine.connect(whineG); whineG.connect(bus); whine.start();
+
+        // one keypress: noise click through a bandpass plus a low mechanical thock
+        const clack = (t, hard) => {
+          const s = ac.createBufferSource(); s.buffer = noiseBuf;
+          s.playbackRate.value = 0.9 + Math.random() * 0.5;
+          const bp = ac.createBiquadFilter(); bp.type = 'bandpass';
+          bp.frequency.value = 2200 + Math.random() * 1600; bp.Q.value = 1.4;
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(hard ? 0.072 : 0.042, t + 0.002);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+          s.connect(bp); bp.connect(g); g.connect(bus);
+          s.start(t, Math.random() * 1.2, 0.06);
+          const o = ac.createOscillator(); o.type = 'triangle';
+          o.frequency.value = 150 + Math.random() * 60;
+          const og = ac.createGain();
+          og.gain.setValueAtTime(0.0001, t);
+          og.gain.exponentialRampToValueAtTime(hard ? 0.045 : 0.026, t + 0.003);
+          og.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+          o.connect(og); og.connect(bus); o.start(t); o.stop(t + 0.08);
+        };
+
+        // modem: two short dial tones, then a warbling data screech
+        const modem = (t0) => {
+          let t = t0;
+          for (const [f, d] of [[1400, 0.18], [2100, 0.14], [900, 0.22]]) {
+            const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+            const g = ac.createGain();
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.030, t + 0.012);
+            g.gain.setValueAtTime(0.030, t + d - 0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+            o.connect(g); g.connect(bus); o.start(t); o.stop(t + d + 0.02);
+            t += d;
+          }
+          const dur = 0.9;
+          const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+          const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 6;
+          bp.frequency.setValueAtTime(800, t);
+          bp.frequency.linearRampToValueAtTime(3200, t + dur * 0.6);
+          bp.frequency.linearRampToValueAtTime(1200, t + dur);
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.026, t + 0.05);
+          g.gain.setValueAtTime(0.026, t + dur - 0.1);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          s.connect(bp); bp.connect(g); g.connect(bus); s.start(t); s.stop(t + dur + 0.05);
+          // carrier warbling over the data
+          const o = ac.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(1200, t);
+          const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 11;
+          const lg = ac.createGain(); lg.gain.value = 380;
+          lfo.connect(lg); lg.connect(o.frequency);
+          const og = ac.createGain();
+          og.gain.setValueAtTime(0.0001, t);
+          og.gain.exponentialRampToValueAtTime(0.011, t + 0.08);
+          og.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          o.connect(og); og.connect(bus); o.start(t); o.stop(t + dur + 0.05);
+          lfo.start(t); lfo.stop(t + dur + 0.05);
+        };
+
+        // scheduler: runs 60 ms apart and fires the next key or modem burst when due
+        const st = { typing: 5 + ((Math.random() * 10) | 0), nextKey: 0.25, nextModem: 3.6 };
+        const step = () => {
+          if (!tvTermS || tvTgen !== gen) return;
+          const now = ac.currentTime + 0.02;
+          if (now >= st.nextKey) {
+            if (st.typing > 0) {
+              clack(now, Math.random() < 0.16);
+              st.typing--;
+              st.nextKey = now + 0.035 + Math.random() * 0.085;
+            } else {
+              st.typing = 5 + ((Math.random() * 14) | 0);
+              st.nextKey = now + 0.5 + Math.random() * 1.2;
+            }
+          }
+          if (now >= st.nextModem) { modem(now); st.nextModem = now + 10 + Math.random() * 8; }
+        };
+        tvTermS = { bus, hum, whine, timer: setInterval(step, 60) };
+        bus.gain.setTargetAtTime(0.5, ac.currentTime, 0.5);
+      } else if (!on && tvTermS) {
+        const m = tvTermS; tvTermS = null;
+        tvTgen++;
+        clearInterval(m.timer);
+        try {
+          m.bus.gain.setTargetAtTime(0.0001, ac.currentTime, 0.2);
+          setTimeout(() => {
+            try { m.hum.stop(); } catch (e) { /* already stopped */ }
+            try { m.whine.stop(); } catch (e) { /* already stopped */ }
+            try { m.bus.disconnect(); } catch (e) { /* already gone */ }
+          }, 700);
         } catch (e) { /* ignore */ }
       }
     }
