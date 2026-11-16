@@ -36,6 +36,100 @@
     for (let i = 0; i < d.length; i += 4) { const v = (Math.random() * 255) | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
     x.putImageData(id, 0, 0); tvNoise = c; return c;
   }
+  // ---- TV channels. Channel 1 is the existing dead emergency broadcast (unchanged).
+  // Channels 2 and 3 are drawn by Props.tvDrawChannel below; the world prop always shows
+  // channel 1 so the tiny in-world screens keep their original look.
+  Props.TV_CHANNELS = 3;
+  Props.TV_CHANNEL_NAMES = ['Emergency Broadcast', 'Commentary', 'No Signal'];
+
+  // Channel 2: a studio commentator in front of a window, talking about the situation as an
+  // outbreak begins. Purely visual - a talking head with a moving mouth, a lower-third caption
+  // and a slow pan behind him. No gameplay effect.
+  function tvChannel2(x, w, h, t, seed) {
+    const small = h < 60;
+    // studio backdrop: dim room with a big window onto a hazy street
+    x.fillStyle = '#141820'; x.fillRect(0, 0, w, h);
+    const wx = w * 0.52, wy = h * 0.12, ww = w * 0.42, wh = h * 0.46;
+    const sky = x.createLinearGradient(0, wy, 0, wy + wh);
+    sky.addColorStop(0, '#4a5a70'); sky.addColorStop(0.6, '#6a6a6a'); sky.addColorStop(1, '#3a3630');
+    x.fillStyle = sky; x.fillRect(wx, wy, ww, wh);
+    // distant skyline blocks
+    x.fillStyle = 'rgba(24,26,32,0.85)';
+    for (let i = 0; i < 7; i++) { const bw2 = ww / 9, bh = wh * (0.25 + ((i * 37 + seed) % 40) / 100); x.fillRect(wx + i * bw2 * 1.15, wy + wh - bh, bw2, bh); }
+    // window frame
+    x.strokeStyle = 'rgba(12,14,18,0.95)'; x.lineWidth = Math.max(2, w * 0.006);
+    x.strokeRect(wx, wy, ww, wh); x.beginPath(); x.moveTo(wx + ww / 2, wy); x.lineTo(wx + ww / 2, wy + wh); x.stroke();
+    // desk
+    x.fillStyle = '#241c18'; x.fillRect(0, h * 0.72, w, h * 0.28);
+    x.fillStyle = 'rgba(255,255,255,0.05)'; x.fillRect(0, h * 0.72, w, Math.max(1, h * 0.006));
+    // commentator: head + shoulders, mouth animated so he reads as speaking
+    const cx = w * 0.27, cy = h * 0.42, hr = Math.min(w, h) * 0.14;
+    x.fillStyle = '#2a2e38'; x.beginPath();                          // shoulders
+    x.moveTo(cx - hr * 2.1, h * 0.73); x.quadraticCurveTo(cx, h * 0.5, cx + hr * 2.1, h * 0.73); x.closePath(); x.fill();
+    x.fillStyle = '#c8a688'; x.beginPath(); x.arc(cx, cy, hr, 0, 7); x.fill();   // head
+    x.fillStyle = '#33261e'; x.beginPath();                           // hair
+    x.arc(cx, cy - hr * 0.25, hr * 1.02, Math.PI * 1.05, Math.PI * 1.95); x.fill();
+    // eyes
+    x.fillStyle = '#20242c';
+    x.beginPath(); x.arc(cx - hr * 0.36, cy - hr * 0.08, hr * 0.1, 0, 7); x.fill();
+    x.beginPath(); x.arc(cx + hr * 0.36, cy - hr * 0.08, hr * 0.1, 0, 7); x.fill();
+    // mouth: opens and closes while he talks
+    const speak = (Math.sin(t * 9 + seed) * 0.5 + 0.5) * (Math.sin(t * 2.3) > -0.4 ? 1 : 0);
+    const mh = Math.max(hr * 0.05, hr * 0.22 * speak);
+    x.fillStyle = '#5a2a2e'; x.beginPath();
+    x.ellipse ? x.ellipse(cx, cy + hr * 0.42, hr * 0.24, mh, 0, 0, 7) : x.arc(cx, cy + hr * 0.42, hr * 0.24, 0, 7);
+    x.fill();
+    if (!small) {
+      // lower-third name plate
+      const bandH = Math.max(26, h * 0.13), by = h - bandH - Math.max(14, h * 0.06);
+      x.fillStyle = 'rgba(8,10,14,0.82)'; x.fillRect(w * 0.05, by, w * 0.62, bandH);
+      x.fillStyle = '#c8483c'; x.fillRect(w * 0.05, by, Math.max(3, w * 0.006), bandH);
+      x.fillStyle = 'rgba(240,236,228,0.95)'; x.textAlign = 'left'; x.textBaseline = 'middle';
+      x.font = 'bold ' + Math.round(h * 0.055) + 'px Rajdhani, sans-serif';
+      x.fillText('NORA VALE', w * 0.05 + w * 0.02, by + bandH * 0.36);
+      x.fillStyle = 'rgba(190,190,196,0.85)'; x.font = Math.round(h * 0.038) + 'px Rajdhani, sans-serif';
+      x.fillText('LIVE · OUTBREAK DESK', w * 0.05 + w * 0.02, by + bandH * 0.72);
+      // "ON AIR" lamp
+      x.globalAlpha = (Math.sin(t * 3 + seed) > 0) ? 1 : 0.35;
+      x.fillStyle = '#e0403a'; x.beginPath(); x.arc(w - 18, 20, 5.5, 0, 7); x.fill(); x.globalAlpha = 1;
+      x.fillStyle = 'rgba(235,235,240,0.9)'; x.font = 'bold ' + Math.round(h * 0.05) + 'px Rajdhani, sans-serif';
+      x.textAlign = 'right'; x.textBaseline = 'middle'; x.fillText('ON AIR', w - 30, 21);
+      // scrolling caption: what the commentator is saying
+      const cH = Math.max(20, h * 0.11); x.fillStyle = 'rgba(6,8,12,0.8)'; x.fillRect(0, h - cH, w, cH);
+      x.fillStyle = 'rgba(240,232,205,0.92)'; x.font = 'bold ' + Math.round(h * 0.05) + 'px Rajdhani, sans-serif';
+      x.textAlign = 'left'; x.textBaseline = 'middle';
+      const msg = '  ...we are getting reports of violent incidents downtown. People are being told to stay indoors.   ';
+      const tw = x.measureText(msg).width, sx = w - ((t * 40) % (tw + w)); x.fillText(msg, sx, h - cH * 0.45);
+    }
+  }
+
+  // Channel 3: dead air. No picture, no signal at all - just a dark screen and the set's own
+  // faint glow, so it reads as "this channel is empty".
+  function tvChannel3(x, w, h, t, seed) {
+    x.fillStyle = '#05070a'; x.fillRect(0, 0, w, h);
+    const small = h < 60;
+    // very faint horizontal interference, no image content
+    x.globalAlpha = small ? 0.05 : 0.09;
+    x.fillStyle = '#9fb4c8';
+    for (let i = 0; i < 5; i++) { const yy = ((t * (12 + i * 3) + i * 37 + seed) % (h + 20)) - 10; x.fillRect(0, yy, w, 1); }
+    x.globalAlpha = 1;
+    if (!small) {
+      x.fillStyle = 'rgba(150,158,168,0.35)'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = 'bold ' + Math.round(h * 0.06) + 'px Rajdhani, sans-serif';
+      x.fillText('NO SIGNAL', w / 2, h / 2);
+    }
+    // vignette so the dark screen still looks like glass
+    const vg = x.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.2, w / 2, h / 2, Math.max(w, h) * 0.7);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.85)'); x.fillStyle = vg; x.fillRect(0, 0, w, h);
+  }
+
+  // Public entry point for the enlarged popup: channel 1 keeps the original broadcast art.
+  Props.tvDrawChannel = function (x, w, h, t, seed, ch) {
+    if (ch === 2) return tvChannel2(x, w, h, t || 0, seed || 0);
+    if (ch === 3) return tvChannel3(x, w, h, t || 0, seed || 0);
+    return Props.tvDraw(x, w, h, t, seed);
+  };
+
   Props.tvDraw = function (x, w, h, t, seed) {
     t = t || 0; seed = seed || 0;
     const small = h < 60, nz = tvNoiseTile();

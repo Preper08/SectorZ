@@ -196,9 +196,14 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 .tvframe { position: relative; margin: 16px 16px 6px; padding: 16px; background: #0b0b0d; border: 1px solid rgba(0,0,0,0.8); border-radius: 6px; box-shadow: inset 0 3px 20px rgba(0,0,0,0.9), 0 0 0 2px rgba(255,255,255,0.03); }
 #tvscreen { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 3px; background: #04060a; }
 .tvglass { position: absolute; inset: 16px; border-radius: 3px; pointer-events: none; background: linear-gradient(150deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 32%); box-shadow: inset 0 0 90px rgba(0,0,0,0.6); }
-.tvmeta { display: flex; align-items: center; justify-content: space-between; padding: 6px 18px 16px; }
+.tvmeta { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 18px 16px; }
 .tvmeta span { font-size: 12px; letter-spacing: 0.22em; color: var(--dim); text-transform: uppercase; }
 .tvmeta .btn { padding: 6px 14px; }
+/* channel selector inside the TV popup */
+.tvchans { display: flex; gap: 6px; margin-left: auto; margin-right: 10px; }
+.tvchans button { background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--dim); font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 6px 11px; cursor: pointer; border-radius: 2px; }
+.tvchans button:hover { color: var(--text); border-color: var(--line-hi); }
+.tvchans button.on { color: var(--text); border-color: var(--accent); background: var(--accent-dim); }
 #admin-search { width: 100%; background: #14161a; border: 1px solid var(--line-hi); color: var(--text); font: inherit; padding: 7px 10px; margin-bottom: 10px; }
 .adminlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
 .adminitem { display: flex; align-items: center; gap: 8px; background: #1a1d22; border: 1px solid var(--line); padding: 5px 8px; cursor: pointer; user-select: none; }

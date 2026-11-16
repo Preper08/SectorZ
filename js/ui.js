@@ -78,19 +78,60 @@
     UI.tvRef = tv || null;
     // per-TV seed so different sets show slightly different feeds
     UI.tvSeed = tv ? (((tv.x * 73856093) ^ (tv.y * 19349663)) >>> 0) % 1000 : 0;
-    UI.tvChannel = 1 + (UI.tvSeed % 66);
-    els.tvch.textContent = 'CH ' + UI.tvChannel + ' · LIVE FEED';
+    UI.tvChannel = 1;                                  // every set tunes in to channel 1 first
+    UI.tvSwitch = 0;
+    buildTVChannels();
+    els.tvch.textContent = tvChannelLabel();
     els.tvwin.classList.remove('hidden');
     els.cursor.classList.toggle('ui', true);
     if (S) S.paused = true; // freeze player movement and the world while watching (same as the pause menu)
     A.play('click');
   };
   UI.closeTV = function () { if (!UI.open.tv) return; UI.open.tv = false; els.tvwin.classList.add('hidden'); if (S && !UI.open.menu) S.paused = false; A.play('click'); };
+  // Channel strip: one button per channel, wired to the same setTvChannel() the number keys use.
+  function buildTVChannels() {
+    const box = document.getElementById('tvchans');
+    if (!box) return;
+    box.innerHTML = '';
+    for (let i = 1; i <= DSZ.Props.TV_CHANNELS; i++) {
+      const b = document.createElement('button');
+      b.textContent = 'CH ' + i;
+      b.title = DSZ.Props.TV_CHANNEL_NAMES[i - 1] || ('Channel ' + i);
+      b.className = i === UI.tvChannel ? 'on' : '';
+      b.onclick = () => setTvChannel(i);
+      box.appendChild(b);
+    }
+  }
+  function tvChannelLabel() {
+    if (UI.tvChannel === 2) return 'CH 2 · COMMENTARY';
+    if (UI.tvChannel === 3) return 'CH 3 · NO SIGNAL';
+    return 'CH 1 · LIVE FEED';
+  }
+  function setTvChannel(n) {
+    if (!UI.open.tv) return;
+    const total = DSZ.Props.TV_CHANNELS || 3;
+    const ch = ((n - 1) % total + total) % total + 1;
+    if (ch === UI.tvChannel) return;
+    UI.tvChannel = ch;
+    UI.tvSwitch = 0.28;                                // brief flicker on retune, like a real set
+    els.tvch.textContent = tvChannelLabel();
+    for (const b of document.querySelectorAll('#tvchans button')) b.classList.toggle('on', b.textContent === 'CH ' + ch);
+    A.play('click', null, null, 0.35);
+  }
+  UI.setTvChannel = setTvChannel;
   // animate the enlarged broadcast on the popup canvas using the shared TV screen content
   function renderTV(dt) {
     UI.tvT = (UI.tvT || 0) + (dt || 0.016);
     const cv = els.tvscreen; if (!cv) return; const x = cv.getContext('2d');
-    DSZ.Props.tvDraw(x, cv.width, cv.height, UI.tvT, UI.tvSeed || 0);
+    DSZ.Props.tvDrawChannel(x, cv.width, cv.height, UI.tvT, UI.tvSeed || 0, UI.tvChannel || 1);
+    // brief static flash right after a channel change, so retuning feels physical
+    if (UI.tvSwitch > 0) {
+      UI.tvSwitch -= (dt || 0.016);
+      const k = Math.max(0, UI.tvSwitch / 0.28);
+      x.globalAlpha = 0.55 * k;
+      x.fillStyle = '#dfe8f2'; x.fillRect(0, 0, cv.width, cv.height);
+      x.globalAlpha = 1;
+    }
   }
   UI.openMap = function () { if (!Inv.has(S.player.inv, 'map')) { DSZ.Game.toast(S, 'You need a Town Map.'); return; } UI.open.map = true; els.mapwin.classList.remove('hidden'); drawBigMap(); };
   UI.closeMap = function () { UI.open.map = false; els.mapwin.classList.add('hidden'); };
@@ -541,7 +582,14 @@
       // key handling
       if (!UI.open.death && !UI.open.settings && !UI.open.controls) {
         if (In.pressed('Escape')) { if (UI.drag) cancelDrag(); else if (UI.open.tv) UI.closeTV(); else if (UI.open.map) UI.closeMap(); else if (UI.open.win) UI.closeWin(); else if (S.build.active) { DSZ.Game.setBuild(S, false); } else UI.toggleMenu(); }
-        else if (UI.open.tv) { /* TV open: gameplay keys are blocked; mouse stays for the Close button */ }
+        else if (UI.open.tv) {
+          // TV open: gameplay keys are blocked; the channel can be changed with 1-3 or arrows
+          if (In.pressed('Digit1')) setTvChannel(1);
+          else if (In.pressed('Digit2')) setTvChannel(2);
+          else if (In.pressed('Digit3')) setTvChannel(3);
+          else if (In.pressed('ArrowRight')) setTvChannel((UI.tvChannel || 1) + 1);
+          else if (In.pressed('ArrowLeft')) setTvChannel((UI.tvChannel || 1) - 1);
+        }
         else if (!UI.open.menu) {
           if (In.pressed('Tab') || In.pressed('KeyI')) UI.toggleWin('inv');
           if (In.pressed('KeyC')) UI.toggleWin('craft');
