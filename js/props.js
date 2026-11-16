@@ -42,65 +42,234 @@
   Props.TV_CHANNELS = 3;
   Props.TV_CHANNEL_NAMES = ['Emergency Broadcast', 'Commentary', 'No Signal'];
 
-  // Channel 2: a studio commentator in front of a window, talking about the situation as an
-  // outbreak begins. Purely visual - a talking head with a moving mouth, a lower-third caption
-  // and a slow pan behind him. No gameplay effect.
+  // Channel 2: BREAKING NEWS. A full newsroom set - a wall of glowing monitors, a commentator
+  // at the desk, a shaky live field inset with smoke and fire glow, a pulsing red banner, an
+  // animated lower third and a scrolling ticker. Purely visual, no gameplay effect. In-world
+  // (tiny) screens use a compact variant so the world props stay cheap and readable.
   function tvChannel2(x, w, h, t, seed) {
     const small = h < 60;
-    // studio backdrop: dim room with a big window onto a hazy street
-    x.fillStyle = '#141820'; x.fillRect(0, 0, w, h);
-    const wx = w * 0.52, wy = h * 0.12, ww = w * 0.42, wh = h * 0.46;
-    const sky = x.createLinearGradient(0, wy, 0, wy + wh);
-    sky.addColorStop(0, '#4a5a70'); sky.addColorStop(0.6, '#6a6a6a'); sky.addColorStop(1, '#3a3630');
-    x.fillStyle = sky; x.fillRect(wx, wy, ww, wh);
-    // distant skyline blocks
-    x.fillStyle = 'rgba(24,26,32,0.85)';
-    for (let i = 0; i < 7; i++) { const bw2 = ww / 9, bh = wh * (0.25 + ((i * 37 + seed) % 40) / 100); x.fillRect(wx + i * bw2 * 1.15, wy + wh - bh, bw2, bh); }
-    // window frame
-    x.strokeStyle = 'rgba(12,14,18,0.95)'; x.lineWidth = Math.max(2, w * 0.006);
-    x.strokeRect(wx, wy, ww, wh); x.beginPath(); x.moveTo(wx + ww / 2, wy); x.lineTo(wx + ww / 2, wy + wh); x.stroke();
-    // desk
-    x.fillStyle = '#241c18'; x.fillRect(0, h * 0.72, w, h * 0.28);
-    x.fillStyle = 'rgba(255,255,255,0.05)'; x.fillRect(0, h * 0.72, w, Math.max(1, h * 0.006));
-    // commentator: head + shoulders, mouth animated so he reads as speaking
-    const cx = w * 0.27, cy = h * 0.42, hr = Math.min(w, h) * 0.14;
-    x.fillStyle = '#2a2e38'; x.beginPath();                          // shoulders
-    x.moveTo(cx - hr * 2.1, h * 0.73); x.quadraticCurveTo(cx, h * 0.5, cx + hr * 2.1, h * 0.73); x.closePath(); x.fill();
-    x.fillStyle = '#c8a688'; x.beginPath(); x.arc(cx, cy, hr, 0, 7); x.fill();   // head
-    x.fillStyle = '#33261e'; x.beginPath();                           // hair
-    x.arc(cx, cy - hr * 0.25, hr * 1.02, Math.PI * 1.05, Math.PI * 1.95); x.fill();
-    // eyes
-    x.fillStyle = '#20242c';
-    x.beginPath(); x.arc(cx - hr * 0.36, cy - hr * 0.08, hr * 0.1, 0, 7); x.fill();
-    x.beginPath(); x.arc(cx + hr * 0.36, cy - hr * 0.08, hr * 0.1, 0, 7); x.fill();
-    // mouth: opens and closes while he talks
-    const speak = (Math.sin(t * 9 + seed) * 0.5 + 0.5) * (Math.sin(t * 2.3) > -0.4 ? 1 : 0);
-    const mh = Math.max(hr * 0.05, hr * 0.22 * speak);
-    x.fillStyle = '#5a2a2e'; x.beginPath();
-    x.ellipse ? x.ellipse(cx, cy + hr * 0.42, hr * 0.24, mh, 0, 0, 7) : x.arc(cx, cy + hr * 0.42, hr * 0.24, 0, 7);
-    x.fill();
+    x.save();
+    // ---------- newsroom backdrop
+    const bg = x.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#121822'); bg.addColorStop(1, '#07090d');
+    x.fillStyle = bg; x.fillRect(0, 0, w, h);
+
     if (!small) {
-      // lower-third name plate
-      const bandH = Math.max(26, h * 0.13), by = h - bandH - Math.max(14, h * 0.06);
-      x.fillStyle = 'rgba(8,10,14,0.82)'; x.fillRect(w * 0.05, by, w * 0.62, bandH);
-      x.fillStyle = '#c8483c'; x.fillRect(w * 0.05, by, Math.max(3, w * 0.006), bandH);
-      x.fillStyle = 'rgba(240,236,228,0.95)'; x.textAlign = 'left'; x.textBaseline = 'middle';
-      x.font = 'bold ' + Math.round(h * 0.055) + 'px Rajdhani, sans-serif';
-      x.fillText('NORA VALE', w * 0.05 + w * 0.02, by + bandH * 0.36);
-      x.fillStyle = 'rgba(190,190,196,0.85)'; x.font = Math.round(h * 0.038) + 'px Rajdhani, sans-serif';
-      x.fillText('LIVE · OUTBREAK DESK', w * 0.05 + w * 0.02, by + bandH * 0.72);
-      // "ON AIR" lamp
-      x.globalAlpha = (Math.sin(t * 3 + seed) > 0) ? 1 : 0.35;
-      x.fillStyle = '#e0403a'; x.beginPath(); x.arc(w - 18, 20, 5.5, 0, 7); x.fill(); x.globalAlpha = 1;
-      x.fillStyle = 'rgba(235,235,240,0.9)'; x.font = 'bold ' + Math.round(h * 0.05) + 'px Rajdhani, sans-serif';
-      x.textAlign = 'right'; x.textBaseline = 'middle'; x.fillText('ON AIR', w - 30, 21);
-      // scrolling caption: what the commentator is saying
-      const cH = Math.max(20, h * 0.11); x.fillStyle = 'rgba(6,8,12,0.8)'; x.fillRect(0, h - cH, w, cH);
-      x.fillStyle = 'rgba(240,232,205,0.92)'; x.font = 'bold ' + Math.round(h * 0.05) + 'px Rajdhani, sans-serif';
+      // wall of glowing monitors behind the presenter (right half of the frame)
+      const mc = 4, mr = 2, mw = w * 0.062, mhh = h * 0.072;
+      for (let r = 0; r < mr; r++) for (let c = 0; c < mc; c++) {
+        const mx = w * 0.475 + c * mw * 1.22, my = h * 0.155 + r * mhh * 1.32;
+        const fl = 0.5 + 0.5 * Math.sin(t * 2.6 + c * 1.9 + r * 2.2 + seed);
+        x.fillStyle = 'rgba(74,116,168,' + (0.09 + fl * 0.15).toFixed(3) + ')';
+        x.fillRect(mx, my, mw, mhh);
+        x.strokeStyle = 'rgba(8,10,14,0.85)'; x.lineWidth = Math.max(1, w * 0.0018);
+        x.strokeRect(mx, my, mw, mhh);
+      }
+
+      // ---------- live field inset (LEFT side): handheld street shot, smoke and fire
+      const ix = w * 0.045, iy = h * 0.145, iw = w * 0.375, ih = h * 0.33;
+      const shake = (Math.sin(t * 7.3) + Math.sin(t * 11.7) * 0.6) * w * 0.0022;
+      x.save(); x.beginPath(); x.rect(ix, iy, iw, ih); x.clip();
+      const st = x.createLinearGradient(0, iy, 0, iy + ih);
+      st.addColorStop(0, '#2b3138'); st.addColorStop(0.55, '#3b3026'); st.addColorStop(1, '#191411');
+      x.fillStyle = st; x.fillRect(ix, iy, iw, ih);
+      // distant building blocks
+      x.fillStyle = 'rgba(18,20,26,0.8)';
+      for (let i = 0; i < 6; i++) { const bw = iw / 8, bh = ih * (0.22 + ((i * 41 + seed) % 34) / 100); x.fillRect(ix + i * bw * 1.2 + shake, iy + ih - bh, bw, bh); }
+      // fire glow from the street
+      const fg = x.createRadialGradient(ix + iw * 0.33, iy + ih * 0.80, 2, ix + iw * 0.33, iy + ih * 0.80, iw * 0.45);
+      fg.addColorStop(0, 'rgba(255,152,52,' + (0.46 + 0.16 * Math.sin(t * 9)).toFixed(3) + ')');
+      fg.addColorStop(1, 'rgba(255,120,40,0)');
+      x.fillStyle = fg; x.fillRect(ix, iy, iw, ih);
+      // drifting smoke columns
+      for (let i = 0; i < 5; i++) {
+        const ph = (t * 0.09 + i * 0.21 + seed * 0.01) % 1;
+        x.fillStyle = 'rgba(124,126,132,' + (0.15 * (1 - ph)).toFixed(3) + ')';
+        x.beginPath(); x.arc(ix + iw * (0.18 + i * 0.16) + shake * 3, iy + ih * (0.82 - ph * 0.72), iw * (0.05 + ph * 0.1), 0, 7); x.fill();
+      }
+      // running silhouettes
+      x.fillStyle = 'rgba(11,11,13,0.85)';
+      for (let i = 0; i < 3; i++) {
+        const px = ix + ((t * (26 + i * 9) + i * 95) % (iw + 40)) - 20;
+        const hy = iy + ih * 0.70;
+        x.fillRect(px, hy, iw * 0.021, ih * 0.2);
+        x.beginPath(); x.arc(px + iw * 0.0105, hy - ih * 0.03, iw * 0.017, 0, 7); x.fill();
+      }
+      x.restore();
+      // inset frame + LIVE badge
+      x.strokeStyle = 'rgba(200,72,60,0.92)'; x.lineWidth = Math.max(2, w * 0.0038);
+      x.strokeRect(ix, iy, iw, ih);
+      x.fillStyle = 'rgba(10,12,16,0.86)'; x.fillRect(ix + iw * 0.03, iy + ih * 0.055, iw * 0.235, ih * 0.165);
+      x.globalAlpha = (Math.sin(t * 4.2 + seed) > 0) ? 1 : 0.25;
+      x.fillStyle = '#e0403a'; x.beginPath(); x.arc(ix + iw * 0.058, iy + ih * 0.137, iw * 0.019, 0, 7); x.fill();
+      x.globalAlpha = 1;
+      x.fillStyle = 'rgba(238,238,244,0.95)'; x.textAlign = 'left'; x.textBaseline = 'middle';
+      x.font = 'bold ' + Math.round(h * 0.032) + 'px Rajdhani, sans-serif';
+      x.fillText('LIVE', ix + iw * 0.09, iy + ih * 0.135);
+      // location caption on the inset
+      x.fillStyle = 'rgba(8,10,14,0.8)'; x.fillRect(ix + iw * 0.03, iy + ih - ih * 0.155, iw * 0.52, ih * 0.13);
+      x.fillStyle = 'rgba(220,216,208,0.9)'; x.font = 'bold ' + Math.round(h * 0.028) + 'px Rajdhani, sans-serif';
+      x.fillText('DOWNTOWN · 5TH & MAIN', ix + iw * 0.05, iy + ih - ih * 0.09);
+
+      // ---------- presenter (right side of frame; desk is drawn later, over the lower body)
+      const cx = w * 0.715, cy = h * 0.335, hr = Math.min(w, h) * 0.115;
+      // everything below is anchored to the head so the body always meets the neck
+      const sy = cy + hr * 0.90;                 // shoulder line, just under the chin
+      const bw = hr * 1.55;                      // half-width of the shoulders
+      const deskY = h * 0.615;
+      // shoulders in a suit
+      x.fillStyle = '#242a36';
+      x.beginPath();
+      x.moveTo(cx - bw, deskY);
+      x.quadraticCurveTo(cx - bw * 0.92, sy + hr * 0.10, cx - hr * 0.42, sy);
+      x.lineTo(cx + hr * 0.42, sy);
+      x.quadraticCurveTo(cx + bw * 0.92, sy + hr * 0.10, cx + bw, deskY);
+      x.closePath(); x.fill();
+      // shirt V
+      x.fillStyle = '#d8dce2';
+      x.beginPath();
+      x.moveTo(cx - hr * 0.40, sy + hr * 0.02); x.lineTo(cx + hr * 0.40, sy + hr * 0.02);
+      x.lineTo(cx + hr * 0.22, sy + hr * 0.75); x.lineTo(cx - hr * 0.22, sy + hr * 0.75);
+      x.closePath(); x.fill();
+      // tie
+      x.fillStyle = '#8e2f2c';
+      x.beginPath();
+      x.moveTo(cx - hr * 0.10, sy + hr * 0.08); x.lineTo(cx + hr * 0.10, sy + hr * 0.08);
+      x.lineTo(cx + hr * 0.15, sy + hr * 0.78); x.lineTo(cx - hr * 0.15, sy + hr * 0.78);
+      x.closePath(); x.fill();
+      // lapels
+      x.fillStyle = '#1b202a';
+      x.beginPath();
+      x.moveTo(cx - hr * 0.42, sy); x.lineTo(cx - hr * 0.12, sy + hr * 0.80); x.lineTo(cx - hr * 0.42, sy + hr * 0.80);
+      x.closePath(); x.fill();
+      x.beginPath();
+      x.moveTo(cx + hr * 0.42, sy); x.lineTo(cx + hr * 0.12, sy + hr * 0.80); x.lineTo(cx + hr * 0.42, sy + hr * 0.80);
+      x.closePath(); x.fill();
+      // head
+      x.fillStyle = '#c8a688'; x.beginPath(); x.arc(cx, cy, hr, 0, 7); x.fill();
+      // neck
+      x.fillStyle = '#b08f72'; x.fillRect(cx - hr * 0.24, cy + hr * 0.72, hr * 0.48, hr * 0.32);
+      // hair
+      x.fillStyle = '#2b211a'; x.beginPath();
+      x.arc(cx, cy - hr * 0.24, hr * 1.03, Math.PI * 1.06, Math.PI * 1.94); x.fill();
+      // eyes (blink)
+      const blink = (t * 0.42 % 1) < 0.045;
+      x.fillStyle = '#20242c';
+      if (blink) { x.fillRect(cx - hr * 0.46, cy - hr * 0.09, hr * 0.22, Math.max(1, hr * 0.045)); x.fillRect(cx + hr * 0.24, cy - hr * 0.09, hr * 0.22, Math.max(1, hr * 0.045)); }
+      else { x.beginPath(); x.arc(cx - hr * 0.35, cy - hr * 0.07, hr * 0.095, 0, 7); x.fill(); x.beginPath(); x.arc(cx + hr * 0.35, cy - hr * 0.07, hr * 0.095, 0, 7); x.fill(); }
+      // brows
+      x.strokeStyle = '#2b211a'; x.lineWidth = Math.max(1, hr * 0.1);
+      x.beginPath(); x.moveTo(cx - hr * 0.48, cy - hr * 0.26); x.lineTo(cx - hr * 0.2, cy - hr * 0.29);
+      x.moveTo(cx + hr * 0.2, cy - hr * 0.29); x.lineTo(cx + hr * 0.48, cy - hr * 0.26); x.stroke();
+      // talking mouth
+      const speak = (Math.sin(t * 9.2 + seed) * 0.5 + 0.5) * (Math.sin(t * 2.3) > -0.35 ? 1 : 0);
+      const mh = Math.max(hr * 0.045, hr * 0.2 * speak);
+      x.fillStyle = '#5a2a2e'; x.beginPath();
+      if (x.ellipse) x.ellipse(cx, cy + hr * 0.42, hr * 0.22, mh, 0, 0, 7); else x.arc(cx, cy + hr * 0.42, hr * 0.2, 0, 7);
+      x.fill();
+      // ---------- desk (drawn over the lower body so the presenter reads as seated behind it)
+      const dy = deskY;
+      x.fillStyle = '#241d18'; x.fillRect(0, dy, w, h - dy);
+      const dt2 = x.createLinearGradient(0, dy, 0, dy + h * 0.06);
+      dt2.addColorStop(0, 'rgba(126,104,80,0.55)'); dt2.addColorStop(1, 'rgba(126,104,80,0)');
+      x.fillStyle = dt2; x.fillRect(0, dy, w, h * 0.06);
+      x.fillStyle = 'rgba(255,255,255,0.10)'; x.fillRect(0, dy, w, Math.max(1, h * 0.004));
+      // desk front branding
+      x.fillStyle = 'rgba(200,60,48,0.20)'; x.fillRect(w * 0.045, dy + h * 0.075, w * 0.20, h * 0.10);
+      x.fillStyle = 'rgba(255,255,255,0.10)'; x.font = 'bold ' + Math.round(h * 0.038) + 'px Rajdhani, sans-serif';
       x.textAlign = 'left'; x.textBaseline = 'middle';
-      const msg = '  ...we are getting reports of violent incidents downtown. People are being told to stay indoors.   ';
-      const tw = x.measureText(msg).width, sx = w - ((t * 40) % (tw + w)); x.fillText(msg, sx, h - cH * 0.45);
+      x.fillText('CH 7', w * 0.062, dy + h * 0.125);
+      // presenter's hand resting on the desk, tapping while he talks
+      const tapY = Math.abs(Math.sin(t * 3.1 + seed * 0.5)) * h * 0.008;
+      x.fillStyle = '#c8a688';
+      x.beginPath(); x.ellipse ? x.ellipse(cx + hr * 1.6, dy + h * 0.028 - tapY, hr * 0.30, hr * 0.19, -0.2, 0, 7) : x.arc(cx + hr * 1.6, dy + h * 0.028, hr * 0.24, 0, 7); x.fill();
+      // papers on the desk
+      x.fillStyle = 'rgba(226,222,212,0.88)';
+      x.fillRect(cx + hr * 2.35, dy + h * 0.012, w * 0.075, h * 0.032);
+      x.fillStyle = 'rgba(180,176,168,0.75)';
+      for (let i = 1; i <= 3; i++) x.fillRect(cx + hr * 2.45, dy + h * 0.012 + i * h * 0.007, w * 0.055, Math.max(1, h * 0.0025));
+
+      // ---------- BREAKING NEWS banner (top)
+      const bh = h * 0.098;
+      x.fillStyle = '#a51f1a'; x.fillRect(0, 0, w, bh);
+      x.fillStyle = '#d0271f'; x.fillRect(w * 0.155, 0, w * 0.845, bh);   // lighter sweep panel
+      // shimmer sweep
+      const shx = ((t * 0.35) % 1) * (w * 1.4) - w * 0.2;
+      const shg = x.createLinearGradient(shx, 0, shx + w * 0.18, 0);
+      shg.addColorStop(0, 'rgba(255,255,255,0)'); shg.addColorStop(0.5, 'rgba(255,255,255,0.16)'); shg.addColorStop(1, 'rgba(255,255,255,0)');
+      x.fillStyle = shg; x.fillRect(0, 0, w, bh);
+      // LIVE block on the left
+      x.fillStyle = '#0b0d11'; x.fillRect(0, 0, w * 0.145, bh);
+      x.globalAlpha = (Math.sin(t * 5) > 0) ? 1 : 0.3;
+      x.fillStyle = '#e0403a'; x.beginPath(); x.arc(w * 0.035, bh * 0.5, bh * 0.17, 0, 7); x.fill();
+      x.globalAlpha = 1;
+      x.fillStyle = 'rgba(240,240,246,0.95)'; x.textAlign = 'left'; x.textBaseline = 'middle';
+      x.font = 'bold ' + Math.round(bh * 0.42) + 'px Rajdhani, sans-serif';
+      x.fillText('LIVE', w * 0.058, bh * 0.52);
+      // headline
+      x.fillStyle = '#ffffff'; x.font = 'bold ' + Math.round(bh * 0.55) + 'px Rajdhani, sans-serif';
+      x.fillText('BREAKING NEWS', w * 0.175, bh * 0.54);
+      // pulsing underline
+      x.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(t * 2.1));
+      x.fillStyle = '#ffffff'; x.fillRect(w * 0.175, bh * 0.84, w * 0.36, Math.max(1.5, bh * 0.055));
+      x.globalAlpha = 1;
+      // clock
+      const mins = Math.floor((t * 0.6) % 60), hrs = 21 + Math.floor((t * 0.6) / 60) % 6;
+      x.fillStyle = 'rgba(255,255,255,0.9)'; x.textAlign = 'right';
+      x.font = 'bold ' + Math.round(bh * 0.42) + 'px Rajdhani, sans-serif';
+      x.fillText('21:' + String(mins).padStart(2, '0'), w - w * 0.03, bh * 0.54);
+
+      // ---------- animated lower third (slides in from the left, sits above the desk)
+      const cyc = (t + seed * 0.31) % 11;
+      let lt = 0;
+      if (cyc < 0.45) lt = cyc / 0.45; else if (cyc < 8.7) lt = 1; else lt = Math.max(0, 1 - (cyc - 8.7) / 0.55);
+      if (lt > 0.01) {
+        const ly = h * 0.40, lh = h * 0.10, off = (1 - lt) * w * 0.52;
+        x.fillStyle = 'rgba(8,10,14,0.88)'; x.fillRect(w * 0.035 - off, ly, w * 0.38, lh);
+        x.fillStyle = '#c8271f'; x.fillRect(w * 0.035 - off, ly, w * 0.007, lh);
+        x.fillStyle = 'rgba(255,255,255,0.96)'; x.textAlign = 'left'; x.textBaseline = 'middle';
+        x.font = 'bold ' + Math.round(h * 0.045) + 'px Rajdhani, sans-serif';
+        x.fillText('NORAK VALE', w * 0.052 - off, ly + lh * 0.34);
+        x.fillStyle = 'rgba(192,192,200,0.9)'; x.font = Math.round(h * 0.03) + 'px Rajdhani, sans-serif';
+        x.fillText('OUTBREAK DESK', w * 0.052 - off, ly + lh * 0.72);
+      }
+
+      // ---------- scrolling ticker along the bottom
+      const tk = h * 0.105, ty = h - tk;
+      x.fillStyle = 'rgba(6,8,12,0.94)'; x.fillRect(0, ty, w, tk);
+      x.fillStyle = '#c8271f'; x.fillRect(0, ty, w * 0.115, tk);
+      x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = 'bold ' + Math.round(tk * 0.46) + 'px Rajdhani, sans-serif';
+      x.fillText('NEWS', w * 0.0575, ty + tk * 0.54);
+      x.save(); x.beginPath(); x.rect(w * 0.12, ty, w * 0.88, tk); x.clip();
+      x.fillStyle = 'rgba(242,234,208,0.94)'; x.textAlign = 'left';
+      x.font = 'bold ' + Math.round(tk * 0.5) + 'px Rajdhani, sans-serif';
+      const msg = '  BREAKING: VIOLENT INCIDENTS REPORTED DOWNTOWN   \u2022   RESIDENTS TOLD TO STAY INDOORS AND LOCK THEIR DOORS   \u2022   CHECKPOINTS ON ROUTE 9   \u2022   DO NOT APPROACH THE INFECTED   \u2022   ';
+      const tw = x.measureText(msg).width;
+      const scroll = (t * 62) % (tw + w * 0.88);
+      x.fillText(msg, w * 0.12 - scroll, ty + tk * 0.54);
+      x.fillText(msg, w * 0.12 - scroll + tw, ty + tk * 0.54);
+      x.restore();
+
+      // ---------- CRT treatment
+      x.fillStyle = 'rgba(0,0,0,0.20)';
+      for (let yy = 0; yy < h; yy += 3) x.fillRect(0, yy, w, 1);
+      const vg = x.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.72);
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+      x.fillStyle = vg; x.fillRect(0, 0, w, h);
+      // faint flicker
+      const fl2 = 0.96 + 0.04 * Math.sin(t * 13);
+      x.fillStyle = 'rgba(0,0,0,' + ((1 - fl2) * 0.5).toFixed(3) + ')'; x.fillRect(0, 0, w, h);
+    } else {
+      // compact variant for the tiny in-world screens
+      x.fillStyle = '#a51f1a'; x.fillRect(0, 0, w, h * 0.3);
+      const cxs = w * 0.32, cys = h * 0.66, hr2 = Math.min(w, h) * 0.22;
+      x.fillStyle = '#242a36'; x.fillRect(w * 0.05, h * 0.86, w * 0.5, h * 0.14);
+      x.fillStyle = '#c8a688'; x.beginPath(); x.arc(cxs, cys, hr2, 0, 7); x.fill();
+      x.fillStyle = 'rgba(255,150,50,0.5)'; x.fillRect(w * 0.68, h * 0.4, w * 0.26, h * 0.4);
+      x.fillStyle = 'rgba(255,255,255,0.85)'; x.fillRect(0, h * 0.86, w, h * 0.14);
     }
+    x.restore();
   }
 
   // Channel 3: dead air. No picture, no signal at all - just a dark screen and the set's own
