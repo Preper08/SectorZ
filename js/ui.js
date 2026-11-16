@@ -106,6 +106,7 @@
   function tvChannelLabel() {
     if (UI.tvChannel === 2) return 'CH 2 · COMMENTARY';
     if (UI.tvChannel === 3) return 'CH 3 · NO SIGNAL';
+    if (UI.tvChannel === 4) return 'CH 4 · TERMINAL';
     return 'CH 1 · LIVE FEED';
   }
   function setTvChannel(n) {
@@ -583,19 +584,20 @@
     S = state; if (!S) return;
     const p = S.player;
     if (UI.open.tv) renderTV(dt);
-    // safety net: the commentary bed must never outlive the popup. If the window is gone but the
-    // channel is still tuned to 2 (e.g. a transition bypassed closeTV), silence it here.
-    else if (UI.tvChannel === 2) { UI.tvChannel = 1; if (A.tvMusic) A.tvMusic(false); }
+    // safety net: no channel may outlive the popup. If the window is gone but a channel is still
+    // tuned (e.g. a transition bypassed closeTV), reset to 1 and silence the commentary bed.
+    else if (UI.tvChannel !== 1) { UI.tvChannel = 1; if (A.tvMusic) A.tvMusic(false); }
     els.cursor.classList.toggle('ui', UI.blockMouse());
     if (!UI.open.title) {
       // key handling
       if (!UI.open.death && !UI.open.settings && !UI.open.controls) {
         if (In.pressed('Escape')) { if (UI.drag) cancelDrag(); else if (UI.open.tv) UI.closeTV(); else if (UI.open.map) UI.closeMap(); else if (UI.open.win) UI.closeWin(); else if (S.build.active) { DSZ.Game.setBuild(S, false); } else UI.toggleMenu(); }
         else if (UI.open.tv) {
-          // TV open: gameplay keys are blocked; the channel can be changed with 1-3 or arrows
+          // TV open: gameplay keys are blocked; the channel can be changed with the number keys or arrows
           if (In.pressed('Digit1')) setTvChannel(1);
           else if (In.pressed('Digit2')) setTvChannel(2);
           else if (In.pressed('Digit3')) setTvChannel(3);
+          else if (In.pressed('Digit4')) setTvChannel(4);
           else if (In.pressed('ArrowRight')) setTvChannel((UI.tvChannel || 1) + 1);
           else if (In.pressed('ArrowLeft')) setTvChannel((UI.tvChannel || 1) - 1);
         }

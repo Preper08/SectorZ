@@ -37,10 +37,10 @@
     x.putImageData(id, 0, 0); tvNoise = c; return c;
   }
   // ---- TV channels. Channel 1 is the existing dead emergency broadcast (unchanged).
-  // Channels 2 and 3 are drawn by Props.tvDrawChannel below; the world prop always shows
+  // Channels 2-4 are drawn by Props.tvDrawChannel below; the world prop always shows
   // channel 1 so the tiny in-world screens keep their original look.
-  Props.TV_CHANNELS = 3;
-  Props.TV_CHANNEL_NAMES = ['Emergency Broadcast', 'Commentary', 'No Signal'];
+  Props.TV_CHANNELS = 4;
+  Props.TV_CHANNEL_NAMES = ['Emergency Broadcast', 'Commentary', 'No Signal', 'Terminal'];
 
   // Channel 2: BREAKING NEWS. A full newsroom set - a wall of glowing monitors, a commentator
   // at the desk, a shaky live field inset with smoke and fire glow, a pulsing red banner, an
@@ -292,10 +292,134 @@
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.85)'); x.fillStyle = vg; x.fillRect(0, 0, w, h);
   }
 
+  // Channel 4: a captured computer terminal - green phosphor text on black, a live "intrusion"
+  // scrolling past, and the attacker's handle burned into the foreground. Retro monospace, with
+  // a blinking block cursor, scanlines and a slight phosphor burn. Purely visual.
+  const TV4_HANDLE = 'PAJTI';
+  function tvChannel4(x, w, h, t, seed) {
+    const small = h < 60;
+    const MONO = 'bold {S}px "Courier New", Consolas, monospace';
+    const fs = (s) => MONO.replace('{S}', Math.round(s));
+    // black glass with a faint green cast
+    x.save();
+    x.fillStyle = '#020604'; x.fillRect(0, 0, w, h);
+
+    if (!small) {
+      const lh = h * 0.045;                       // line height
+      const fsz = h * 0.036;                      // font size
+      const pad = w * 0.045;
+      x.font = fs(fsz); x.textAlign = 'left'; x.textBaseline = 'middle';
+
+      // A scripted intrusion transcript, revealed line by line on a loop.
+      const lines = [
+        ['> CONNECTING TO NODE 07 ......', '#2f8f4a'],
+        ['> HANDSHAKE OK', '#2f8f4a'],
+        ['> BYPASSING FIREWALL [########] 100%', '#43d06a'],
+        ['!! INTRUSION DETECTED ON SUBNET 10.0.7', '#e0d24a'],
+        ['> ESCALATING PRIVILEGES', '#43d06a'],
+        ['> DUMPING PATIENT RECORDS  4,182 FILES', '#43d06a'],
+        ['> OVERWRITING BACKUPS ...', '#e0d24a'],
+        ['!! ALL NODES COMPROMISED', '#e05a4a'],
+        ['> LEAVING SIGNATURE', '#2f8f4a'],
+        ['> CONNECTION CLOSED', '#2f8f4a']
+      ];
+      const CYCLE = 15;                            // seconds per full transcript
+      const local = (t + seed * 0.37) % CYCLE;
+      const perLine = CYCLE / (lines.length + 3);
+      const shown = Math.min(lines.length, Math.floor(local / perLine) + 1);
+      const top = h * 0.165;
+      for (let i = 0; i < shown; i++) {
+        const y = top + i * lh;
+        if (y > h * 0.555) break;
+        const txt = lines[i][0], col = lines[i][1];
+        // newest line types itself in, older lines are complete
+        const isLast = i === shown - 1;
+        const n = isLast ? Math.max(1, Math.floor(txt.length * Math.min(1, (local % perLine) / (perLine * 0.65)))) : txt.length;
+        x.globalAlpha = 1 - i * 0.045;
+        x.fillStyle = col;
+        x.fillText(txt.slice(0, n), pad, y);
+        x.globalAlpha = 1;
+      }
+      // blinking block cursor after the last line (only inside the log area)
+      const cy = top + (shown - 1) * lh;
+      const lastTxt = lines[Math.min(shown - 1, lines.length - 1)][0];
+      const cw = x.measureText(lastTxt).width;
+      if (cy < h * 0.555 && Math.sin(t * 6) > -0.2) {
+        x.fillStyle = '#43d06a';
+        x.fillRect(pad + cw + fsz * 0.2, cy - fsz * 0.42, fsz * 0.5, fsz * 0.84);
+      }
+
+      // header line
+      x.fillStyle = 'rgba(47,143,74,0.75)'; x.font = fs(fsz * 0.8);
+      x.fillText('TERM-07 / ROOT SHELL            ' + (Math.sin(t * 0.7) > -0.6 ? 'REC *' : '      '), pad, h * 0.085);
+      x.fillRect(pad, h * 0.115, w - pad * 2, Math.max(1, h * 0.004));
+
+      // ---- the signature: PAJTI..., huge, on a dark band so the log above stays readable
+      const bandTop = h * 0.585, bandBot = h * 0.845;
+      x.fillStyle = 'rgba(1,6,3,0.92)'; x.fillRect(0, bandTop, w, bandBot - bandTop);
+      x.fillStyle = 'rgba(67,208,106,0.38)';
+      x.fillRect(0, bandTop, w, Math.max(1, h * 0.0032));
+      x.fillRect(0, bandBot - Math.max(1, h * 0.0032), w, Math.max(1, h * 0.0032));
+      const pulse = 0.55 + 0.45 * Math.abs(Math.sin(t * 1.6 + seed * 0.2));
+      const BIG_TEXT = TV4_HANDLE + '...';
+      // auto-fit: pick the largest size that still leaves margins on both sides
+      let big = Math.round(h * 0.30);
+      x.font = fs(big);
+      const maxW = w * 0.88;
+      const tw0 = x.measureText(BIG_TEXT).width;
+      if (tw0 > maxW) { big = Math.floor(big * maxW / tw0); x.font = fs(big); }
+      const bigY = bandTop + (bandBot - bandTop) * 0.46;
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+      // phosphor glow layers
+      x.fillStyle = 'rgba(40,190,90,' + (0.10 * pulse).toFixed(3) + ')';
+      x.fillText(BIG_TEXT, w / 2, bigY);
+      x.fillStyle = 'rgba(60,230,110,' + (0.20 * pulse).toFixed(3) + ')';
+      x.fillText(BIG_TEXT, w / 2, bigY);
+      // core glyphs, glitching horizontally in short bursts
+      const glitch = (Math.sin(t * 9.1) > 0.93) ? (Math.random() - 0.5) * w * 0.02 : 0;
+      x.fillStyle = '#7dff9e';
+      x.fillText(BIG_TEXT, w / 2 + glitch, bigY);
+      // RGB split on the glitch frames
+      if (glitch !== 0) {
+        x.globalAlpha = 0.5; x.fillStyle = '#ff4a6a';
+        x.fillText(BIG_TEXT, w / 2 + glitch - w * 0.004, bigY);
+        x.fillStyle = '#4ad8ff';
+        x.fillText(BIG_TEXT, w / 2 + glitch + w * 0.004, bigY);
+        x.globalAlpha = 1;
+      }
+      // caption under the handle
+      x.textAlign = 'center';
+      x.font = fs(h * 0.033); x.fillStyle = 'rgba(120,230,150,0.62)';
+      x.fillText('WE ARE BACK', w / 2, bandBot - h * 0.045);
+
+      // scanlines + phosphor vignette + flicker
+      x.fillStyle = 'rgba(0,0,0,0.34)';
+      for (let yy = 0; yy < h; yy += 3) x.fillRect(0, yy, w, 1);
+      const vg = x.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.26, w / 2, h / 2, Math.max(w, h) * 0.72);
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.78)');
+      x.fillStyle = vg; x.fillRect(0, 0, w, h);
+      const fl = 0.9 + 0.1 * Math.sin(t * 17);
+      x.fillStyle = 'rgba(0,0,0,' + ((1 - fl) * 0.35).toFixed(3) + ')'; x.fillRect(0, 0, w, h);
+      // rolling bright bar, like a failing CRT
+      const by = ((t * 0.22) % 1) * (h + 30) - 15;
+      const bg = x.createLinearGradient(0, by - 10, 0, by + 10);
+      bg.addColorStop(0, 'rgba(90,255,140,0)'); bg.addColorStop(0.5, 'rgba(90,255,140,0.08)'); bg.addColorStop(1, 'rgba(90,255,140,0)');
+      x.fillStyle = bg; x.fillRect(0, by - 10, w, 20);
+    } else {
+      // compact variant: green block glyphs only
+      x.fillStyle = 'rgba(40,150,70,0.5)'; x.fillRect(0, 0, w, h * 0.18);
+      x.fillStyle = '#7dff9e'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = 'bold ' + Math.max(5, Math.round(h * 0.34)) + 'px monospace';
+      x.fillText(TV4_HANDLE, w / 2, h * 0.56);
+    }
+    x.restore();
+  }
+
   // Public entry point for the enlarged popup: channel 1 keeps the original broadcast art.
   Props.tvDrawChannel = function (x, w, h, t, seed, ch) {
     if (ch === 2) return tvChannel2(x, w, h, t || 0, seed || 0);
     if (ch === 3) return tvChannel3(x, w, h, t || 0, seed || 0);
+    if (ch === 4) return tvChannel4(x, w, h, t || 0, seed || 0);
     return Props.tvDraw(x, w, h, t, seed);
   };
 
