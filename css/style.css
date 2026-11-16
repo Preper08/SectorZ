@@ -26,17 +26,17 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 /* ---------- HUD ---------- */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #hud > * { pointer-events: none; }
-#vitals { position: absolute; left: 18px; bottom: 18px; width: 230px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+#vitals { position: absolute; left: 18px; bottom: 18px; width: 200px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
 /* The inventory window would sit on top of the vitals and the clock/minimap. It already shows
    the same numbers (Condition: Health, Hunger, Thirst, Energy), so the HUD corners are hidden
    while it is open rather than squeezing the window into a smaller area. */
 #hud.win-open #vitals, #hud.win-open #topright { visibility: hidden; }
-.vrow { display: grid; grid-template-columns: 18px 1fr 30px; gap: 8px; align-items: center; }
-.vico { font-weight: 700; font-size: 12px; color: var(--dim); text-align: center; border: 1px solid var(--line); border-radius: 2px; line-height: 16px; background: rgba(255,255,255,0.03); }
-.vbar { height: 9px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.05); position: relative; overflow: hidden; }
+.vrow { display: grid; grid-template-columns: 16px 1fr 26px; gap: 6px; align-items: center; }
+.vico { font-weight: 700; font-size: 11px; color: var(--dim); text-align: center; border: 1px solid var(--line); border-radius: 2px; line-height: 14px; background: rgba(255,255,255,0.03); }
+.vbar { height: 8px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.05); position: relative; overflow: hidden; }
 .vbar i { position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--good); transition: width 0.25s linear; }
 .vrow[data-k=hp] i { background: #c8484a; } .vrow[data-k=food] i { background: #c98d3a; } .vrow[data-k=water] i { background: #4f95c7; } .vrow[data-k=stamina] i { background: #b8bf52; } .vrow[data-k=energy] i { background: #8b78c4; }
-.vrow b { font-size: 13px; text-align: right; font-weight: 600; }
+.vrow b { font-size: 12px; text-align: right; font-weight: 600; }
 .vrow.low .vbar i { animation: pulse 0.8s infinite alternate; }
 @keyframes pulse { to { opacity: 0.45; } }
 #status { display: flex; gap: 5px; flex-wrap: wrap; min-height: 0; }
@@ -67,11 +67,11 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
    drag & drop from the grid onto a hotbar slot was nearly impossible. While the window is
    open the hotbar lifts above it (class toggled in UI.openWin/closeWin/refresh). */
 #hotbar.win-open { z-index: 25; }
-.hslot { width: 58px; height: 58px; position: relative; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+.hslot { width: 50px; height: 50px; position: relative; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
 .hslot.sel { border-color: var(--accent); background: var(--accent-dim); box-shadow: inset 0 0 0 1px rgba(217, 164, 65, 0.4); }
-.hslot .k { position: absolute; left: 4px; top: 1px; font-size: 11px; color: var(--dim); font-weight: 700; }
-.hslot img { max-width: 50px; max-height: 50px; image-rendering: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); }
-.hslot .q { position: absolute; right: 4px; bottom: 1px; font-size: 12px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.hslot .k { position: absolute; left: 4px; top: 1px; font-size: 10px; color: var(--dim); font-weight: 700; }
+.hslot img { max-width: 43px; max-height: 43px; image-rendering: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); }
+.hslot .q { position: absolute; right: 4px; bottom: 1px; font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px #000; }
 .hslot .dur { position: absolute; left: 3px; right: 3px; bottom: 2px; height: 3px; background: rgba(0,0,0,0.5); }
 .hslot .dur i { display: block; height: 100%; background: var(--good); }
 #hintbar { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.28); letter-spacing: 0.1em; white-space: nowrap; }

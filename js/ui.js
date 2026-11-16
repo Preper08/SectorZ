@@ -180,20 +180,26 @@
     e.addEventListener('mouseenter', () => { hovered = it; showTip(it, e); }); e.addEventListener('mouseleave', hideTip);
     return e;
   }
-  // The vitals panel (bottom-left) and the centred hotbar are both anchored to the bottom of
-  // the screen, so on narrower windows the hotbar overlaps the vitals and covers the
-  // stamina/energy bars. Measure the real boxes and, only when they actually collide, lift the
-  // vitals panel just above the hotbar. On wide screens nothing changes.
+  // The vitals panel sits bottom-left and the hotbar is centred along the bottom. With the
+  // compact sizing above they sit side by side on normal windows. If a window is narrow enough
+  // that the centred hotbar would reach into the vitals, nudge the hotbar right just enough to
+  // clear them (still bottom-aligned, so both stay readable). Only if there is no room to the
+  // right does the vitals panel lift - which keeps very small windows usable.
   function fitHud() {
-    const v = els.vitals;
-    if (!v) return;
-    v.style.bottom = '';                                   // back to the CSS value, then re-test
-    if (els.hud.classList.contains('hidden')) return;      // title screen / death: nothing to do
-    const vr = v.getBoundingClientRect(), hr = els.hotbar.getBoundingClientRect();
-    if (!hr.width || !vr.width) return;                    // hotbar not laid out yet
-    const xOverlap = Math.min(vr.right, hr.right) - Math.max(vr.left, hr.left);
-    if (xOverlap <= 0) return;                             // side by side already
-    v.style.bottom = Math.round(window.innerHeight - hr.top + 10) + 'px';
+    const v = els.vitals, hb = els.hotbar;
+    if (!v || !hb) return;
+    hb.style.transform = '';                                // back to dead centre
+    v.style.bottom = '';                                    // back to the CSS bottom
+    if (els.hud.classList.contains('hidden')) return;
+    const vr = v.getBoundingClientRect(), hr = hb.getBoundingClientRect();
+    if (!hr.width || !vr.width) return;                     // not laid out yet
+    const GAP = 10;
+    const need = vr.right + GAP - hr.left;                  // px of horizontal clash
+    if (need <= 0) return;                                  // already side by side
+    const room = innerWidth - 18 - hr.right;                // space left of the right edge
+    const shift = Math.min(need, Math.max(0, room));
+    if (shift > 0) hb.style.transform = 'translateX(calc(-50% + ' + Math.ceil(shift) + 'px))';
+    if (shift < need) v.style.bottom = Math.round(window.innerHeight - hr.top + GAP) + 'px';
   }
   // Largest cell size that still keeps the equipment column, the widest storage grid and
   // (when a container is open) the container column visible at the same time. The 276px
