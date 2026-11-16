@@ -130,15 +130,17 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 #crafttabs button.on { color: var(--text); border-left: 3px solid var(--accent); background: var(--panel-hi); }
 #crafttabs button:hover { color: var(--text); }
 #craftlist { width: 330px; display: grid; grid-template-columns: repeat(5, 58px); grid-auto-rows: 58px; gap: 5px; align-content: start; }
-.rcp { position: relative; background: rgba(255,255,255,0.04); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.rcp { position: relative; background: rgba(255,255,255,0.04); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
 .rcp:hover { border-color: var(--line-hi); background: var(--panel-hi); } .rcp.sel { border-color: var(--accent); background: var(--accent-dim); }
-.rcp img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); } .rcp.no img { opacity: 0.35; }
+/* pointer-events:none keeps the icon from swallowing the click, and -webkit-user-drag:none
+   stops the browser's native image drag from cancelling a click when the mouse moves a pixel. */
+.rcp img { width: 44px; height: 44px; object-fit: contain; pointer-events: none; -webkit-user-drag: none; user-select: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); } .rcp.no img { opacity: 0.35; }
 .rcp .q { position: absolute; right: 3px; bottom: 1px; font-size: 12px; font-weight: 700; }
 .rcp .ok { position: absolute; left: 3px; top: 2px; width: 7px; height: 7px; background: var(--good); }
 #craftdetail { width: 300px; min-height: 300px; }
 #craftdetail h3 { font-size: 20px; margin-bottom: 2px; } #craftdetail .d { color: var(--dim); margin-bottom: 10px; font-size: 14px; }
 .ing { display: flex; align-items: center; gap: 8px; padding: 4px 6px; margin-bottom: 3px; background: rgba(255,255,255,0.04); border: 1px solid var(--line); }
-.ing img { width: 30px; height: 30px; object-fit: contain; } .ing span { flex: 1; } .ing b.ok { color: var(--good); } .ing b.no { color: var(--bad); }
+.ing img { width: 30px; height: 30px; object-fit: contain; pointer-events: none; -webkit-user-drag: none; user-select: none; } .ing span { flex: 1; } .ing b.ok { color: var(--good); } .ing b.no { color: var(--bad); }
 
 /* menus */
 .overlay { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.48); }

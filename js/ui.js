@@ -319,6 +319,7 @@
     UI.refresh();
   }
   UI.refresh = () => { hotbarLift(); if (UI.open.win) { if (UI.open.tab === 'inv') renderInv(); else renderCraft(); } renderHot(true); };
+  UI.markCraftDirty = () => { UI._csig = null; };
   function renderHot(force) {
     if (!S) return; const P = S.player.inv, p = S.player;
     const sig = P.sel + '|' + P.hot.map(it => it ? it.id + it.q + (it.mag !== undefined ? it.mag : '') + (it.dur !== undefined ? (it.dur | 0) : '') : '-').join(',') + '|' + Inv.count(P, 'ammo9') + Inv.count(P, 'shell') + Inv.count(P, 'ammo762');
@@ -418,28 +419,43 @@
   function takeAll() { if (!UI.loot) return; const g = UI.loot.grid; for (const it of g.items.slice()) { Inv.remove(g, it); const left = Inv.give(S.player.inv, it); if (left) { Inv.addTo(g, left); } } A.play('pickup'); UI.refresh(); }
 
   // ------------------------------------------------------------------ crafting
+  // Selecting a recipe only repaints the highlight and the detail pane. Rebuilding the whole
+  // list on every click destroyed the tiles under the cursor (killing the hover state and
+  // leaving the tooltip stuck), which made the menu feel unresponsive.
+  function selectRecipe(r) {
+    craftSel = r;
+    for (const node of els.craftlist.children) node.classList.toggle('sel', node._recipe === r);
+    renderCraftDetail();
+  }
+  function renderCraftDetail() {
+    if (!S) return;
+    const P = S.player.inv, st = Inv.stations(S), r = craftSel;
+    if (!r) { els.craftdetail.innerHTML = ''; return; }
+    const s = Inv.recipeState(P, r, st), od = I[r.out[0]];
+    let html = '<h4>Recipe</h4><h3>' + od.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + '</h3><div class="d">' + (r.desc || od.desc || '') + '</div><h4>Requires</h4>';
+    for (const [id, q] of r.in) { if (q <= 0) continue; const have = Inv.count(P, id); html += '<div class="ing"><img src="' + img(id) + '" draggable="false"><span>' + I[id].name + '</span><b class="' + (have >= q ? 'ok' : 'no') + '">' + have + ' / ' + q + '</b></div>'; }
+    if (r.needs) html += '<div class="ing"><img src="' + img(r.needs) + '" draggable="false"><span>' + I[r.needs].name + ' (tool)</span><b class="' + (Inv.has(P, r.needs) ? 'ok' : 'no') + '">' + (Inv.has(P, r.needs) ? 'have' : 'missing') + '</b></div>';
+    if (r.station) html += '<div class="ing"><span style="padding-left:6px">' + (r.station === 'bench' ? 'Workbench nearby' : 'Fire nearby') + '</span><b class="' + (st[r.station] ? 'ok' : 'no') + '">' + (st[r.station] ? 'yes' : 'no') + '</b></div>';
+    html += '<button class="btn" id="docraft" style="margin-top:10px;width:100%"' + (s.ok ? '' : ' disabled') + '>Craft</button>';
+    els.craftdetail.innerHTML = html;
+    const btn = $('docraft');
+    if (btn) btn.onclick = () => { if (Inv.craft(P, r, Inv.stations(S), DSZ.Game.dropFn(S))) { A.play('craft'); DSZ.Game.toast(S, 'Crafted ' + od.name); renderCraft(); renderHot(true); } };
+  }
   function renderCraft() {
-    if (!S) return; const P = S.player.inv, st = Inv.stations(S), tabs = [...new Set(DSZ.RECIPES.map(r => r.tab))];
+    if (!S) return; UI._csig = craftSig(); const P = S.player.inv, st = Inv.stations(S), tabs = [...new Set(DSZ.RECIPES.map(r => r.tab))];
     els.crafttabs.innerHTML = '<h4>Categories</h4>';
-    for (const t of tabs) { const b = document.createElement('button'); b.textContent = t; b.className = t === craftTab ? 'on' : ''; b.onclick = () => { craftTab = t; craftSel = null; renderCraft(); }; els.crafttabs.appendChild(b); }
-    const stat = document.createElement('div'); stat.style.cssText = 'margin-top:12px;font-size:13px;color:var(--dim)'; stat.innerHTML = 'Nearby<br><b style="color:' + (st.bench ? 'var(--good)' : 'var(--dim)') + '">' + (st.bench ? '● Workbench' : '○ Workbench') + '</b><br><b style="color:' + (st.fire ? 'var(--good)' : 'var(--dim)') + '">' + (st.fire ? '● Fire' : '○ Fire') + '</b>'; els.crafttabs.appendChild(stat);
+    for (const t of tabs) { const b = document.createElement('button'); b.textContent = t; b.className = t === craftTab ? 'on' : ''; b.onclick = () => { craftTab = t; craftSel = null; renderCraft(); }; els.crafttabs.appendChild(b); }    const stat = document.createElement('div'); stat.style.cssText = 'margin-top:12px;font-size:13px;color:var(--dim)'; stat.innerHTML = 'Nearby<br><b style="color:' + (st.bench ? 'var(--good)' : 'var(--dim)') + '">' + (st.bench ? '● Workbench' : '○ Workbench') + '</b><br><b style="color:' + (st.fire ? 'var(--good)' : 'var(--dim)') + '">' + (st.fire ? '● Fire' : '○ Fire') + '</b>'; els.crafttabs.appendChild(stat);
     els.craftlist.innerHTML = '';
     const list = DSZ.RECIPES.filter(r => r.tab === craftTab); if (!craftSel || craftSel.tab !== craftTab) craftSel = list[0];
     for (const r of list) {
       const s = Inv.recipeState(P, r, st), d = document.createElement('div'); d.className = 'rcp' + (r === craftSel ? ' sel' : '') + (s.ok ? '' : ' no');
-      d.innerHTML = '<img src="' + img(r.out[0]) + '">' + (r.out[1] > 1 ? '<span class="q">' + r.out[1] + '</span>' : '') + (s.ok ? '<i class="ok"></i>' : '');
-      d.onclick = () => { craftSel = r; renderCraft(); A.play('click', null, null, 0.3); }; d.onmouseenter = () => { els.tip.innerHTML = '<b>' + I[r.out[0]].name + '</b><div class="d">' + (r.desc || I[r.out[0]].desc || '') + '</div>'; els.tip.classList.remove('hidden'); const rc = d.getBoundingClientRect(); placeTip(rc.right + 8, rc.top); }; d.onmouseleave = hideTip;
+      d._recipe = r;
+      d.innerHTML = '<img src="' + img(r.out[0]) + '" draggable="false">' + (r.out[1] > 1 ? '<span class="q">' + r.out[1] + '</span>' : '') + (s.ok ? '<i class="ok"></i>' : '');
+      d.onclick = () => { selectRecipe(r); A.play('click', null, null, 0.3); }; d.onmouseenter = () => { els.tip.innerHTML = '<b>' + I[r.out[0]].name + '</b><div class="d">' + (r.desc || I[r.out[0]].desc || '') + '</div>'; els.tip.classList.remove('hidden'); const rc = d.getBoundingClientRect(); placeTip(rc.right + 8, rc.top); }; d.onmouseleave = hideTip;
+      d.addEventListener('mousedown', () => hideTip());
       els.craftlist.appendChild(d);
     }
-    const r = craftSel; if (!r) { els.craftdetail.innerHTML = ''; return; }
-    const s = Inv.recipeState(P, r, st), od = I[r.out[0]];
-    let html = '<h4>Recipe</h4><h3>' + od.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + '</h3><div class="d">' + (r.desc || od.desc || '') + '</div><h4>Requires</h4>';
-    for (const [id, q] of r.in) { if (q <= 0) continue; const have = Inv.count(P, id); html += '<div class="ing"><img src="' + img(id) + '"><span>' + I[id].name + '</span><b class="' + (have >= q ? 'ok' : 'no') + '">' + have + ' / ' + q + '</b></div>'; }
-    if (r.needs) html += '<div class="ing"><img src="' + img(r.needs) + '"><span>' + I[r.needs].name + ' (tool)</span><b class="' + (Inv.has(P, r.needs) ? 'ok' : 'no') + '">' + (Inv.has(P, r.needs) ? 'have' : 'missing') + '</b></div>';
-    if (r.station) html += '<div class="ing"><span style="padding-left:6px">' + (r.station === 'bench' ? 'Workbench nearby' : 'Fire nearby') + '</span><b class="' + (st[r.station] ? 'ok' : 'no') + '">' + (st[r.station] ? 'yes' : 'no') + '</b></div>';
-    html += '<button class="btn" id="docraft" style="margin-top:10px;width:100%"' + (s.ok ? '' : ' disabled') + '>Craft</button>';
-    els.craftdetail.innerHTML = html;
-    const btn = $('docraft'); if (btn) btn.onclick = () => { if (Inv.craft(P, r, Inv.stations(S), DSZ.Game.dropFn(S))) { A.play('craft'); DSZ.Game.toast(S, 'Crafted ' + od.name); renderCraft(); renderHot(true); } };
+    renderCraftDetail();
   }
 
   // ------------------------------------------------------------------ build bar
@@ -554,7 +570,7 @@
       els.wx.textContent = S.weather.rain > 0.7 ? 'Storm' : (S.weather.rain > 0.15 ? 'Rain' : (DSZ.Render.daylight(S.hour) < 0.3 ? 'Night' : 'Clear'));
       drawMini();
       const sig = S.toasts.map(t => t.text + t.kind).join('|'); if (sig !== toastSig) { toastSig = sig; els.toasts.innerHTML = S.toasts.map(t => '<div class="toast ' + t.kind + '">' + t.text + '</div>').join(''); }
-      if (UI.open.win) { if (UI.open.tab === 'inv' && !UI.drag) { renderCondition(); } else if (UI.open.tab === 'craft') { /* re-render lightly */ if (!UI.drag) renderCraft(); } if (UI.open.tab === 'inv' && !UI.drag) { const sg = invSig(); if (sg !== UI._isig) { UI._isig = sg; renderInv(); } } }
+      if (UI.open.win) { if (UI.open.tab === 'inv' && !UI.drag) { renderCondition(); } else if (UI.open.tab === 'craft') { /* only when the recipe availability actually changed */ if (!UI.drag) { const cs = craftSig(); if (cs !== UI._csig) { UI._csig = cs; renderCraft(); } } } if (UI.open.tab === 'inv' && !UI.drag) { const sg = invSig(); if (sg !== UI._isig) { UI._isig = sg; renderInv(); } } }
       if (UI.open.map) drawBigMap();
       if (UI.loot && UI.open.win && UI.loot.owner) { const o = UI.loot.owner, ox = o.x !== undefined ? (o.t !== undefined && o.hp !== undefined ? o.x + 0.5 : o.x) : p.x, oy = o.y !== undefined ? (o.t !== undefined && o.hp !== undefined ? o.y + 0.5 : o.y) : p.y; if (Math.hypot(ox - p.x, oy - p.y) > 3.6) { UI.closeWin(); } }
     }
@@ -568,5 +584,12 @@
     if (S.sleeping) { /* handled in render via fade */ }
   };
   function invSig() { const P = S.player.inv; const f = g => g ? g.items.map(i => i.id + i.q + i.x + i.y + (i.mag || '') + (i.dur ? (i.dur | 0) : '')).join(',') : ''; return Inv.STORE.map(s => f(Inv.gridOf(P, s))).join('#') + '|' + (UI.loot ? f(UI.loot.grid) : '') + '|' + Object.values(P.equip).map(i => i ? i.id : '-').join(''); }
+  // Signature of everything the crafting pane displays: the tab, the selected recipe and
+  // whether each recipe is craftable right now. Used so the list is rebuilt only when its
+  // appearance would actually change - rebuilding it every frame made clicks miss the tiles.
+  function craftSig() {
+    const P = S.player.inv, st = Inv.stations(S), list = DSZ.RECIPES.filter(r => r.tab === craftTab);
+    return craftTab + '|' + (craftSel ? craftSel.out[0] : '-') + '|' + list.map(r => (Inv.recipeState(P, r, st).ok ? 1 : 0)).join('');
+  }
   UI.fps = t => { if (DSZ.settings.showFps) els.fps.textContent = t; };
 })();
