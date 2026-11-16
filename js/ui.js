@@ -5,6 +5,7 @@
   const $ = id => document.getElementById(id);
   const UI = DSZ.UI = { open: { win: false, tab: 'inv', map: false, menu: false, settings: false, controls: false, title: true, death: false, tv: false }, loot: null, drag: null };
   const CELL = 44;
+  let vitalNodes = [];
   let S = null, els = {}, imgCache = {}, craftTab = 'Survival', craftSel = null, hudT = 0, hotSig = '', toastSig = '', hovered = null, mmCanvas = null, mapRendered = null;
 
   const img = id => { let u = imgCache[id]; if (!u) u = imgCache[id] = DSZ.Icons.get(id).toDataURL(); return u; };
@@ -16,6 +17,8 @@
   // ------------------------------------------------------------------ init
   UI.init = function () {
     for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch']) els[id] = $(id);
+    vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
+    els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.ver.textContent = 'v' + C.VERSION;
     els.tvx.onclick = () => UI.closeTV(); els.tvclose.onclick = () => UI.closeTV();
     // tabs
@@ -440,12 +443,11 @@
     hudT -= dt; const slow = hudT <= 0; if (slow) hudT = 0.12;
     if (UI.open.title) return;
     // vitals
-    const vals = { hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy };
-    els.vitals.querySelectorAll('.vrow').forEach(r => { const k = r.dataset.k, v = Math.round(vals[k]); if (vrows[k] !== v) { vrows[k] = v; r.querySelector('i').style.width = Math.max(0, v) + '%'; r.querySelector('b').textContent = v; r.classList.toggle('low', v < 22 && k !== 'stamina'); } });
+    for (const node of vitalNodes) { const k = node.key, v = Math.round(p[k]); if (vrows[k] !== v) { vrows[k] = v; node.bar.style.width = Math.max(0, v) + '%'; node.value.textContent = v; node.row.classList.toggle('low', v < 22 && k !== 'stamina'); } }
     renderHot(false);
     if (slow) {
       let st = ''; if (DSZ.settings.godmode) st += '<span class="warn">GOD MODE</span>'; if (p.bleed > 0) st += '<span>Bleeding</span>'; if (p.infection > 30) st += '<span>Infected</span>'; else if (p.infection > 0) st += '<span class="warn">Feverish</span>'; if (p.broken) st += '<span>Broken leg</span>'; if (p.food < 25) st += '<span class="warn">Hungry</span>'; if (p.water < 25) st += '<span class="warn">Thirsty</span>'; if (p.energy < 20) st += '<span class="warn">Tired</span>'; if (p.reload > 0) st += '<span class="warn">Reloading</span>';
-      if (els.vitals.querySelector('#status').innerHTML !== st) els.vitals.querySelector('#status').innerHTML = st;
+      if (els.status.innerHTML !== st) els.status.innerHTML = st;
       const h = Math.floor(S.hour), m = Math.floor((S.hour - h) * 60); els.clk.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); els.dayl.textContent = 'Day ' + S.day;
       els.wx.textContent = S.weather.rain > 0.7 ? 'Storm' : (S.weather.rain > 0.15 ? 'Rain' : (DSZ.Render.daylight(S.hour) < 0.3 ? 'Night' : 'Clear'));
       drawMini();
@@ -459,7 +461,7 @@
     if (f && !UI.open.win && !S.search && !S.prying && !UI.open.death) { const sp = DSZ.Render.toScreenCss(f.x, f.y, 1.7); pr.classList.remove('hidden'); if (pr.textContent !== f.label) pr.textContent = f.label; pr.style.left = sp[0] + 'px'; pr.style.top = sp[1] + 'px'; } else pr.classList.add('hidden');
     // progress
     const pg = els.progress, pgs = S.search || S.prying || (S.sleeping && { t: S.sleeping.t, total: 8, label: 'Sleeping' }) || (p.reload > 0 && { t: 1 - p.reload / (p.reloadItem ? I[p.reloadItem.id].reload : 1), total: 1, label: 'Reloading' });
-    if (pgs) { pg.classList.remove('hidden'); els.proglabel.textContent = pgs.label || (S.prying ? 'Prying door open' : 'Searching'); pg.querySelector('i').style.width = Math.min(100, pgs.t / pgs.total * 100) + '%'; } else pg.classList.add('hidden');
+    if (pgs) { pg.classList.remove('hidden'); els.proglabel.textContent = pgs.label || (S.prying ? 'Prying door open' : 'Searching'); els.progressBar.style.width = Math.min(100, pgs.t / pgs.total * 100) + '%'; } else pg.classList.add('hidden');
     renderBuild();
     if (S.sleeping) { /* handled in render via fade */ }
   };

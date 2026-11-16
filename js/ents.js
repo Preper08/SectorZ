@@ -25,14 +25,17 @@
   E.floatText = function (S, x, y, text, col, size) { E.particle(S, { type: 'text', x, y, z: 1.9, vx: 0, vy: 0, vz: 0.9, life: 1.1, text, col, size: size || 13, grav: 0 }); };
   E.updateParticles = function (S, dt) {
     const P = S.particles;
+    let write = P.length;
     for (let i = P.length - 1; i >= 0; i--) {
       const p = P[i]; p.life -= dt;
-      if (p.life <= 0) { if (p.type === 'blood' && p.decal && Math.random() < 0.5) E.decal(S, { type: 'blood', x: p.x, y: p.y, r: 0.07 + Math.random() * 0.08, a: 0.6 }); P.splice(i, 1); continue; }
+      if (p.life <= 0) { if (p.type === 'blood' && p.decal && Math.random() < 0.5) E.decal(S, { type: 'blood', x: p.x, y: p.y, r: 0.07 + Math.random() * 0.08, a: 0.6 }); continue; }
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
       if (p.grav) p.vz -= p.grav * dt;
       if (p.drag) { const k = Math.exp(-p.drag * dt); p.vx *= k; p.vy *= k; }
       if (p.z < 0 && p.grav) { p.z = 0; if (p.bounce) { p.vz = -p.vz * 0.4; p.vx *= 0.6; p.vy *= 0.6; p.bounce--; } else if (p.type === 'blood' || p.type === 'casing') { p.vx = p.vy = p.vz = 0; p.life = Math.min(p.life, p.type === 'blood' ? 0.01 : 8); } else p.life = 0; }
+      P[--write] = p;
     }
+    if (write) { const count = P.length - write; P.copyWithin(0, write); P.length = count; }
     for (let i = S.decals.length - 1; i >= 0; i--) { const d = S.decals[i]; if (d.ttl !== undefined) { d.ttl -= dt; if (d.ttl < 3) d.fade = Math.max(0, d.ttl / 3); if (d.ttl <= 0) S.decals.splice(i, 1); } }
     for (let i = S.bullets.length - 1; i >= 0; i--) { S.bullets[i].t += dt; if (S.bullets[i].t > S.bullets[i].max) S.bullets.splice(i, 1); }
     for (let i = S.glowLights.length - 1; i >= 0; i--) { S.glowLights[i].t -= dt; if (S.glowLights[i].t <= 0) S.glowLights.splice(i, 1); }
@@ -108,23 +111,87 @@
   // spatial hash for separation
   const CELL = 2, GW = Math.ceil(C.W / CELL) + 1; let hash = new Map();
   function rebuildHash(S) { hash.clear(); for (const z of S.zombies) { if (z.dead || !z.active) continue; const k = ((z.y / CELL) | 0) * GW + ((z.x / CELL) | 0); let a = hash.get(k); if (!a) hash.set(k, a = []); a.push(z); } }
-  function neighbours(z, fn) { const cx = (z.x / CELL) | 0, cy = (z.y / CELL) | 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const a = hash.get((cy + dy) * GW + cx + dx); if (a) for (const o of a) if (o !== z) fn(o); } }
+  function separate(z) {
+    const cx = (z.x / CELL) | 0, cy = (z.y / CELL) | 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const a = hash.get((cy + dy) * GW + cx + dx); if (!a) continue;
+      for (const o of a) {
+        if (o === z) continue;
+        const ex = z.x - o.x, ey = z.y - o.y, m = z.r + o.r + 0.05;
+        if (Math.abs(ex) >= m || Math.abs(ey) >= m) continue;
+        const d = Math.hypot(ex, ey);
+        if (d < m && d > 1e-4) {
+          const f = (m - d) * 0.45 / d, nx = z.x + ex * f, ny = z.y + ey * f;
+          if (!W.hitCircle(nx, ny, z.r)) { z.x = nx; z.y = ny; }
+        }
+      }
+    }
+  }
 
   // Collision capsule for a vehicle: two circles at the front and rear plus one in the
   // middle, sized from the kind's dims (see CarArt.kinds). Drives wall collision, entity
   // pushing, car-vs-car and the interaction/reach ranges, so everything scales with the art.
-  E.carCircles = function (c, out) {
+  function writeCarCircles(c, out) {
     const ca = Math.cos(c.ang), sa = Math.sin(c.ang), K = DSZ.CarArt.K(c.kind), r = K.col, o = K.colOff;
-    out.length = 0;
-    out.push([c.x - ca * o, c.y - sa * o, r], [c.x, c.y, r], [c.x + ca * o, c.y + sa * o, r]);
+    for (let i = 0; i < 3; i++) {
+      const q = out[i] || (out[i] = []), offset = (i - 1) * o;
+      q[0] = c.x + ca * offset; q[1] = c.y + sa * offset; q[2] = r;
+    }
+    out.length = 3; return out;
+  }
+  const carCircleCache = new WeakMap();
+  E.carCircles = function (c, out) {
+    if (c.kind === undefined) return writeCarCircles(c, out);
+    let shape = carCircleCache.get(c);
+    if (!shape) { shape = { circles: [[], [], []] }; carCircleCache.set(c, shape); }
+    if (shape.x !== c.x || shape.y !== c.y || shape.ang !== c.ang || shape.kind !== c.kind) {
+      writeCarCircles(c, shape.circles);
+      shape.x = c.x; shape.y = c.y; shape.ang = c.ang; shape.kind = c.kind;
+    }
+    for (let i = 0; i < 3; i++) {
+      const q = out[i] || (out[i] = []), source = shape.circles[i];
+      q[0] = source[0]; q[1] = source[1]; q[2] = source[2];
+    }
+    out.length = 3;
     return out;
   };
   const tmpC = [];
+  const CAR_CELL = 8, carCells = new Map(), carEntries = new WeakMap(), noCars = [];
+  let indexedCars = null, indexedCarCount = 0;
+  E.prepareCarCollisions = function (S) {
+    for (const row of carCells.values()) for (const cell of row.values()) cell.length = 0;
+    for (let i = 0; i < S.cars.length; i++) {
+      const car = S.cars[i];
+      let entry = carEntries.get(car);
+      if (!entry) { entry = { car, index: i }; carEntries.set(car, entry); }
+      entry.index = i;
+      const x0 = Math.floor((car.x - 4.4) / CAR_CELL), x1 = Math.floor((car.x + 4.4) / CAR_CELL);
+      const y0 = Math.floor((car.y - 4.4) / CAR_CELL), y1 = Math.floor((car.y + 4.4) / CAR_CELL);
+      for (let cy = y0; cy <= y1; cy++) {
+        let row = carCells.get(cy); if (!row) carCells.set(cy, row = new Map());
+        for (let cx = x0; cx <= x1; cx++) {
+          let cell = row.get(cx); if (!cell) row.set(cx, cell = []);
+          cell.push(entry);
+        }
+      }
+    }
+    indexedCars = S.cars; indexedCarCount = S.cars.length;
+  };
+  function carsAt(x, y) {
+    const row = carCells.get(Math.floor(y / CAR_CELL));
+    return row && row.get(Math.floor(x / CAR_CELL)) || noCars;
+  }
   function pushFromCars(S, e, r) {
-    for (const c of S.cars) {
+    if (indexedCars !== S.cars || indexedCarCount !== S.cars.length) E.prepareCarCollisions(S);
+    let candidates = carsAt(e.x, e.y), cursor = 0, last = -1;
+    while (cursor < candidates.length) {
+      const entry = candidates[cursor++]; if (entry.index <= last) continue;
+      last = entry.index; const c = entry.car;
       if (Math.abs(c.x - e.x) > 4.4 || Math.abs(c.y - e.y) > 4.4) continue;
       E.carCircles(c, tmpC);
       for (const k of tmpC) { const dx = e.x - k[0], dy = e.y - k[1], d = Math.hypot(dx, dy), m = r + k[2]; if (d < m && d > 1e-4) { const f = (m - d) / d; const nx = e.x + dx * f, ny = e.y + dy * f; if (!W.hitCircle(nx, ny, r * 0.8)) { e.x = nx; e.y = ny; } } }
+      const next = carsAt(e.x, e.y);
+      if (next !== candidates) { candidates = next; cursor = 0; }
     }
   }
   E.pushFromCars = pushFromCars;
@@ -142,14 +209,26 @@
   };
   E.killZombie = function (S, z, ang) {
     z.dead = true; z.deadT = 0.55; z.state = 'dead'; z.face = Math.cos(ang - z.ang) > 0; S.stats.kills++;
+    DSZ.Fig.forget(z.spec);
     E.blood(S, z.x, z.y, ang, 12, 0.6);
     E.decal(S, { type: 'blood', x: z.x, y: z.y, r: 0.55 + Math.random() * 0.4, a: 0.8 });
     if (Math.random() < 0.22) S.zombies.length; // keep for loot
     z.pose = { arms: 'down', af: 0, legs: 'dead', lf: 0, face: z.face };
     z.lootRoll = false; z.sprite = z.sprite;
-    if (S.zombies.filter(q => q.dead).length > 90) { for (let i = 0; i < S.zombies.length; i++) if (S.zombies[i].dead && !S.zombies[i].grid && S.zombies[i] !== z) { S.zombies.splice(i, 1); break; } }
+    let corpses = 0; for (const q of S.zombies) if (q.dead) corpses++;
+    if (corpses > 90) { for (let i = 0; i < S.zombies.length; i++) if (S.zombies[i].dead && !S.zombies[i].grid && S.zombies[i] !== z) { DSZ.Fig.forget(S.zombies[i].spec); S.zombies.splice(i, 1); break; } }
   };
 
+  const playerSightCache = new WeakMap();
+  function playerVisible(z, p) {
+    let sight = playerSightCache.get(z);
+    if (!sight) { sight = {}; playerSightCache.set(z, sight); }
+    if (sight.x !== z.x || sight.y !== z.y || sight.px !== p.x || sight.py !== p.y || sight.version !== W.opaqueVersion) {
+      sight.clear = W.los(z.x, z.y, p.x, p.y);
+      sight.x = z.x; sight.y = z.y; sight.px = p.x; sight.py = p.y; sight.version = W.opaqueVersion;
+    }
+    return sight.clear;
+  }
   E.updateZombies = function (S, dt) {
     const p = S.player, dl = DSZ.Render.daylight(S.hour);
     S.flowT = (S.flowT || 0) - dt; if (S.flowT <= 0) { E.updateFlow(S); S.flowT = 0.3; }
@@ -173,12 +252,12 @@
       if (!z.active) continue;
       const dx = p.x - z.x, dy = p.y - z.y, dist = Math.hypot(dx, dy);
       // --- senses
-      let sees = false;
+      let sees = false, playerLos;
       if (!p.dead && dist < vis * (z.state === 'chase' ? 1.5 : 1) * (z.sleeper ? 0.35 : 1)) {
-        const a = Math.atan2(dy, dx), inCone = Math.abs(U.angDiff(z.ang, a)) < 1.25 || dist < 2.4 || z.state === 'chase';
-        if (inCone && W.los(z.x, z.y, p.x, p.y)) sees = true;
+        const inCone = z.state === 'chase' || dist < 2.4 || Math.abs(U.angDiff(z.ang, Math.atan2(dy, dx))) < 1.25;
+        if (inCone) { playerLos = playerVisible(z, p); sees = playerLos; }
       }
-      if (p.driving && dist < 9 && !p.driving.dead) sees = sees || W.los(z.x, z.y, p.x, p.y);
+      if (p.driving && dist < 9 && !p.driving.dead && !sees) { if (playerLos === undefined) playerLos = playerVisible(z, p); sees = playerLos; }
       if (sees) { if (z.state !== 'chase') { z.state = 'chase'; A.play(Math.random() < 0.3 ? 'scream' : 'groan', z.x, z.y, 0.9); } z.lostT = 0; z.tx = p.x; z.ty = p.y; z.sleeper = false; }
       else if (z.state === 'chase') { z.lostT += dt; if (z.lostT > 7) { z.state = 'investigate'; z.alert = 5; } }
       if (z.alert > 0) { z.alert -= dt; if (z.alert <= 0 && z.state === 'investigate') z.state = 'idle'; }
@@ -189,7 +268,7 @@
       if (z.stagger > 0) z.stagger -= dt;
       else if (z.state === 'chase') {
         spd = z.speed * (z.type === 'runner' ? 1 : 1);
-        if (dist < 7 && W.los(z.x, z.y, p.x, p.y) && !W.raycastSolid(z.x, z.y, p.x, p.y, true)) { mx = dx / dist; my = dy / dist; }
+        if (dist < 7 && (playerLos === undefined ? playerVisible(z, p) : playerLos) && !W.raycastSolid(z.x, z.y, p.x, p.y, true)) { mx = dx / dist; my = dy / dist; }
         else { const f = flowDir(z); if (f) { mx = f[0]; my = f[1]; const t = W.getObj(f[2], f[3]); if (t && W.isSolid(f[2], f[3])) bashTarget = t; } else { mx = dx / (dist || 1); my = dy / (dist || 1); } }
         if (z.type === 'brute' && dist < 5 && dist > 2.5) spd *= 1.5;
       } else if (z.state === 'investigate') {
@@ -230,7 +309,7 @@
         if (sp > 0.25 && z.atkT <= 0) { const ta = Math.atan2(z.vy, z.vx); z.ang += U.angDiff(z.ang, ta) * Math.min(1, dt * (z.state === 'chase' ? 9 : 4)); }
       } else if (z.state === 'chase' && dist > 0.1) z.ang += U.angDiff(z.ang, Math.atan2(dy, dx)) * Math.min(1, dt * 8);
       // separation
-      neighbours(z, o => { const ex = z.x - o.x, ey = z.y - o.y, d = Math.hypot(ex, ey), m = z.r + o.r + 0.05; if (d < m && d > 1e-4) { const f = (m - d) * 0.45 / d; const nx = z.x + ex * f, ny = z.y + ey * f; if (!W.hitCircle(nx, ny, z.r)) { z.x = nx; z.y = ny; } } });
+      separate(z);
       pushFromCars(S, z, z.r);
       // --- animation
       const gait = z.type === 'runner' ? 'zrun' : 'zwalk';

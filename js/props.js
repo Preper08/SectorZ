@@ -194,23 +194,32 @@
     return { c, ox: 40, oy: 40 };
   }
 
+  const lastProps = new WeakMap();
   Props.get = function (o) {
     const t = o.t, d = DSZ.OBJDEF[t];
-    const isTree = d.tree, ang = ((o.f | 0) & 3) * Math.PI / 2;
-    const key = t + '|' + ((d.fence || t === O.BARRIER || t === O.CONTAINER) ? (o.f & 1) : (o.f & 3)) + '|' + (o.v & 3) + (o.dead ? 'd' : '') + (o.pump ? 'p' : '') + (o.t === O.BGATE && o.open ? 'o' : '');
+    const f = (d.fence || t === O.BARRIER || t === O.CONTAINER) ? (o.f & 1) : (o.f & 3), v = o.v & 3;
+    const flags = (o.dead ? 1 : 0) | (o.pump ? 2 : 0) | (t === O.BGATE && o.open ? 4 : 0);
+    let last = lastProps.get(o);
+    if (last && last.t === t && last.f === f && last.v === v && last.flags === flags) return last.sprite;
+    const key = t + '|' + f + '|' + v + (o.dead ? 'd' : '') + (o.pump ? 'p' : '') + (t === O.BGATE && o.open ? 'o' : '');
     let s = cache.get(key);
-    if (s) return s;
-    if (isTree) s = tree(o);
-    else if (t === O.BUSH) s = bush(o);
-    else if (t === O.ROCK) s = rock(o);
-    else {
-      let faces;
-      if (d.fence) faces = fenceFaces(o);
-      else if (B3[t]) faces = B3[t](o);
-      else faces = B(-0.4, -0.4, 0, 0.4, 0.4, 0.8, [160, 80, 160]);
-      const a = (t === O.BARRIER || t === O.CONTAINER) ? ((o.f & 1) ? Math.PI / 2 : 0) : (d.fence ? 0 : ang);
-      s = G3.render(faces, a);
+    if (!s) {
+      if (d.tree) s = tree(o);
+      else if (t === O.BUSH) s = bush(o);
+      else if (t === O.ROCK) s = rock(o);
+      else {
+        let faces;
+        if (d.fence) faces = fenceFaces(o);
+        else if (B3[t]) faces = B3[t](o);
+        else faces = B(-0.4, -0.4, 0, 0.4, 0.4, 0.8, [160, 80, 160]);
+        const ang = ((o.f | 0) & 3) * Math.PI / 2;
+        const a = (t === O.BARRIER || t === O.CONTAINER) ? ((o.f & 1) ? Math.PI / 2 : 0) : (d.fence ? 0 : ang);
+        s = G3.render(faces, a);
+      }
+      cache.set(key, s);
     }
-    cache.set(key, s); return s;
+    if (!last) { last = {}; lastProps.set(o, last); }
+    last.t = t; last.f = f; last.v = v; last.flags = flags; last.sprite = s;
+    return s;
   };
 })();

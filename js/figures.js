@@ -346,8 +346,18 @@
     }
   };
 
+  const poseCache = new Map();
+  function cachedPose(P) {
+    const key = (P.arms || 'walk') + '|' + (P.af || 0) + '|' + (P.legs || 'idle') + '|' + (P.lf || 0) + '|' + !!P.limp + '|' + !!P.face + '|' + (P.hx || 0) + '|' + !!P.crouch;
+    let J = poseCache.get(key);
+    if (!J) {
+      J = pose(P); poseCache.set(key, J);
+      if (poseCache.size > 256) poseCache.delete(poseCache.keys().next().value);
+    }
+    return J;
+  }
   function render(spec, ang, P) {
-    const J = pose(P);
+    const J = cachedPose(P);
     const ca = Math.cos(ang), sa = Math.sin(ang);
     const pr = p => { const wx = p[0] * ca - p[1] * sa, wy = p[0] * sa + p[1] * ca; return { x: (wx - wy) * 32, y: (wx + wy) * 16 - p[2] * ZU, d: wx * VX + wy * VY + p[2] * VZ }; };
     const parts = [];
@@ -439,11 +449,42 @@
   }
 
   const cache = new Map();
+  let lastSprites = new WeakMap();
+  const specKeys = new Map(), MAX_PIXELS = 16 * 1024 * 1024;
+  let cachePixels = 0;
+  function dropCached(key, entry) {
+    cache.delete(key); cachePixels -= entry.pixels;
+    const keys = specKeys.get(entry.id);
+    if (keys) { keys.delete(key); if (!keys.size) specKeys.delete(entry.id); }
+  }
+  Fig.forget = function (spec) {
+    lastSprites.delete(spec);
+    const keys = specKeys.get(spec.id); if (!keys) return;
+    for (const key of keys) dropCached(key, cache.get(key));
+  };
+  Fig.clearCache = function () { cache.clear(); specKeys.clear(); poseCache.clear(); lastSprites = new WeakMap(); cachePixels = 0; };
+  DSZ.on('newgame', Fig.clearCache);
   Fig.get = function (spec, ang, P) {
     const n = Fig.NANG, ai = ((Math.round(ang / (Math.PI * 2) * n) % n) + n) % n;
+    const arms = P.arms || 'walk', af = P.af | 0, legs = P.legs || 'idle', lf = P.lf | 0, limp = !!P.limp, face = !!P.face, hx = !!P.hx, crouch = !!P.crouch;
+    let last = lastSprites.get(spec);
+    if (last && last.id === spec.id && last.n === n && last.ai === ai && last.arms === arms && last.af === af && last.legs === legs && last.lf === lf && last.limp === limp && last.face === face && last.hx === hx && last.crouch === crouch) return last.sprite;
     const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '') + (P.crouch ? 'c' : '');
-    let s = cache.get(key);
-    if (!s) { s = render(spec, ai / n * Math.PI * 2, P); cache.set(key, s); }
+    const entry = cache.get(key);
+    let s;
+    if (entry) { cache.delete(key); cache.set(key, entry); s = entry.sprite; }
+    else {
+      s = render(spec, ai / n * Math.PI * 2, P);
+      const pixels = s.c.width * s.c.height;
+      cache.set(key, { sprite: s, id: spec.id, pixels }); cachePixels += pixels;
+      let keys = specKeys.get(spec.id); if (!keys) specKeys.set(spec.id, keys = new Set());
+      keys.add(key);
+      while (cachePixels > MAX_PIXELS && cache.size > 1) {
+        const oldest = cache.entries().next().value; dropCached(oldest[0], oldest[1]);
+      }
+    }
+    if (!last) { last = {}; lastSprites.set(spec, last); }
+    Object.assign(last, { id: spec.id, n, ai, arms, af, legs, lf, limp, face, hx, crouch, sprite: s });
     return s;
   };
   Fig.cacheSize = () => cache.size;

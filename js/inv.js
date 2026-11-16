@@ -75,7 +75,16 @@
     for (const k in P.equip) if (P.equip[k]) out.push(P.equip[k]);
     return out;
   };
-  Inv.count = function (P, id) { let n = 0; for (const it of Inv.all(P)) if (it.id === id) n += it.q; return n; };
+  Inv.count = function (P, id) {
+    let n = 0;
+    for (const slot of Inv.STORE) {
+      const g = Inv.gridOf(P, slot); if (!g) continue;
+      for (const it of g.items) if (it.id === id) n += it.q;
+    }
+    for (const it of P.hot) if (it && it.id === id) n += it.q;
+    for (const k in P.equip) { const it = P.equip[k]; if (it && it.id === id) n += it.q; }
+    return n;
+  };
   Inv.has = (P, id) => Inv.count(P, id) > 0;
   Inv.take = function (P, id, n) {
     let need = n;
@@ -160,7 +169,17 @@
     P.equip[slot] = null; return true;
   };
   Inv.armor = function (P) { let a = 0; for (const k of ['head', 'body', 'vest', 'legs', 'feet']) { const it = P.equip[k]; if (it) a += I[it.id].def || 0; } return a; };
-  Inv.weight = function (P) { let w = 0; for (const it of Inv.all(P)) { const d = I[it.id]; w += d.w * d.h * 0.4 + (it.q - 1) * 0.1; } return w; };
+  function itemWeight(it) { const d = I[it.id]; return d.w * d.h * 0.4 + (it.q - 1) * 0.1; }
+  Inv.weight = function (P) {
+    let w = 0;
+    for (const slot of Inv.STORE) {
+      const g = Inv.gridOf(P, slot); if (!g) continue;
+      for (const it of g.items) w += itemWeight(it);
+    }
+    for (const it of P.hot) if (it) w += itemWeight(it);
+    for (const k in P.equip) if (P.equip[k]) w += itemWeight(P.equip[k]);
+    return w;
+  };
 
   // ---- containers
   Inv.fillContainer = function (o, rng) {
