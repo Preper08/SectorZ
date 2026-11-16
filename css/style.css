@@ -27,6 +27,10 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #hud > * { pointer-events: none; }
 #vitals { position: absolute; left: 18px; bottom: 18px; width: 230px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+/* The inventory window would sit on top of the vitals and the clock/minimap. It already shows
+   the same numbers (Condition: Health, Hunger, Thirst, Energy), so the HUD corners are hidden
+   while it is open rather than squeezing the window into a smaller area. */
+#hud.win-open #vitals, #hud.win-open #topright { visibility: hidden; }
 .vrow { display: grid; grid-template-columns: 18px 1fr 30px; gap: 8px; align-items: center; }
 .vico { font-weight: 700; font-size: 12px; color: var(--dim); text-align: center; border: 1px solid var(--line); border-radius: 2px; line-height: 16px; background: rgba(255,255,255,0.03); }
 .vbar { height: 9px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.05); position: relative; overflow: hidden; }

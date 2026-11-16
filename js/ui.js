@@ -105,6 +105,8 @@
     UI.open.title = v; els.title.classList.toggle('hidden', !v); els.hud.classList.toggle('hidden', v);
     // the hotbar lives outside #hud, so hide it with the HUD on the title screen
     els.hotbar.classList.toggle('hidden', v);
+    // closing to the title also cancels any open inventory, so drop its HUD-hiding state
+    if (v) { els.hud.classList.remove('win-open'); els.hotbar.classList.remove('win-open'); }
     $('t-continue').disabled = !DSZ.Game.hasSave(); if (v) { els.win.classList.add('hidden'); UI.open.win = false; UI.open.menu = false; els.pause.classList.add('hidden'); UI.open.death = false; els.death.classList.add('hidden'); UI.closeTV(); if (UI.syncDiff) UI.syncDiff(); }
   };
   UI.showLoading = function (v, txt, p) { $('loading').classList.toggle('hidden', !v); if (txt) $('ltxt').textContent = txt; if (p !== undefined) $('lbar').style.width = (p * 100) + '%'; };
@@ -128,6 +130,8 @@
     for (const el of [els.win, els.mapwin, els.pause, els.settings, els.controls, els.death, els.tvwin, els.lootcol]) el.classList.add('hidden');
     for (const k in In.keys) In.keys[k] = false; // drop any key held across the transition
     In.mouse.down = In.mouse.rdown = false;
+    // window-open state must not leak into the next session (it hides the HUD corner panels)
+    els.hud.classList.remove('win-open'); els.hotbar.classList.remove('win-open');
   };
 
   // ------------------------------------------------------------------ tooltip
@@ -324,7 +328,12 @@
   }
   // While the inventory/loot window is open, lift the hotbar above it so a drag from the grid
   // can actually reach a hotbar slot (the window otherwise covers all but a sliver of it).
-  function hotbarLift() { els.hotbar.classList.toggle('win-open', UI.open.win); }
+  // The HUD's corner panels (vitals, clock/minimap) are hidden at the same time: they sit
+  // under the window and the Condition list already shows the same values.
+  function hotbarLift() {
+    els.hotbar.classList.toggle('win-open', UI.open.win);
+    els.hud.classList.toggle('win-open', UI.open.win);
+  }
   function sizeGhost() { const d = UI.drag; if (!d) return; const [w, h] = Inv.size(d.it), g = els.dragghost; g.style.width = w * CELL + 'px'; g.style.height = h * CELL + 'px'; g.innerHTML = '<img src="' + img(d.it.id) + '"' + (d.it.rot ? ' style="transform:rotate(90deg)"' : '') + '>'; }
   function clearHL() { document.querySelectorAll('.cellhl').forEach(n => n.remove()); document.querySelectorAll('.eqslot.hl').forEach(n => n.classList.remove('hl')); }
   function target(e) {
