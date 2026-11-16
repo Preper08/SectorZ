@@ -131,6 +131,12 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 .overlay { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.48); }
 .overlay.dark { background: radial-gradient(ellipse at center, rgba(40,0,0,0.55), rgba(0,0,0,0.88)); }
 .overlay .win { position: relative; left: auto; top: auto; transform: none; }
+/* Settings and Controls can be opened from the title screen, which is itself an overlay at
+   z-index 40. Without this they sit at 30, so the title layer covers them: its logo shows
+   through and its full-screen background swallows every click (menus felt unclickable).
+   Raise them above the title, below the loading screen (50); the title itself is hidden
+   while one of these is open (see UI.showSettings/showControls) so nothing bleeds through. */
+#settings, #controls { z-index: 45; }
 .menu { min-width: 330px; } .menu.wide { width: 560px; }
 .mbody { padding: 18px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 #setbody, #ctlbody { align-items: stretch; }

@@ -83,8 +83,12 @@
   UI.openMap = function () { if (!Inv.has(S.player.inv, 'map')) { DSZ.Game.toast(S, 'You need a Town Map.'); return; } UI.open.map = true; els.mapwin.classList.remove('hidden'); drawBigMap(); };
   UI.closeMap = function () { UI.open.map = false; els.mapwin.classList.add('hidden'); };
   UI.toggleMenu = function (v) { v = v === undefined ? !UI.open.menu : v; UI.open.menu = v; els.pause.classList.toggle('hidden', !v); if (S) S.paused = v; if (v) { cancelDrag(); A.engine(false); } };
-  UI.showSettings = function (v) { UI.open.settings = v; els.settings.classList.toggle('hidden', !v); if (v) buildSettings(); else if (!UI.open.title && S && S.state === 'play') { UI.toggleMenu(true); } };
-  UI.showControls = function (v) { UI.open.controls = v; els.controls.classList.toggle('hidden', !v); };
+  UI.showSettings = function (v) { UI.open.settings = v; els.settings.classList.toggle('hidden', !v); if (v) buildSettings(); else if (!UI.open.title && S && S.state === 'play') { UI.toggleMenu(true); } titleVeil(); };
+  UI.showControls = function (v) { UI.open.controls = v; els.controls.classList.toggle('hidden', !v); titleVeil(); };
+  // On the title screen, Settings and Controls open on top of the title overlay. Hide the
+  // title layer while either is open so its logo/menu neither show through nor intercept
+  // clicks; restore it when both are closed. No effect during play (title is already off).
+  function titleVeil() { if (!UI.open.title) return; els.title.classList.toggle('hidden', UI.open.settings || UI.open.controls); }
   UI.showTitle = function (v) {
     UI.open.title = v; els.title.classList.toggle('hidden', !v); els.hud.classList.toggle('hidden', v);
     $('t-continue').disabled = !DSZ.Game.hasSave(); if (v) { els.win.classList.add('hidden'); UI.open.win = false; UI.open.menu = false; els.pause.classList.add('hidden'); UI.open.death = false; els.death.classList.add('hidden'); UI.closeTV(); if (UI.syncDiff) UI.syncDiff(); }
