@@ -16,7 +16,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.ver.textContent = 'v' + C.VERSION;
@@ -33,6 +33,11 @@
     $('d-again').onclick = () => DSZ.Main.startNew(); $('d-title').onclick = () => DSZ.Main.toTitle();
     $('t-new').onclick = () => { A.init(); DSZ.Main.startNew(); }; $('t-continue').onclick = () => { A.init(); DSZ.Main.cont(); };
     $('t-controls').onclick = () => UI.showControls(true); $('t-settings').onclick = () => UI.showSettings(true);
+    // difficulty picker on the title screen: sets the setting used by the next New game.
+    // Continue ignores it and uses whatever the save stored.
+    const syncDiff = () => { els.diffbtns.querySelectorAll('.diff').forEach(b => b.classList.toggle('on', b.dataset.diff === DSZ.settings.difficulty)); };
+    els.diffbtns.querySelectorAll('.diff').forEach(b => b.onclick = () => { DSZ.settings.difficulty = b.dataset.diff; DSZ.saveSettings(); syncDiff(); });
+    UI.syncDiff = syncDiff;
     document.querySelectorAll('button').forEach(b => b.addEventListener('mouseenter', () => { if (A.ready) A.play('click', null, null, 0.25); }));
     // hotbar
     for (let i = 0; i < 6; i++) { const d = document.createElement('div'); d.className = 'hslot'; d.dataset.slot = i; d.innerHTML = '<span class="k">' + (i + 1) + '</span>'; d.addEventListener('mousedown', e => hotDown(e, i)); d.addEventListener('contextmenu', e => { e.preventDefault(); const it = S.player.inv.hot[i]; if (it) { DSZ.Game.useItem(S, it); } }); d.addEventListener('mouseenter', () => { const it = S.player.inv.hot[i]; if (it) showTip(it, d); }); d.addEventListener('mouseleave', hideTip); els.hotbar.appendChild(d); }
@@ -81,11 +86,15 @@
   UI.openMap = function () { if (!Inv.has(S.player.inv, 'map')) { DSZ.Game.toast(S, 'You need a Town Map.'); return; } UI.open.map = true; els.mapwin.classList.remove('hidden'); drawBigMap(); };
   UI.closeMap = function () { UI.open.map = false; els.mapwin.classList.add('hidden'); };
   UI.toggleMenu = function (v) { v = v === undefined ? !UI.open.menu : v; UI.open.menu = v; els.pause.classList.toggle('hidden', !v); if (S) S.paused = v; if (v) { cancelDrag(); A.engine(false); } };
-  UI.showSettings = function (v) { UI.open.settings = v; els.settings.classList.toggle('hidden', !v); if (v) buildSettings(); else if (!UI.open.title && S && S.state === 'play') { UI.toggleMenu(true); } };
-  UI.showControls = function (v) { UI.open.controls = v; els.controls.classList.toggle('hidden', !v); };
+  UI.showSettings = function (v) { UI.open.settings = v; els.settings.classList.toggle('hidden', !v); if (v) buildSettings(); else if (!UI.open.title && S && S.state === 'play') { UI.toggleMenu(true); } titleVeil(); };
+  UI.showControls = function (v) { UI.open.controls = v; els.controls.classList.toggle('hidden', !v); titleVeil(); };
+  // On the title screen, Settings and Controls open on top of the title overlay. Hide the
+  // title layer while either is open so its logo/menu neither show through nor intercept
+  // clicks; restore it when both are closed. No effect during play (title is already off).
+  function titleVeil() { if (!UI.open.title) return; els.title.classList.toggle('hidden', UI.open.settings || UI.open.controls); }
   UI.showTitle = function (v) {
     UI.open.title = v; els.title.classList.toggle('hidden', !v); els.hud.classList.toggle('hidden', v);
-    $('t-continue').disabled = !DSZ.Game.hasSave(); if (v) { els.win.classList.add('hidden'); UI.open.win = false; UI.open.menu = false; els.pause.classList.add('hidden'); UI.open.death = false; els.death.classList.add('hidden'); UI.closeTV(); }
+    $('t-continue').disabled = !DSZ.Game.hasSave(); if (v) { els.win.classList.add('hidden'); UI.open.win = false; UI.open.menu = false; els.pause.classList.add('hidden'); UI.open.death = false; els.death.classList.add('hidden'); UI.closeTV(); if (UI.syncDiff) UI.syncDiff(); }
   };
   UI.showLoading = function (v, txt, p) { $('loading').classList.toggle('hidden', !v); if (txt) $('ltxt').textContent = txt; if (p !== undefined) $('lbar').style.width = (p * 100) + '%'; };
   UI.showDeath = function (s) {
@@ -93,7 +102,8 @@
     const why = { bite: 'Torn apart by the dead.', blast: 'Caught in an explosion.', crash: 'Killed in a crash.', hunger: 'You starved to death.', thirst: 'You died of thirst.', bleeding: 'You bled out.', infection: 'The infection took you.' }[s.deathCause] || 'You did not make it.';
     els.deathwhy.textContent = why;
     const hrs = ((s.day - 1) * 24 + s.hour - C.START_HOUR);
-    els.deathstats.innerHTML = '<span>Time survived</span><span>' + Math.floor(hrs / 24) + ' d ' + Math.floor(hrs % 24) + ' h</span><span>Zombies killed</span><span>' + s.stats.kills + '</span><span>Containers searched</span><span>' + s.stats.looted + '</span><span>Structures built</span><span>' + s.stats.built + '</span><span>Distance on foot</span><span>' + s.stats.distance.toFixed(1) + ' km</span>';
+    const dname = (DSZ.DIFF[s.difficulty] || DSZ.DIFF.normal).name;
+    els.deathstats.innerHTML = '<span>Difficulty</span><span>' + dname + '</span><span>Time survived</span><span>' + Math.floor(hrs / 24) + ' d ' + Math.floor(hrs % 24) + ' h</span><span>Nights survived</span><span>' + (s.stats.nights || 0) + '</span><span>Zombies killed</span><span>' + s.stats.kills + '</span><span>Containers searched</span><span>' + s.stats.looted + '</span><span>Structures built</span><span>' + s.stats.built + '</span><span>Distance on foot</span><span>' + s.stats.distance.toFixed(1) + ' km</span>';
   };
   UI.hideDeath = function () { UI.open.death = false; els.death.classList.add('hidden'); };
   // Full reset of transient UI state when a game starts or loads, so nothing (open windows,
@@ -409,6 +419,12 @@
     const sel = (key, opts, cb) => { const e = document.createElement('select'); opts.forEach(o => { const op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; e.appendChild(op); }); e.value = String(s[key]); e.onchange = () => { s[key] = isNaN(+e.value) || e.value === '' || e.value === 'auto' ? e.value : +e.value; if (typeof opts[0][0] === 'boolean') s[key] = e.value === 'true'; DSZ.saveSettings(); cb && cb(); }; return e; };
     const tog = (key, cb) => sel(key, [[true, 'On'], [false, 'Off']], () => { s[key] = String(s[key]) === 'true'; DSZ.saveSettings(); cb && cb(); });
     row('Master volume', slider('volume', 0, 1, 0.05, () => A.setVolume())); row('Ambience & music', slider('music', 0, 1, 0.05, () => A.setVolume()));
+    // Difficulty for the NEXT new game. A loaded save keeps its own difficulty, so this
+    // shows the running one too, to avoid confusion about why nothing changed mid-run.
+    const running = (S && S.difficulty) ? DSZ.DIFF[S.difficulty].name : null;
+    const diffEl = sel('difficulty', Object.keys(DSZ.DIFF).map(k => [k, DSZ.DIFF[k].name]), () => { if (UI.syncDiff) UI.syncDiff(); if (S) DSZ.Game.toast(S, 'Difficulty set to ' + DSZ.DIFF[s.difficulty].name + ' (applies to the next new game)'); });
+    row('Difficulty (new game)', diffEl);
+    if (running) { const note = document.createElement('div'); note.className = 'setnote'; note.textContent = 'This run is ' + running + '. Difficulty is locked to the save and applies from the next new game.'; b.appendChild(note); }
     row('Render resolution', sel('quality', [['auto', 'Auto (adaptive)'], ['1', '100%'], ['0.85', '85%'], ['0.7', '70%'], ['0.55', '55%']], () => DSZ.Main.applyQuality()));
     row('Lighting quality', sel('lightRes', [[0.2, 'Low'], [0.28, 'Medium'], [0.36, 'High'], [0.5, 'Ultra']], () => DSZ.Render.resize()));
     row('Film grain', tog('grain')); row('Bloom', tog('bloom')); row('UI blur', tog('blur', () => document.body.classList.toggle('noblur', !s.blur))); row('Show FPS', tog('showFps', () => els.fps.classList.toggle('hidden', !s.showFps)));
@@ -449,6 +465,13 @@
       let st = ''; if (DSZ.settings.godmode) st += '<span class="warn">GOD MODE</span>'; if (p.bleed > 0) st += '<span>Bleeding</span>'; if (p.infection > 30) st += '<span>Infected</span>'; else if (p.infection > 0) st += '<span class="warn">Feverish</span>'; if (p.broken) st += '<span>Broken leg</span>'; if (p.food < 25) st += '<span class="warn">Hungry</span>'; if (p.water < 25) st += '<span class="warn">Thirsty</span>'; if (p.energy < 20) st += '<span class="warn">Tired</span>'; if (p.reload > 0) st += '<span class="warn">Reloading</span>';
       if (els.status.innerHTML !== st) els.status.innerHTML = st;
       const h = Math.floor(S.hour), m = Math.floor((S.hour - h) * 60); els.clk.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); els.dayl.textContent = 'Day ' + S.day;
+      const dname = (DSZ.DIFF[S.difficulty] || DSZ.DIFF.normal).name;
+      if (els.dlab && els.dlab.textContent !== dname) els.dlab.textContent = dname;
+      const H = S.horde;
+      if (H && H.active) {
+        const alive = S.zombies.reduce((a, z) => a + (!z.dead && z.horde ? 1 : 0), 0);
+        els.nightw.classList.remove('hidden'); els.nightw.textContent = 'NIGHT \u00b7 ' + (H.left + alive) + ' LEFT';
+      } else { els.nightw.classList.add('hidden'); }
       els.wx.textContent = S.weather.rain > 0.7 ? 'Storm' : (S.weather.rain > 0.15 ? 'Rain' : (DSZ.Render.daylight(S.hour) < 0.3 ? 'Night' : 'Clear'));
       drawMini();
       const sig = S.toasts.map(t => t.text + t.kind).join('|'); if (sig !== toastSig) { toastSig = sig; els.toasts.innerHTML = S.toasts.map(t => '<div class="toast ' + t.kind + '">' + t.text + '</div>').join(''); }

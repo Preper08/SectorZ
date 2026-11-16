@@ -8,12 +8,17 @@
   // ---------------------------------------------------------------- new game
   Game.newGame = function (seed, saved) {
     seed = seed || ((Math.random() * 1e9) | 0);
+    // Difficulty: a loaded save keeps its own; a fresh game uses the chosen setting.
+    const diffKey = (saved && saved.difficulty) || DSZ.settings.difficulty || 'normal';
+    const difficulty = DSZ.DIFF_KEYS.indexOf(diffKey) >= 0 ? diffKey : 'normal';
+    DSZ.DIFFCUR = DSZ.DIFF[difficulty];
     DSZ.Gen.generate(seed);
     const Gn = DSZ.Gen;
     const S = Game.S = {
-      seed, time: 0, hour: C.START_HOUR, day: 1, cam: { x: 0, y: 0, zoom: 1, tz: 1, shake: 0 }, player: null, zombies: [], cars: [], drops: [], particles: [], decals: [], bullets: [], glowLights: [], noiseEvents: [],
+      seed, time: 0, hour: C.START_HOUR, day: 1, difficulty: difficulty, cam: { x: 0, y: 0, zoom: 1, tz: 1, shake: 0 }, player: null, zombies: [], cars: [], drops: [], particles: [], decals: [], bullets: [], glowLights: [], noiseEvents: [],
       weather: { rain: 0, target: 0, t: 60 + Math.random() * 60, flash: 0, thunder: 0, lt: 30 }, stats: { kills: 0, distance: 0, looted: 0, built: 0 }, muzzle: 0, focus: null, build: { active: false, def: null, tile: null, ok: false, rot: 0, tab: 'Walls' },
-      carInput: { thr: 0, str: 0, hand: false }, toasts: [], state: 'play', search: null, prying: null, sleeping: null, spawnT: 20, saveT: 60, cinema: 0, paused: false, mouse: { wx: 0, wy: 0 }
+      carInput: { thr: 0, str: 0, hand: false }, toasts: [], state: 'play', search: null, prying: null, sleeping: null, spawnT: 20, saveT: 60, cinema: 0, paused: false, mouse: { wx: 0, wy: 0 },
+      horde: { night: 0, active: false, announced: false, surgeT: 0, spawned: 0, left: 0, nights: 0 }
     };
     const sp = Gn.playerSpawn;
     const p = S.player = {
@@ -26,8 +31,18 @@
     Inv.equip(P, Inv.make('fannypack'));
     P.equip.light = Inv.make('flashlight', 1, { bat: 100 });
     Inv.give(P, Inv.make('hammer')); Inv.give(P, Inv.make('bandage', 2)); Inv.give(P, Inv.make('water')); Inv.give(P, Inv.make('beans'));
+    // difficulty: starting supplies (a new game only - loaded saves restore their own).
+    // Food/water start values scale, and the easy/hard extremes hand out one extra or one
+    // fewer water/beans, so a fresh start feels meaningfully different without new items.
+    const Ds = DSZ.DIFFCUR;
+    if (!saved && Ds && Ds.start !== 1) {
+      p.food = Math.min(100, Math.round(p.food * Ds.start));
+      p.water = Math.min(100, Math.round(p.water * Ds.start));
+      if (Ds.start > 1) { Inv.give(P, Inv.make('water')); Inv.give(P, Inv.make('beans')); }
+      else if (Ds.start < 1) { Inv.take(P, 'water', 1); }
+    }
     P.sel = -1;
-    // world population
+    // world population (Gen.generate already scaled the list by difficulty density)
     for (const z of Gn.zombieSpawns) E.spawnZombie(S, z[0], z[1], z[2]);
     for (const c of Gn.carSpecs) E.spawnCar(S, c);
     // guarantee a drivable car near the start
@@ -140,8 +155,9 @@
     A.play('hurt', p.x, p.y, 1); if (type === 'bite') A.play('bite', p.x, p.y, 1);
     E.blood(S, p.x, p.y, Math.atan2(p.y - sy, p.x - sx), 6, 0.3);
     if (type === 'bite') {
+      const inf = DSZ.DIFFCUR ? DSZ.DIFFCUR.infect : 1;
       if (Math.random() < 0.3 * (1 - red)) { p.bleed = Math.min(3, p.bleed + 1); Game.toast(S, 'You are bleeding!', 'bad'); }
-      if (Math.random() < 0.16 * (1 - red) && p.infection <= 0) { p.infection = 5; Game.toast(S, 'You were bitten... infected.', 'bad'); }
+      if (Math.random() < 0.16 * inf * (1 - red) && p.infection <= 0) { p.infection = 5; Game.toast(S, 'You were bitten... infected.', 'bad'); }
     }
     if (type === 'crash' && dmg > 18 && Math.random() < 0.35 && !p.broken) { p.broken = true; Game.toast(S, 'Your leg is broken!', 'bad'); }
     if (p.hp <= 0) Game.die(S, type);
@@ -273,8 +289,11 @@
     for (let y = ty - 2; y <= ty + 2; y++) for (let x = tx - 2; x <= tx + 2; x++) {
       const o = W.getObj(x, y); if (!o) continue; const d = D[o.t], cx = x + 0.5, cy = y + 0.5;
       if (d.door) { const lab = o.open ? 'E  Close door' : (o.locked ? 'E  Locked' + (Inv.has(p.inv, 'crowbar') || Inv.has(p.inv, 'axe') ? ' (hold to pry)' : '') : 'E  Open door'); if (o.t === O.BGATE) consider('door', o, cx, cy, o.open ? 'E  Close gate' : 'E  Open gate', 1.9); else consider('door', o, cx, cy, lab, 1.9, 0.2); }
+      // A bed is a place to sleep first. World beds also hide loot underneath (they carry a
+      // cont), which stays reachable through the same secondary 'T' key vehicles use, so the
+      // sleep action is never shadowed by the container check.
+      else if (d.bed) { const label = d.cont ? 'E  Sleep    T  ' + (o.searched ? 'Open' : 'Search') : 'E  Sleep'; consider('bed', o, cx, cy, label, 1.7); }
       else if (d.cont) { const open = o.base || o.grid; consider('cont', o, cx, cy, (o.base ? 'E  Open ' : (o.searched ? 'E  Open ' : 'E  Search ')) + d.cont.name, 1.7); }
-      else if (d.bed) consider('bed', o, cx, cy, 'E  Sleep', 1.7);
       else if (d.station === 'fire' || d.station === 'furnace') consider('fire', o, cx, cy, o.lit ? 'E  Add fuel (' + Math.round(o.fuel) + 's)' : 'E  Light fire (needs log/sticks)', 1.8);
       else if (o.t === O.BRAIN) consider('rain', o, cx, cy, 'E  Collect water (' + Math.floor(o.water || 0) + ')', 1.8);
       else if (o.t === O.SINK) consider('sink', o, cx, cy, 'E  Fill bottle', 1.5);
@@ -433,7 +452,7 @@
       if (In.pressed('KeyR') && !S.build.active) Game.reload(S);
       if (In.pressed('KeyQ')) Game.dropSelected(S);
       if (In.pressed('KeyG')) Game.refuelNearby(S);
-      if (In.pressed('KeyT')) Game.searchNearbyVehicle(S);
+      if (In.pressed('KeyT')) { if (S.focus && S.focus.kind === 'bed' && D[S.focus.ref.t].cont) Game.searchBed(S, S.focus.ref); else Game.searchNearbyVehicle(S); }
     }
     // reload progress
     if (p.reload > 0) { p.reload -= dt; if (p.reload <= 0) { const it = p.reloadItem, d = I[it.id]; const need = d.mag - it.mag, have = Inv.count(P, d.ammo), n = Math.min(need, have); Inv.take(P, d.ammo, n); it.mag += n; Game.toast(S, 'Reloaded'); } if (held(S) !== p.reloadItem) p.reload = 0; }
@@ -484,6 +503,14 @@
     else Game.toast(S, 'No vehicle nearby to search.');
     return !!best;
   };
+  // key T on a bed: reach the loot under a world bed without losing the sleep action.
+  // Beds without a cont (player-built) have nothing to search.
+  Game.searchBed = function (S, o) {
+    const d = D[o.t]; if (!d || !d.cont) return false;
+    if (o.grid) { DSZ.UI.openLoot(d.cont.name, o.grid, o); return true; }
+    S.search = { kind: 'cont', o, t: 0, total: 0.5 + (d.cont.w * d.cont.h) * 0.045 };
+    return true;
+  };
   Game.finishSearch = function (S, s) {
     const o = s.o;
     if (s.kind === 'cont') { o.searched = true; const g = Inv.fillContainer(o, rnd); S.stats.looted++; DSZ.UI.openLoot(D[o.t].cont.name, g, o); }
@@ -499,11 +526,16 @@
     const god = DSZ.settings.godmode;
     if (god) { p.bleed = 0; p.infection = 0; p.stamina = 100; }
     const sleepMul = S.sleeping ? 0.4 : 1;
+    const needs = DSZ.DIFFCUR ? DSZ.DIFFCUR.needs : 1, inf = DSZ.DIFFCUR ? DSZ.DIFFCUR.infect : 1;
     if (!god) {
-      p.food = Math.max(0, p.food - 0.042 * dt * sleepMul * (p.running ? 1.5 : 1)); p.water = Math.max(0, p.water - 0.066 * dt * sleepMul * (p.running ? 1.6 : 1)); p.energy = Math.max(0, p.energy - 0.012 * dt * (S.sleeping ? 0 : 1));
+      p.food = Math.max(0, p.food - 0.042 * dt * sleepMul * needs * (p.running ? 1.5 : 1)); p.water = Math.max(0, p.water - 0.066 * dt * sleepMul * needs * (p.running ? 1.6 : 1)); p.energy = Math.max(0, p.energy - 0.012 * dt * (S.sleeping ? 0 : 1));
       let dmg = 0; if (p.food <= 0) dmg += 0.25; if (p.water <= 0) dmg += 0.4; if (p.energy <= 0) dmg += 0.1; if (p.bleed > 0) { dmg += 0.55 * p.bleed; p.bleed = Math.max(0, p.bleed - 0.012 * dt); if (Math.random() < dt * 1.2) E.blood(S, p.x, p.y, Math.random() * 6.28, 1, 0.1); }
-      if (p.infection > 0) { p.infection = Math.min(100, p.infection + 0.07 * dt); if (p.infection > 45) dmg += (p.infection - 45) * 0.01; if (p.infection >= 100) { Game.die(S, 'infection'); return; } }
+      if (p.infection > 0) { p.infection = Math.min(100, p.infection + 0.07 * inf * dt); if (p.infection > 45) dmg += (p.infection - 45) * 0.01; if (p.infection >= 100) { Game.die(S, 'infection'); return; } }
       if (dmg > 0) { p.hp -= dmg * dt; if (p.hp <= 0) { Game.die(S, p.water <= 0 ? 'thirst' : (p.food <= 0 ? 'hunger' : (p.bleed > 0 ? 'bleeding' : 'infection'))); return; } }
+      // Waking regeneration for normal players: recover slowly when well fed, hydrated,
+      // undamaged this frame and uninfected. Guarded by !S.sleeping so it never stacks
+      // with updateSleep()'s faster 3 HP/s recovery.
+      else if (!S.sleeping && p.food > 45 && p.water > 45 && p.hp < 100 && p.infection < 20) p.hp = Math.min(100, p.hp + 0.16 * dt);
     }
     else if (p.food > 45 && p.water > 45 && p.hp < 100 && p.infection < 20) p.hp = Math.min(100, p.hp + (S.sleeping ? 0.8 : 0.16) * dt);
     if (p.food < 15 && !p.warnedF) { p.warnedF = 1; Game.toast(S, 'You are starving.', 'bad'); } if (p.food > 25) p.warnedF = 0;
@@ -529,9 +561,55 @@
     // toasts decay
     for (let i = S.toasts.length - 1; i >= 0; i--) { S.toasts[i].t -= dt; if (S.toasts[i].t <= 0) S.toasts.splice(i, 1); }
   }
+  // ---- nightly horde: every night a growing crowd converges on the player.
+  // A full in-game day is C.DAY_LEN seconds; night starts when daylight drops below 0.35
+  // and ends at dawn. Each night announces itself, then releases waves of zombies from
+  // just outside the player's view and drives them toward the player via the flow field
+  // (they path around buildings and bash what blocks them). The size scales with the
+  // number of nights survived, so later nights are genuinely dangerous.
+  function updateHorde(S, dt, night) {
+    const H = S.horde, p = S.player;
+    const isNight = night > 0.35;
+    if (isNight && !H.active) { // dusk: a new night begins
+      H.active = true; H.announced = false; H.night = S.day; H.spawned = 0; H.killed = 0;
+      H.left = Math.round((10 + S.day * 3.5) * (DSZ.DIFFCUR ? DSZ.DIFFCUR.horde : 1)); // grows with the day count and the difficulty
+      H.surgeT = 18; // first wave shortly after dark
+    } else if (!isNight && H.active) { // dawn: night survived
+      H.active = false; H.nights++;
+      const kills = H.killed || 0;
+      Game.toast(S, 'Dawn. You survived night ' + H.night + (kills > 0 ? ' - ' + kills + ' put down.' : '.'), 'good');
+      S.stats.nights = H.nights;
+    }
+    if (!H.active) return;
+    if (!H.announced) { H.announced = true; Game.toast(S, 'Night ' + S.day + ': they are coming...', 'bad'); A.play('scream', p.x, p.y, 1.1); }
+    H.surgeT -= dt;
+    if (H.surgeT > 0 || H.left <= 0) return;
+    // wait for the player to be outside sight so they don't pop in on screen
+    const batch = Math.min(H.left, 4 + Math.floor(S.day / 2));
+    const spawned = spawnHordeWave(S, batch, night);
+    if (spawned > 0) {
+      H.left -= spawned; H.spawned += spawned;
+      const alive = S.zombies.reduce((a, z) => a + (!z.dead ? 1 : 0), 0);
+      const near = S.zombies.reduce((a, z) => a + (!z.dead && Math.hypot(z.x - p.x, z.y - p.y) < 22 ? 1 : 0), 0);
+      if (near > 40 + S.day * 4) H.surgeT = 6; else H.surgeT = 9 + Math.random() * 7;
+    } else {
+      H.surgeT = 3; // could not find a spot this tick; try again soon
+    }
+  }
+  function spawnHordeWave(S, n, night) {
+    const p = S.player; let made = 0;
+    for (let k = 0; k < n; k++) {
+      const a = Math.random() * 6.28, d = 24 + Math.random() * 10, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+      if (!W.inb(Math.floor(x), Math.floor(y)) || W.isSolid(Math.floor(x), Math.floor(y)) || W.insideBuilding(x, y) || W.los(p.x, p.y, x, y) && d < 30) continue;
+      const w = [['walker', 74], ['runner', 8 + S.day * 2], ['brute', 3 + S.day * 0.4], ['crawler', 5]];
+      const type = U.weighted(Math.random, w);
+      const z = E.spawnZombie(S, x, y, type); z.state = 'chase'; z.sleeper = false; z.alert = 30; z.tx = p.x; z.ty = p.y; z.horde = true;
+      made++;
+    }
+    return made;
+  }
   function updateWorld(S, dt) {
-    const w = S.weather;
-    S.time += dt; S.hour += dt * 24 / C.DAY_LEN * (S.sleeping ? 1 : 1); if (S.hour >= 24) { S.hour -= 24; S.day++; Game.toast(S, 'Day ' + S.day); }
+    const w = S.weather;    S.time += dt; S.hour += dt * 24 / C.DAY_LEN * (S.sleeping ? 1 : 1); if (S.hour >= 24) { S.hour -= 24; S.day++; Game.toast(S, 'Day ' + S.day); }
     w.t -= dt; if (w.t <= 0) { w.t = 90 + Math.random() * 180; w.target = U.weighted(Math.random, [[0, 5], [0.45, 2], [1, 2]]); }
     w.rain += (w.target - w.rain) * Math.min(1, dt * 0.2);
     w.flash = Math.max(0, w.flash - dt * 2.2);
@@ -539,6 +617,7 @@
     if (w.thunder > 0) { w.thunder -= dt; if (w.thunder <= 0) { A.play('explosion', S.player.x, S.player.y, 0.5, 400); } }
     const night = 1 - DSZ.Render.daylight(S.hour); A.setAmbient(night, w.rain);
     A.setListener(S.player.x, S.player.y);
+    updateHorde(S, dt, night);
     // rain splashes
     if (w.rain > 0.1 && Math.random() < dt * w.rain * 40) { const a = Math.random() * 6.28, d = Math.random() * 10; E.particle(S, { type: 'splash', x: S.player.x + Math.cos(a) * d, y: S.player.y + Math.sin(a) * d, z: 0, vx: 0, vy: 0, vz: 0, life: 0.35 }); }
     // dynamic zombie spawns around the player
@@ -592,7 +671,10 @@
     S.saveT -= dt; if (S.saveT <= 0) { S.saveT = 60; Game.saveBegin(S); }
     Game.saveStep(4);
   };
-  function updateWorldLite(S, dt) { S.time += dt; S.hour += dt * 24 / C.DAY_LEN; E.updateParticles(S, dt); E.updateZombies(S, dt); E.updateCars(S, dt); updateCamera(S, dt); S.cam.zoom += (1.25 - S.cam.zoom) * dt; }
+  // Death screen: keep the world visibly alive (particles, zombies, cars, the slow camera
+  // pullback) but do NOT advance the in-game clock. S.time still ticks because several
+  // animations read it, but the hour is frozen so the HUD clock stops at the moment of death.
+  function updateWorldLite(S, dt) { S.time += dt; E.updateParticles(S, dt); E.updateZombies(S, dt); E.updateCars(S, dt); updateCamera(S, dt); S.cam.zoom += (1.25 - S.cam.zoom) * dt; }
 
   // ---------------------------------------------------------------- save / load
   let saveJob = null;
@@ -606,7 +688,8 @@
   function savePayload(S, mods, base) {
     const p = S.player;
     return {
-      v: 1, seed: S.seed, hour: S.hour, day: S.day, stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
+      horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights, killed: S.horde.killed || 0 },
+      v: 1, seed: S.seed, hour: S.hour, day: S.day, difficulty: S.difficulty || 'normal', stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
       player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
       mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
     };
@@ -644,6 +727,10 @@
   Game.deleteSave = () => { try { localStorage.removeItem('dsz_save'); } catch (e) { /* */ } };
   Game.applySave = function (S, d) {
     const p = S.player; S.hour = d.hour; S.day = d.day; Object.assign(S.stats, d.stats); S.weather.rain = d.weather.rain; S.weather.target = d.weather.target;
+    // keep the running difficulty in sync with the save (a save always wins over the menu)
+    const dk = DSZ.DIFF_KEYS.indexOf(d.difficulty) >= 0 ? d.difficulty : 'normal';
+    S.difficulty = dk; DSZ.DIFFCUR = DSZ.DIFF[dk];
+    if (d.horde) Object.assign(S.horde, d.horde);
     Object.assign(p, d.player); p.inv = d.player.inv; Inv.migrateEquip(p.inv, Game.dropFn(S)); Inv.refreshAll(p.inv, Game.dropFn(S)); p.dead = false; p.vx = p.vy = 0;
     for (const idx of d.removed || []) { const x = idx % C.W, y = (idx / C.W) | 0; const o = W.getObj(x, y); if (o && !o.base) { W.removeObj(x, y); } }
     for (const m of d.mods || []) { const o = W.getObj(m.x, m.y); if (!o) continue; if (m.grid) o.grid = m.grid; if (m.searched) o.searched = true; if (m.broken) o.broken = true; if (m.open !== undefined) o.open = m.open; if (m.locked !== undefined) o.locked = m.locked; if (m.hp !== undefined) o.hp = m.hp; if (m.chop) o.chop = m.chop; W.refresh(m.x, m.y); }

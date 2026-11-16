@@ -56,7 +56,11 @@
   // ------------------------------------------------------------ zombies
   E.spawnZombie = function (S, x, y, type, seed) {
     const T = ZT[type] || ZT.walker; seed = seed === undefined ? (Math.random() * 1e6) | 0 : seed;
-    const z = { x, y, vx: 0, vy: 0, ang: Math.random() * 6.28, type, hp: T.hp, maxhp: T.hp, speed: T.speed * (0.85 + Math.random() * 0.3), dmg: T.dmg, r: T.r, sc: T.sc, rate: T.rate, seed, state: 'idle', alert: 0, tx: x, ty: y, wander: Math.random() * 4, cool: 0, atkT: 0, ph: Math.random() * 6.28, dead: false, deadT: 0, alpha: 1, flash: 0, burn: 0, groan: 3 + Math.random() * 12, limp: Math.random() < 0.3, sleeper: Math.random() < 0.35, bash: 0, lostT: 0, stuck: 0, id: ++E.zid };
+    // difficulty scales toughness and bite damage; speed/behaviour are untouched so the
+    // zombies still feel like the same creatures, just harder or softer hitting
+    const pw = DSZ.DIFFCUR ? DSZ.DIFFCUR.zPower : 1;
+    const hp = Math.round(T.hp * pw), dmg = T.dmg * pw;
+    const z = { x, y, vx: 0, vy: 0, ang: Math.random() * 6.28, type, hp, maxhp: hp, speed: T.speed * (0.85 + Math.random() * 0.3), dmg, r: T.r, sc: T.sc, rate: T.rate, seed, state: 'idle', alert: 0, tx: x, ty: y, wander: Math.random() * 4, cool: 0, atkT: 0, ph: Math.random() * 6.28, dead: false, deadT: 0, alpha: 1, flash: 0, burn: 0, groan: 3 + Math.random() * 12, limp: Math.random() < 0.3, sleeper: Math.random() < 0.35, bash: 0, lostT: 0, stuck: 0, spikeT: 0, id: ++E.zid };
     z.spec = DSZ.Fig.zombieSpec(seed, type);
     z.pose = { arms: 'down', af: 0, legs: type === 'crawler' ? 'crawl' : 'idle', lf: 0, limp: z.limp };
     S.zombies.push(z); return z;
@@ -71,7 +75,12 @@
     const i = y * C.W + x; if (!W.solid[i]) return 1;
     const o = W.obj[i], d = o && D[o.t]; if (!d) return 1;
     if (d.door && !o.locked && !o.base) return 2;
-    if (d.hp && d.hp < 900 && (d.wall || d.fence || d.base)) return 9 + Math.min(14, (o.hp || d.hp) / 40);
+    // costs must be whole numbers: the flood field is an Int16Array and its bucket
+    // queue is indexed by accumulated distance, so a fractional cost (e.g. a wall at
+    // 300 hp giving 9 + 7.5 = 16.5) would be stored but never expanded, making every
+    // tile behind that obstacle unreachable. Rounding keeps breakable walls on the
+    // graph so zombies path into them and bash them instead of milling outside.
+    if (d.hp && d.hp < 900 && (d.wall || d.fence || d.base)) return 9 + Math.min(14, Math.round((o.hp || d.hp) / 40));
     return 0;
   }
   E.updateFlow = function (S) {
@@ -210,6 +219,7 @@
   E.killZombie = function (S, z, ang) {
     z.dead = true; z.deadT = 0.55; z.state = 'dead'; z.face = Math.cos(ang - z.ang) > 0; S.stats.kills++;
     DSZ.Fig.forget(z.spec);
+    if (z.horde && S.horde && S.horde.active) S.horde.killed = (S.horde.killed || 0) + 1;
     E.blood(S, z.x, z.y, ang, 12, 0.6);
     E.decal(S, { type: 'blood', x: z.x, y: z.y, r: 0.55 + Math.random() * 0.4, a: 0.8 });
     if (Math.random() < 0.22) S.zombies.length; // keep for loot
@@ -259,7 +269,7 @@
       }
       if (p.driving && dist < 9 && !p.driving.dead && !sees) { if (playerLos === undefined) playerLos = playerVisible(z, p); sees = playerLos; }
       if (sees) { if (z.state !== 'chase') { z.state = 'chase'; A.play(Math.random() < 0.3 ? 'scream' : 'groan', z.x, z.y, 0.9); } z.lostT = 0; z.tx = p.x; z.ty = p.y; z.sleeper = false; }
-      else if (z.state === 'chase') { z.lostT += dt; if (z.lostT > 7) { z.state = 'investigate'; z.alert = 5; } }
+      else if (z.state === 'chase') { z.lostT += dt; if (z.lostT > (z.horde ? 600 : 7)) { z.state = 'investigate'; z.alert = 5; } }
       if (z.alert > 0) { z.alert -= dt; if (z.alert <= 0 && z.state === 'investigate') z.state = 'idle'; }
       z.groan -= dt; if (z.groan <= 0) { z.groan = (z.state === 'chase' ? 4 : 11) + Math.random() * 10; if (dist < 24) A.play('groan', z.x, z.y, z.state === 'chase' ? 0.8 : 0.45); }
       // --- decide movement
@@ -311,6 +321,20 @@
       // separation
       separate(z);
       pushFromCars(S, z, z.r);
+      // --- spike barricades: they hurt anything that presses against them
+      if (z.spikeT > 0) z.spikeT -= dt;
+      if (z.spikeT <= 0) {
+        const sx0 = Math.floor(z.x - z.r - 0.25), sx1 = Math.floor(z.x + z.r + 0.25), sy0 = Math.floor(z.y - z.r - 0.25), sy1 = Math.floor(z.y + z.r + 0.25);
+        for (let ty = sy0; ty <= sy1; ty++) for (let tx = sx0; tx <= sx1; tx++) {
+          const o = W.getObj(tx, ty), od = o && D[o.t];
+          if (!od || !od.spikes) continue;
+          const dxc = z.x - (tx + 0.5), dyc = z.y - (ty + 0.5);
+          if (dxc * dxc + dyc * dyc > (z.r + 0.62) * (z.r + 0.62)) continue;
+          z.spikeT = 0.5; E.hurtZombie(S, z, 10, Math.atan2(dyc, dxc), 2.5);
+          E.noise(S, z.x, z.y, 6);
+          break;
+        }
+      }
       // --- animation
       const gait = z.type === 'runner' ? 'zrun' : 'zwalk';
       sp = Math.hypot(z.vx, z.vy);

@@ -343,6 +343,16 @@
     // remove cars overlapping solid tiles / buildings
     Gen.carSpecs = Gen.carSpecs.filter(c => { const tx = Math.floor(c.x), ty = Math.floor(c.y); for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (W.isSolid(tx + dx, ty + dy) || W.room[W.idx(tx + dx, ty + dy)]) return false; return W.inb(tx, ty); });
     Gen.zombieSpawns = Gen.zombieSpawns.filter(z => W.inb(Math.floor(z[0]), Math.floor(z[1])) && !W.isSolid(Math.floor(z[0]), Math.floor(z[1])));
+    // difficulty: scale the world's zombie population. Density 1 leaves the list exactly
+    // as generated (so Normal and old saves are byte-for-byte the same). Below 1 we drop a
+    // deterministic subset; above 1 we add jittered copies of existing spots. Uses the same
+    // seeded rng, so a given seed always yields the same population for a given difficulty.
+    const zd = DSZ.DIFFCUR ? DSZ.DIFFCUR.zDensity : 1;
+    if (zd !== 1 && Gen.zombieSpawns.length) {
+      const list = Gen.zombieSpawns;
+      if (zd < 1) { const keep = []; for (const z of list) if (rng() < zd) keep.push(z); Gen.zombieSpawns = keep.length ? keep : list.slice(0, 1); }
+      else { const target = Math.round(list.length * zd), add = []; for (let i = 0; i < target - list.length; i++) { const z = list[(rng() * list.length) | 0]; const nx = z[0] + (rng() - 0.5) * 5, ny = z[1] + (rng() - 0.5) * 5; if (W.inb(Math.floor(nx), Math.floor(ny)) && !W.isSolid(Math.floor(nx), Math.floor(ny))) add.push([nx, ny, z[2]]); } for (const z of add) list.push(z); }
+    }
     // window lights for lit houses
     for (const b of W.blds) if (b && b.lit) {
       for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) { const o = W.getObj(x, y); if (o && o.t === O.WINDOW && o.v === 3) { const ox = x === b.x ? -1 : (x === b.x + b.w - 1 ? 1 : 0), oy = y === b.y ? -1 : (y === b.y + b.h - 1 ? 1 : 0); W.addLight({ x: x + 0.5 + ox * 1.2, y: y + 0.5 + oy * 1.2, r: 4.2, col: [255, 180, 90], a: 0.8, kind: 'window', flick: 3, seed: rng() * 100, h: 1.6 }); } }
