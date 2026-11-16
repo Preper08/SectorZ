@@ -57,8 +57,8 @@
     els['tab-inv'].classList.toggle('hidden', t !== 'inv'); els['tab-craft'].classList.toggle('hidden', t !== 'craft'); els['tab-admin'].classList.toggle('hidden', t !== 'admin');
     if (t === 'craft') renderCraft(); else if (t === 'admin') renderAdmin(); else renderInv();
   };
-  UI.openWin = function (tab) { UI.open.win = true; els.win.classList.remove('hidden'); UI.showTab(tab || UI.open.tab || 'inv'); A.play('click', null, null, 0.4); };
-  UI.closeWin = function () { cancelDrag(); UI.open.win = false; UI.loot = null; els.win.classList.add('hidden'); hideTip(); els.lootcol.classList.add('hidden'); };
+  UI.openWin = function (tab) { UI.open.win = true; els.win.classList.remove('hidden'); hotbarLift(); UI.showTab(tab || UI.open.tab || 'inv'); A.play('click', null, null, 0.4); };
+  UI.closeWin = function () { cancelDrag(); UI.open.win = false; UI.loot = null; els.win.classList.add('hidden'); hideTip(); els.lootcol.classList.add('hidden'); hotbarLift(); };
   UI.toggleWin = function (tab) { if (UI.open.win && UI.open.tab === tab) UI.closeWin(); else UI.openWin(tab); };
   UI.openLoot = function (title, grid, owner) { UI.loot = { title, grid, owner }; UI.openWin('inv'); };
   // ---- interactive TV: a large popup showing the enlarged broadcast of the set we are at.
@@ -94,6 +94,8 @@
   function titleVeil() { if (!UI.open.title) return; els.title.classList.toggle('hidden', UI.open.settings || UI.open.controls); }
   UI.showTitle = function (v) {
     UI.open.title = v; els.title.classList.toggle('hidden', !v); els.hud.classList.toggle('hidden', v);
+    // the hotbar lives outside #hud, so hide it with the HUD on the title screen
+    els.hotbar.classList.toggle('hidden', v);
     $('t-continue').disabled = !DSZ.Game.hasSave(); if (v) { els.win.classList.add('hidden'); UI.open.win = false; UI.open.menu = false; els.pause.classList.add('hidden'); UI.open.death = false; els.death.classList.add('hidden'); UI.closeTV(); if (UI.syncDiff) UI.syncDiff(); }
   };
   UI.showLoading = function (v, txt, p) { $('loading').classList.toggle('hidden', !v); if (txt) $('ltxt').textContent = txt; if (p !== undefined) $('lbar').style.width = (p * 100) + '%'; };
@@ -248,7 +250,7 @@
     else { A.play('pickup'); DSZ.Game.toast(S, 'Admin: +' + d.name); }
     UI.refresh();
   }
-  UI.refresh = () => { if (UI.open.win) { if (UI.open.tab === 'inv') renderInv(); else renderCraft(); } renderHot(true); };
+  UI.refresh = () => { hotbarLift(); if (UI.open.win) { if (UI.open.tab === 'inv') renderInv(); else renderCraft(); } renderHot(true); };
   function renderHot(force) {
     if (!S) return; const P = S.player.inv, p = S.player;
     const sig = P.sel + '|' + P.hot.map(it => it ? it.id + it.q + (it.mag !== undefined ? it.mag : '') + (it.dur !== undefined ? (it.dur | 0) : '') : '-').join(',') + '|' + Inv.count(P, 'ammo9') + Inv.count(P, 'shell') + Inv.count(P, 'ammo762');
@@ -278,6 +280,9 @@
     UI.drag = { it, origin, startRot: !!it.rot };
     const g = els.dragghost; g.classList.remove('hidden'); sizeGhost(); dragMove(e); renderInv();
   }
+  // While the inventory/loot window is open, lift the hotbar above it so a drag from the grid
+  // can actually reach a hotbar slot (the window otherwise covers all but a sliver of it).
+  function hotbarLift() { els.hotbar.classList.toggle('win-open', UI.open.win); }
   function sizeGhost() { const d = UI.drag; if (!d) return; const [w, h] = Inv.size(d.it), g = els.dragghost; g.style.width = w * CELL + 'px'; g.style.height = h * CELL + 'px'; g.innerHTML = '<img src="' + img(d.it.id) + '"' + (d.it.rot ? ' style="transform:rotate(90deg)"' : '') + '>'; }
   function clearHL() { document.querySelectorAll('.cellhl').forEach(n => n.remove()); document.querySelectorAll('.eqslot.hl').forEach(n => n.classList.remove('hl')); }
   function target(e) {

@@ -30,11 +30,13 @@
   <div id="toasts"></div>
   <div id="prompt" class="panel hidden"></div>
   <div id="progress" class="panel hidden"><span id="proglabel">Searching</span><div class="pbar"><i></i></div></div>
-  <div id="hotbar" class="panel"></div>
   <div id="hintbar">TAB inventory &nbsp;·&nbsp; C crafting &nbsp;·&nbsp; Ctrl crouch (toggle) &nbsp;·&nbsp; B build &nbsp;·&nbsp; E interact &nbsp;·&nbsp; F light &nbsp;·&nbsp; R reload &nbsp;·&nbsp; M map</div>
   <div id="buildbar" class="panel hidden"></div>
   <div id="fps" class="hidden"></div>
 </div>
+<!-- hotbar sits outside #hud so its z-index is independent of the HUD stacking context;
+     while the inventory window is open it lifts above the window (see .win-open) -->
+<div id="hotbar" class="panel"></div>
 
 <!-- ============ INVENTORY / CRAFTING WINDOW ============ -->
 <div id="win" class="win hidden">
