@@ -234,7 +234,28 @@
     const px = p.x, py = p.y, pkey = px + py;
     // roof / wall fade targets
     const insideB = pb;
-    for (const b of W.blds) if (b) { const tgt = (insideB === b) ? 0 : 1; b.roofA = b.roofA === undefined ? 1 : b.roofA + (tgt - b.roofA) * Math.min(1, dt * 6); }
+    // A roof hides whatever stands behind it, which used to make the player and zombies vanish
+    // completely. Roofs already fade out when you walk inside, so the same fade is reused here:
+    // any roof covering the player (or a nearby outdoor zombie) turns partly transparent until
+    // they are readable again, then fades back. A building entirely behind a character is drawn
+    // before it and therefore never hides it. Characters inside a building are handled as before,
+    // so roaming indoors still reveals the interior exactly like it always did.
+    // Collected once per frame and flagged on the buildings, so the cost is a few tile lookups
+    // per character rather than a scan of every building against every zombie.
+    const playerOccl = roofOccluder(px, py, []);
+    const playerHidden = playerOccl.length > 0 && !(insideB && playerOccl.indexOf(insideB) >= 0);
+    if (playerHidden) for (const b of playerOccl) b._hide = 0.42;
+    for (const z of S.zombies) {
+      if (z.dead || Math.abs(z.x - px) > 22 || Math.abs(z.y - py) > 22) continue;
+      if (W.buildingAt(Math.floor(z.x), Math.floor(z.y))) continue;   // indoors: as before
+      for (const b of roofOccluder(z.x, z.y, [])) if (b._hide === undefined) b._hide = 0.55;
+    }
+    for (const b of W.blds) {
+      if (!b) continue;
+      const tgt = insideB === b ? 0 : (b._hide === undefined ? 1 : b._hide);
+      b.roofA = b.roofA === undefined ? 1 : b.roofA + (tgt - b.roofA) * Math.min(1, dt * 7);
+      b._hide = undefined;
+    }
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
       const i = ty * C.W + tx, o = W.obj[i];
       // screen-space cull: skip tiles whose sprites cannot reach the viewport
@@ -405,6 +426,31 @@
   }
 
   // ---------------------------------------------------------------- objects
+  // ---------------------------------------------------------------- occlusion
+  // Roofs are painted one tile at a time on a diamond lattice whose centre for tile (tx,ty)
+  // sits at screen ((tx-ty)*32, (tx+ty)*16 - 76). Those diamonds tile the plane, so any screen
+  // point maps back to exactly one tile with a single rounding: an O(1) lookup, no scanning.
+  function roofTileAt(sx, sy) {
+    const u = sx / 32, v = (sy + 76) / 16;
+    return [Math.round((u + v) / 2), Math.round((v - u) / 2)];
+  }
+  // Which roofs, if any, cover a character standing at (x,y)? Four points up the sprite column
+  // are sampled (feet to head), so a half-covered character still counts. A roof is only drawn
+  // after characters at a smaller depth, so tiles at or behind the character cannot hide it.
+  // Returns the occluding buildings in `out`, or out.length unchanged if nothing covers.
+  function roofOccluder(x, y, out) {
+    const sx = (x - y) * 32, sy = (x + y) * 16;
+    for (let k = 0; k < 4; k++) {
+      const t = roofTileAt(sx, sy - 6 - k * 28);
+      const tx = t[0], ty = t[1];
+      if (tx + ty <= x + y) continue;                 // drawn before the character
+      if (!W.inb(tx, ty)) continue;
+      const b = W.blds[W.room[ty * C.W + tx]];
+      if (b) out.push(b);
+    }
+    return out;
+  }
+
   function drawObj(o, tx, ty, S) {
     const d = D[o.t], a = o.fa === undefined ? 1 : o.fa;
     if (d.wall) { drawWall(o, d, tx, ty, a); return; }
