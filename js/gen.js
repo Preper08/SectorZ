@@ -317,6 +317,15 @@
     }
     // guarantee a gun shop
     for (const b of W.blds) if (b && b.kind === 'shop' && b.shop === 'hardware') { b.shop = 'guns'; b.name = 'guns'; for (const p of b.props) if (p.t === O.SHELF) p.loot = 'guns'; break; }
+    // guarantee a clothing shop. Shop types are picked at random, so a town could come out with
+    // no clothier at all and clothing then depended on the handful of wardrobes. A general store
+    // is the safest one to convert: it uses the same 'store' shelves as any other shop, so only
+    // its name, shop tag and shelf loot table change. Same approach as the gun shop above.
+    if (!W.blds.some(b => b && b.kind === 'shop' && b.shop === 'clothing')) {
+      let target = W.blds.find(b => b && b.kind === 'shop' && b.shop === 'general');
+      if (!target) target = W.blds.find(b => b && b.kind === 'shop' && b.shop !== 'guns' && b.shop !== 'hardware');
+      if (target) { target.shop = 'clothing'; target.name = 'clothing'; for (const p of target.props) if (p.t === O.SHELF) p.loot = 'clothing'; }
+    }
     streets();
     forest();
     // A door must lead somewhere. Interior partitions are handled per building (Bld.repairDoors),

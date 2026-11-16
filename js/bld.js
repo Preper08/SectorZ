@@ -206,7 +206,30 @@
         if (t === 'living') { floorRect(r, rng() < 0.5 ? G.WOOD : G.CARPET); put(b, r, rng, O.COUCH, { loot: 'living' }); put(b, r, rng, O.TV); put(b, r, rng, O.BOOKSHELF, { loot: 'books' }); putFree(b, r, rng, O.TABLE); if (rng() < 0.6) put(b, r, rng, O.BOOKSHELF, { loot: 'books' }); }
         else if (t === 'kitchen') { floorRect(r, G.LINO); put(b, r, rng, O.FRIDGE, { loot: 'fridge' }); put(b, r, rng, O.KCAB, { loot: 'kitchen' }); put(b, r, rng, O.KCAB, { loot: 'kitchen' }); put(b, r, rng, O.COUNTER, { loot: 'kitchen' }); put(b, r, rng, O.SINK); if (rng() < 0.7) putFree(b, r, rng, O.TABLE); if (rng() < 0.7) putFree(b, r, rng, O.CHAIR); }
         else if (t === 'bath') { floorRect(r, G.TILE); put(b, r, rng, O.TOILET); put(b, r, rng, O.SINK); put(b, r, rng, O.MEDCAB, { loot: 'medical' }); }
-        else { floorRect(r, G.CARPET); put(b, r, rng, O.BED, { loot: 'bedroom' }); put(b, r, rng, O.WARDROBE, { loot: 'clothes' }); if (rng() < 0.5) put(b, r, rng, O.DESK, { loot: 'office' }); if (rng() < 0.4) put(b, r, rng, O.CRATE, { loot: 'attic' }); }
+        else { floorRect(r, G.CARPET); put(b, r, rng, O.BED, { loot: 'bedroom' }); put(b, r, rng, O.WARDROBE, { loot: 'clothes' }); if (rng() < 0.5) put(b, r, rng, O.DESK, { loot: 'office' }); }
+      }
+      // Guarantee a bedroom in every house. Two separate problems had to be covered:
+      //   - houses with one or two rooms spend them all on living and kitchen, so no room is ever
+      //     typed 'bed' and the town ends up with almost no wardrobes;
+      //   - even when a room is typed 'bed', put() can fail to find a free wall tile in a small
+      //     room, so the furniture silently goes missing.
+      // Both are handled by checking what was actually placed and topping it up, rather than by
+      // re-typing rooms (which would trade a kitchen's four containers for a wardrobe).
+      const hasProp = t => b.props.some(p => p.t === t);
+      const wanted = [];
+      if (!hasProp(O.BED)) wanted.push([O.BED, { loot: 'bedroom' }]);
+      if (!hasProp(O.WARDROBE)) wanted.push([O.WARDROBE, { loot: 'clothes' }]);
+      for (const w of wanted) {
+        // smallest rooms first, so a spare bedroom reads better than cluttering the living room
+        let placed = false;
+        for (const r of sorted.slice().reverse()) { if (put(b, r, rng, w[0], w[1])) { placed = true; break; } }
+        // last resort: any free interior tile, in case no room has a usable wall run left
+        if (!placed) for (const r of sorted) { if (putFree(b, r, rng, w[0], w[1])) break; }
+      }
+      // Attic crate: an occasional crate of stored odds and ends. This used to be placed inside
+      // the bedroom branch, so houses without a bedroom never had one at all. Any room will do.
+      if (rng() < 0.4) {
+        for (const r of sorted) { if (put(b, r, rng, O.CRATE, { loot: 'attic' })) break; }
       }
     } else if (kind === 'shop' || kind === 'super' || kind === 'diner' || kind === 'gasstore') {
       const s = b.sales, bk = b.back, st = b.shop || 'general';
