@@ -245,15 +245,21 @@
     const playerOccl = roofOccluder(px, py, []);
     const playerHidden = playerOccl.length > 0 && !(insideB && playerOccl.indexOf(insideB) >= 0);
     if (playerHidden) for (const b of playerOccl) b._hide = 0.42;
+    // the character the wall cutaway has to clear: the nearest hidden one on screen
+    let selx = px, sely = py, selTop = 84, selAny = playerHidden;
     for (const z of S.zombies) {
       if (z.dead || Math.abs(z.x - px) > 22 || Math.abs(z.y - py) > 22) continue;
       if (W.buildingAt(Math.floor(z.x), Math.floor(z.y))) continue;   // indoors: as before
-      for (const b of roofOccluder(z.x, z.y, [])) if (b._hide === undefined) b._hide = 0.55;
+      const occ = roofOccluder(z.x, z.y, []);
+      if (!occ.length) continue;
+      for (const b of occ) if (b._hide === undefined) b._hide = 0.55;
+      if (!selAny) { selx = z.x; sely = z.y; selTop = 46; selAny = true; }
     }
     for (const b of W.blds) {
       if (!b) continue;
       const tgt = insideB === b ? 0 : (b._hide === undefined ? 1 : b._hide);
       b.roofA = b.roofA === undefined ? 1 : b.roofA + (tgt - b.roofA) * Math.min(1, dt * 7);
+      b._hideW = b._hide !== undefined;   // kept for the wall cutaway below
       b._hide = undefined;
     }
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
@@ -265,6 +271,11 @@
         const d = D[o.t];
         // cutaway: walls in front of the player when inside their building
         if (d.wall && insideB && o.b === insideB.id && tx + ty > pkey - 0.4 && Math.abs(tx - px) < 11 && Math.abs(ty - py) < 11) o.ft = 0.14;
+        // Same cutaway for a player standing OUTSIDE: a faded roof alone is not enough because
+        // the near wall still covers them. Only the walls that actually overlap the character on
+        // screen are cleared - walls of that building further away stay solid, so the house keeps
+        // its shape instead of turning into a wireframe.
+        else if (d.wall && o.b && tx + ty > pkey + 0.4 && W.blds[o.b] && W.blds[o.b]._hideW && wallCovers(tx, ty, selx, sely, selTop)) o.ft = 0.14;
         else if (d.tall && tx + ty > pkey + 0.5 && tx + ty < pkey + 6 && Math.abs((tx - ty) - (px - py)) < 2.4) o.ft = 0.38;
         else o.ft = 1;
         o.fa = o.fa === undefined ? o.ft : o.fa + (o.ft - o.fa) * Math.min(1, dt * 9);
@@ -449,6 +460,16 @@
       if (b) out.push(b);
     }
     return out;
+  }
+
+  // Does the wall on tile (tx,ty) cover a character standing at world (sx,sy)? A wall is a
+  // 64-wide, 92-high box standing on its tile, drawn from ((tx-ty)*32, (tx+ty)*16 - 76) upwards.
+  // Comparing the two screen boxes is exact enough to single out the walls that really hide
+  // someone, so the rest of the house keeps its walls instead of turning into a wireframe.
+  function wallCovers(tx, ty, sx, sy, selTop) {
+    const bx = (tx - ty) * 32, by = (tx + ty) * 16;
+    const cx2 = (sx - sy) * 32, cy2 = (sx + sy) * 16;
+    return bx + 34 > cx2 - 22 && bx - 34 < cx2 + 22 && by + 34 > cy2 - selTop && by - C.WH - 8 < cy2;
   }
 
   function drawObj(o, tx, ty, S) {
