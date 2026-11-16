@@ -80,6 +80,7 @@
     UI.tvSeed = tv ? (((tv.x * 73856093) ^ (tv.y * 19349663)) >>> 0) % 1000 : 0;
     UI.tvChannel = 1;                                  // every set tunes in to channel 1 first
     UI.tvSwitch = 0;
+    if (A.tvMusic) A.tvMusic(false);                   // no TV music on channel 1
     buildTVChannels();
     els.tvch.textContent = tvChannelLabel();
     els.tvwin.classList.remove('hidden');
@@ -87,7 +88,7 @@
     if (S) S.paused = true; // freeze player movement and the world while watching (same as the pause menu)
     A.play('click');
   };
-  UI.closeTV = function () { if (!UI.open.tv) return; UI.open.tv = false; els.tvwin.classList.add('hidden'); if (S && !UI.open.menu) S.paused = false; A.play('click'); };
+  UI.closeTV = function () { if (!UI.open.tv) return; UI.open.tv = false; if (A.tvMusic) A.tvMusic(false); els.tvwin.classList.add('hidden'); if (S && !UI.open.menu) S.paused = false; A.play('click'); };
   // Channel strip: one button per channel, wired to the same setTvChannel() the number keys use.
   function buildTVChannels() {
     const box = document.getElementById('tvchans');
@@ -116,6 +117,8 @@
     UI.tvSwitch = 0.28;                                // brief flicker on retune, like a real set
     els.tvch.textContent = tvChannelLabel();
     for (const b of document.querySelectorAll('#tvchans button')) b.classList.toggle('on', b.textContent === 'CH ' + ch);
+    // channel 2 is the studio commentary feed, so it carries its own news bed
+    A.tvMusic(ch === 2);
     A.play('click', null, null, 0.35);
   }
   UI.setTvChannel = setTvChannel;
