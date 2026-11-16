@@ -86,6 +86,11 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 
 /* ---------- windows ---------- */
 .win { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 20; max-width: 96vw; max-height: 94vh; display: flex; flex-direction: column; background: var(--panel); }
+/* The hotbar occupies the bottom strip of the screen during play. Reserve that space so the
+   inventory window never covers it - otherwise the end of the Condition list sat behind the
+   hotbar and could not be read. The window is centred in the area above the hotbar and may
+   use all of that height (it scrolls if the content is taller still). */
+#win { top: calc(50% - 45px); max-height: calc(100vh - 104px); }
 .whead { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 0 6px 0 10px; background: rgba(0,0,0,0.18); }
 .x { background: none; border: none; color: var(--dim); font-size: 16px; cursor: pointer; padding: 8px 10px; } .x:hover { color: var(--text); }
 .wbody { display: flex; gap: 16px; padding: 14px; overflow: auto; }

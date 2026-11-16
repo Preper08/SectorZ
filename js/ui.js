@@ -4,7 +4,12 @@
   const DSZ = window.DSZ, U = DSZ.U, C = DSZ.C, W = DSZ.World, O = DSZ.O, I = DSZ.ITEMS, Inv = DSZ.Inv, A = DSZ.Audio, In = DSZ.Input;
   const $ = id => document.getElementById(id);
   const UI = DSZ.UI = { open: { win: false, tab: 'inv', map: false, menu: false, settings: false, controls: false, title: true, death: false, tv: false }, loot: null, drag: null };
-  const CELL = 44;
+  // Grid cell size. Normally 44px, but it shrinks (down to CELL_MIN) when a big bag plus an
+  // open container would make the window wider than the screen and push the loot column out
+  // of view. Every grid layout and every drag/drop calculation below uses CELL, so changing
+  // it scales the whole inventory consistently. fitCell() picks the value on each render.
+  const CELL_MAX = 44, CELL_MIN = 20;
+  let CELL = CELL_MAX;
   let vitalNodes = [];
   let S = null, els = {}, imgCache = {}, craftTab = 'Survival', craftSel = null, hudT = 0, hotSig = '', toastSig = '', hovered = null, mmCanvas = null, mapRendered = null;
 
@@ -19,6 +24,7 @@
     for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
+    els.eqcol = $('eqcol');
     els.ver.textContent = 'v' + C.VERSION;
     els.tvx.onclick = () => UI.closeTV(); els.tvclose.onclick = () => UI.closeTV();
     // tabs
@@ -44,6 +50,9 @@
     // mouse for drag
     window.addEventListener('mousemove', e => { els.cursor.style.left = e.clientX + 'px'; els.cursor.style.top = e.clientY + 'px'; dragMove(e); if (!els.tip.classList.contains('hidden')) posTip(e); });
     window.addEventListener('mouseup', dragUp);
+    // Re-fit the inventory when the window is resized, so an open container never drifts
+    // off screen after the player resizes the game.
+    window.addEventListener('resize', () => { if (UI.open.win && UI.open.tab === 'inv') renderInv(); });
     els.cursor.classList.remove('hidden');
     buildSettings(); buildControls();
     DSZ.on('death', s => UI.showDeath(s));
@@ -166,9 +175,41 @@
     e.addEventListener('mouseenter', () => { hovered = it; showTip(it, e); }); e.addEventListener('mouseleave', hideTip);
     return e;
   }
+  // Largest cell size that still keeps the equipment column, the widest storage grid and
+  // (when a container is open) the container column visible at the same time. The 276px
+  // equipment column is fixed by CSS; every grid column grows with CELL.
+  function fitCell() {
+    if (!S) return CELL_MAX;
+    if (!UI.open.win) return CELL_MAX;
+    const P = S.player.inv;
+    let storeCols = 0;
+    for (const slot of Inv.STORE) { const g = Inv.gridOf(P, slot); if (g && g.w > storeCols) storeCols = g.w; }
+    const lootCols = UI.loot ? UI.loot.grid.w : 0;
+    const cols = storeCols + lootCols;
+    if (!cols) return CELL_MAX;
+    // Measure what does NOT scale with CELL: the equipment column, the gaps between columns,
+    // the per-grid borders and the body padding. Everything else is (columns * CELL).
+    // The available width is derived from the viewport (not the current window width) so the
+    // result cannot oscillate: the window is capped at 96vw, so we only shrink when the
+    // content at full size would not fit that cap.
+    const body = els['tab-inv'];
+    const cs = getComputedStyle(body);
+    // Reserve room for the vertical scrollbar: once the content is taller than the window a
+    // scrollbar appears and steals ~15px of width, which used to re-trigger horizontal scroll.
+    const SCROLLBAR = 16;
+    const avail = (document.documentElement.clientWidth * 0.96 - 2) - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - SCROLLBAR;
+    const gap = parseFloat(cs.columnGap) || 16;
+    const eqW = els.eqcol.getBoundingClientRect().width || 276;
+    const shownCols = (storeCols ? 1 : 0) + (lootCols ? 1 : 0);
+    const fixed = eqW + gap * Math.max(0, shownCols);   // eq col + a gap before each grid column
+    const borders = shownCols * 2;
+    return U.clamp(Math.floor((avail - fixed - borders) / cols), CELL_MIN, CELL_MAX);
+  }
   function renderGrid(name) {
     const el = gridEl(name), g = gridObj(name); if (!el) return; if (!g) { el.style.display = 'none'; return; }
-    el.style.display = 'block'; el.style.width = (g.w * CELL + 2) + 'px'; el.style.height = (g.h * CELL + 2) + 'px'; el.innerHTML = '';
+    el.style.display = 'block'; el.style.width = (g.w * CELL + 2) + 'px'; el.style.height = (g.h * CELL + 2) + 'px';
+    el.style.setProperty('--cell', CELL + 'px');
+    el.innerHTML = '';
     for (const it of g.items) el.appendChild(itemEl(it, name));
   }
   const EQ = [['head', 'Head'], ['body', 'Body'], ['vest', 'Vest'], ['legs', 'Legs'], ['feet', 'Feet'], ['bag', 'Bag'], ['light', 'Light']];
@@ -189,6 +230,7 @@
   }
   function renderInv() {
     if (!S) return; renderEquip(); renderCondition();
+    CELL = fitCell();
     const P = S.player.inv;
     // one storage section per equipped item that provides capacity; capacity is in the title.
     // order follows Inv.STORE (bag first, then legs, body, vest).
