@@ -572,12 +572,6 @@
       const breathe = 0.5 + 0.5 * Math.sin(T * 2.1 + ph);
       // occasional tear: a brief, brighter flash, the way a weak signal jumps
       const tear = Math.sin(T * 6.7 + ph * 3.1) > 0.94 ? 0.5 : 0;
-      let y0 = q[0][1], y1 = q[0][1], x0 = q[0][0], x1 = q[0][0];
-      for (let k = 1; k < 4; k++) {
-        if (q[k][1] < y0) y0 = q[k][1]; if (q[k][1] > y1) y1 = q[k][1];
-        if (q[k][0] < x0) x0 = q[k][0]; if (q[k][0] > x1) x1 = q[k][0];
-      }
-      const hgt = Math.max(1, y1 - y0);
       ctx.beginPath();
       ctx.moveTo(q[0][0], q[0][1]);
       for (let k = 1; k < 4; k++) ctx.lineTo(q[k][0], q[k][1]);
@@ -589,10 +583,24 @@
       // the one allocation that made this cost real milliseconds instead of microseconds.
       ctx.fillStyle = 'rgb(176,212,252)';
       ctx.fill();
-      // rolling refresh band, the bright stripe that travels down a CRT
-      const by = y0 + (((T * 0.30 + ph * 0.11) % 1) * hgt), bh = hgt * 0.18;
+      // rolling refresh band, the bright stripe that travels down a CRT.
+      // Drawn as a slice of the screen quad, not as an axis-aligned rectangle. The quad is a
+      // slanted parallelogram in screen space, so a rect has to be padded to cover it and then
+      // pokes out of the glass at the corners - very visible now that sets are drawn small.
+      // v runs along the quad's vertical edge, so the stripe keeps the screen's own slant.
+      const vh = 0.18;
+      const v0 = Math.min(((T * 0.30 + ph * 0.11) % 1), 1 - vh);   // never leave the glass
+      const v1 = v0 + vh;
+      const ux = q[1][0] - q[0][0], uy = q[1][1] - q[0][1];          // across the screen
+      const vx = q[3][0] - q[0][0], vy = q[3][1] - q[0][1];          // down the screen
       ctx.globalAlpha = it.a * dark * (0.20 + tear * 0.18);
-      ctx.fillRect(x0 - 1, by - bh, (x1 - x0) + 2, bh);
+      ctx.beginPath();
+      ctx.moveTo(q[0][0] + vx * v0, q[0][1] + vy * v0);
+      ctx.lineTo(q[0][0] + ux + vx * v0, q[0][1] + uy + vy * v0);
+      ctx.lineTo(q[0][0] + ux + vx * v1, q[0][1] + uy + vy * v1);
+      ctx.lineTo(q[0][0] + vx * v1, q[0][1] + vy * v1);
+      ctx.closePath();
+      ctx.fill();
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
