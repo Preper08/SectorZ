@@ -114,6 +114,10 @@
     if (!P.equip.legs || P.equip.legs.id !== 'cargopants') Inv.equip(P, Inv.make('cargopants'), Game.dropFn(S));
     if (!P.equip.feet || P.equip.feet.id !== 'boots') Inv.equip(P, Inv.make('boots'), Game.dropFn(S));
     if (P.equip.light && P.equip.light.bat !== undefined) P.equip.light.bat = 100;
+    // The clothing above changed the worn set, so the figure has to be told. Without this the
+    // player keeps whatever look was built at game start, and admin starts in a t-shirt and
+    // shorts while wearing a vest, cargo pants and boots.
+    Game.refreshEquipVisuals(S);
     // put the main weapons into empty hotbar slots (1-4)
     const kit = ['pistol', 'shotgun', 'rifle', 'machete'];
     for (let i = 0; i < P.hot.length; i++) {
