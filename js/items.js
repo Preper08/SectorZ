@@ -101,7 +101,7 @@
   // story - a tracksuit has no rear pockets and only one side seam - but it must never hold
   // less than a pair of shorts, which is what it used to do at a single cell.
   it('shorts', 'Shorts', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 2, rows: 1, col: '#c8b48a', desc: 'Two shallow front pockets.' });
-  it('tracksuit', 'Tracksuit Pants', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 2, rows: 2, col: '#3c5a48', desc: 'Track pants. Four pockets, one with a zip.' });
+  it('tracksuit', 'Tracksuit Pants', 'clothes', { w: 2, h: 2, slot: 'legs', def: 0, cols: 3, rows: 1, col: '#3c5a48', desc: 'Track pants. Two side pockets and a zip pocket.' });
   it('trousers', 'Trousers', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 2, rows: 2, col: '#8a8f96', desc: 'Four pockets.' });
   it('jeans', 'Jeans', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 5, rows: 1, col: '#3a5a8c', desc: 'Sturdy denim. The classic five pockets.' });
   it('cargopants', 'Cargo Pants', 'clothes', { w: 2, h: 2, slot: 'legs', def: 2, cols: 3, rows: 2, col: '#5a6248', desc: 'Six pockets, four of them cargo.' });
