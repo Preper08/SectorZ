@@ -75,7 +75,7 @@
   // available for the Close button. Closing restores play with the player state untouched.
   // Stop every TV audio bed. All beds are independent oscillators, so each one must be told
   // explicitly - missing a call here is what let the channel-2 bed outlive the window earlier.
-  function tvAudioOff() { if (A.tvMusic) A.tvMusic(false); if (A.tvVoice) A.tvVoice(false); if (A.tvTerm) A.tvTerm(false); }
+  function tvAudioOff() { if (A.tvStatic) A.tvStatic(false); if (A.tvMusic) A.tvMusic(false); if (A.tvVoice) A.tvVoice(false); if (A.tvTerm) A.tvTerm(false); }
   // While the popup is open the set is what the player is looking at, so its audio steps forward
   // and the world ambience steps back. Both are restored on close.
   function setTvFocus(on) { if (A.tvFocus) A.tvFocus(!!on); }
@@ -87,8 +87,9 @@
     UI.tvSeed = tv ? (((tv.x * 73856093) ^ (tv.y * 19349663)) >>> 0) % 1000 : 0;
     UI.tvChannel = 1;                                  // every set tunes in to channel 1 first
     UI.tvSwitch = 0;
-    tvAudioOff();                                      // always open silent on channel 1
+    tvAudioOff();                                      // clear any bed left from a previous set
     setTvFocus(true);                                  // broadcast steps forward, world fades back
+    if (A.tvStatic) A.tvStatic(true);                  // channel 1 is on air: the set's own buzz
     buildTVChannels();
     els.tvch.textContent = tvChannelLabel();
     els.tvwin.classList.remove('hidden');
@@ -128,6 +129,7 @@
     for (const b of document.querySelectorAll('#tvchans button')) b.classList.toggle('on', b.textContent === 'CH ' + ch);
     // each channel carries its own audio beds; silence everything, then start the new ones
     tvAudioOff();
+    if (A.tvStatic) A.tvStatic(ch === 1);
     if (A.tvMusic) A.tvMusic(ch === 2);
     if (A.tvVoice) A.tvVoice(ch === 2);
     if (A.tvTerm) A.tvTerm(ch === 4);

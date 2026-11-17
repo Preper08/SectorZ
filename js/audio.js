@@ -4,7 +4,7 @@
   const DSZ = window.DSZ;
   let ac = null, master = null, sfxBus = null, musBus = null, tvBus = null, noiseBuf = null, tvFocused = false;
   let lx = 0, ly = 0;
-  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0, tvVoiceS = null, tvVgen = 0;
+  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0, tvVoiceS = null, tvVgen = 0, tvCh1S = null, tvC1gen = 0;
 
   function mkNoise() {
     const len = ac.sampleRate * 2, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
@@ -203,6 +203,87 @@
         engine.o2.frequency.setTargetAtTime(16 + rpm * 35, t, 0.05);
         engine.f.frequency.setTargetAtTime(260 + rpm * 700, t, 0.05);
         engine.g.gain.setTargetAtTime((0.13 + rpm * 0.12) * (vol === undefined ? 1 : vol), t, 0.08);
+      }
+    },
+    // ---- Channel 1: the set itself, not the broadcast.
+    // Channel 1 shows a dying emergency broadcast, so what the player actually hears is the
+    // television: a 60 Hz mains buzz with its harmonics, the flyback transformer's high whine,
+    // and a soft bed of static. Nothing here is "content" - it is the noise an old CRT makes
+    // when it is powered on and receiving something weak. All of it is procedural, and like the
+    // other beds it lives on the TV bus so the focus mix can lift it over the world.
+    tvStatic(on) {
+      if (!ac) return;
+      if (on && !tvCh1S) {
+        const token = tvC1gen = (tvC1gen + 1);
+        const bus = ac.createGain(); bus.gain.value = 0; bus.connect(tvBus);
+
+        // mains buzz: a 60 Hz sawtooth through two resonant lowpasses. The second filter is what
+        // gives the buzz its nasal, "something is humming in the room" character instead of a
+        // flat electrical tone.
+        const hum = ac.createOscillator(); hum.type = 'sawtooth'; hum.frequency.value = 60;
+        const humF1 = ac.createBiquadFilter(); humF1.type = 'lowpass'; humF1.frequency.value = 220; humF1.Q.value = 5;
+        const humF2 = ac.createBiquadFilter(); humF2.type = 'peaking'; humF2.frequency.value = 120; humF2.Q.value = 2.5; humF2.gain.value = 7;
+        const humG = ac.createGain(); humG.gain.value = 0.026;
+        hum.connect(humF1); humF1.connect(humF2); humF2.connect(humG); humG.connect(bus);
+
+        // flyback whine: the 15.6 kHz line whistle a CRT makes. Kept very low and rolled off
+        // above 12 kHz so it reads as pressure in the ears rather than a piercing tone.
+        const whine = ac.createOscillator(); whine.type = 'sine'; whine.frequency.value = 15600;
+        const whineG = ac.createGain(); whineG.gain.value = 0.0016;
+        const whineLp = ac.createBiquadFilter(); whineLp.type = 'lowpass'; whineLp.frequency.value = 12000;
+        whine.connect(whineLp); whineLp.connect(whineG); whineG.connect(bus);
+
+        // static bed: bandpassed noise with a slow amplitude wobble, so it breathes like a weak
+        // signal instead of hissing at a constant level. Two bands: one around 900 Hz, which is
+        // what makes the set audible on laptop speakers where 60 Hz simply cannot be reproduced,
+        // and a higher hiss near 3.2 kHz for the "weak signal" air.
+        const stat = ac.createBufferSource(); stat.buffer = noiseBuf; stat.loop = true;
+        const statLoF = ac.createBiquadFilter(); statLoF.type = 'bandpass'; statLoF.frequency.value = 900; statLoF.Q.value = 0.9;
+        const statLoG = ac.createGain(); statLoG.gain.value = 0.10;
+        const statHiF = ac.createBiquadFilter(); statHiF.type = 'bandpass'; statHiF.frequency.value = 3200; statHiF.Q.value = 0.45;
+        const statHiG = ac.createGain(); statHiG.gain.value = 0.075;
+        const wob = ac.createOscillator(); wob.type = 'sine'; wob.frequency.value = 0.13;
+        const wobG = ac.createGain(); wobG.gain.value = 0.026;
+        wob.connect(wobG); wobG.connect(statLoG.gain);
+        const wob2 = ac.createOscillator(); wob2.type = 'sine'; wob2.frequency.value = 0.071;
+        const wob2G = ac.createGain(); wob2G.gain.value = 0.02;
+        wob2.connect(wob2G); wob2G.connect(statHiG.gain);
+        stat.connect(statLoF); statLoF.connect(statLoG); statLoG.connect(bus);
+        stat.connect(statHiF); statHiF.connect(statHiG); statHiG.connect(bus);
+
+        // degauss: old sets shudder once when switched on. A short 50 Hz thump with a metallic
+        // ring reads as that.
+        const degauss = (t) => {
+          const o = ac.createOscillator(); o.type = 'sawtooth';
+          o.frequency.setValueAtTime(70, t);
+          o.frequency.exponentialRampToValueAtTime(38, t + 0.5);
+          const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 110; bp.Q.value = 2.5;
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.09, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+          o.connect(bp); bp.connect(g); g.connect(bus);
+          o.start(t); o.stop(t + 0.6);
+        };
+
+        hum.start(); whine.start(); stat.start(); wob.start(); wob2.start();
+        tvCh1S = { bus, hum, whine, stat, wob, wob2, token };
+        bus.gain.setTargetAtTime(0.55, ac.currentTime, 0.45);
+        degauss(ac.currentTime + 0.03);
+      } else if (!on && tvCh1S) {
+        const m = tvCh1S; tvCh1S = null;
+        tvC1gen++;
+        try {
+          m.bus.gain.setTargetAtTime(0.0001, ac.currentTime, 0.15);
+          setTimeout(() => {
+            try { m.hum.stop(); } catch (e) { /* already stopped */ }
+            try { m.whine.stop(); } catch (e) { /* already stopped */ }
+            try { m.stat.stop(); } catch (e) { /* already stopped */ }
+            try { m.wob.stop(); } catch (e) { /* already stopped */ }
+            try { m.wob2.stop(); } catch (e) { /* already stopped */ }
+            try { m.bus.disconnect(); } catch (e) { /* already gone */ }
+          }, 600);
+        } catch (e) { /* ignore */ }
       }
     },
     // ---- Channel 2: the breaking-news bed.
