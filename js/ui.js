@@ -73,9 +73,9 @@
   // ---- interactive TV: a large popup showing the enlarged broadcast of the set we are at.
   // movement and gameplay keys are blocked while open (UI.blockKeys/blockMouse); the mouse stays
   // available for the Close button. Closing restores play with the player state untouched.
-  // Stop every TV audio bed. Both beds are independent oscillators, so each one must be told
+  // Stop every TV audio bed. All beds are independent oscillators, so each one must be told
   // explicitly - missing a call here is what let the channel-2 bed outlive the window earlier.
-  function tvAudioOff() { if (A.tvMusic) A.tvMusic(false); if (A.tvTerm) A.tvTerm(false); }
+  function tvAudioOff() { if (A.tvMusic) A.tvMusic(false); if (A.tvVoice) A.tvVoice(false); if (A.tvTerm) A.tvTerm(false); }
 
   UI.openTV = function (tv) {
     UI.open.tv = true; UI.tvT = 0;
@@ -122,9 +122,10 @@
     UI.tvSwitch = 0.28;                                // brief flicker on retune, like a real set
     els.tvch.textContent = tvChannelLabel();
     for (const b of document.querySelectorAll('#tvchans button')) b.classList.toggle('on', b.textContent === 'CH ' + ch);
-    // each channel carries its own audio bed; silence everything, then start the new one
+    // each channel carries its own audio beds; silence everything, then start the new ones
     tvAudioOff();
     if (A.tvMusic) A.tvMusic(ch === 2);
+    if (A.tvVoice) A.tvVoice(ch === 2);
     if (A.tvTerm) A.tvTerm(ch === 4);
     A.play('click', null, null, 0.35);
   }

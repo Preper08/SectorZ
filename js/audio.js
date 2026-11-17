@@ -4,7 +4,7 @@
   const DSZ = window.DSZ;
   let ac = null, master = null, sfxBus = null, musBus = null, noiseBuf = null;
   let lx = 0, ly = 0;
-  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0;
+  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0, tvVoiceS = null, tvVgen = 0;
 
   function mkNoise() {
     const len = ac.sampleRate * 2, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
@@ -393,6 +393,126 @@
           setTimeout(() => {
             try { m.hum.stop(); } catch (e) { /* already stopped */ }
             try { m.whine.stop(); } catch (e) { /* already stopped */ }
+            try { m.bus.disconnect(); } catch (e) { /* already gone */ }
+          }, 700);
+        } catch (e) { /* ignore */ }
+      }
+    },
+    // ---- Channel 2: the commentator's voice.
+    // A formant "babble" voice, not a recording: one sawtooth glottal source is driven through
+    // three parallel bandpass formant filters, so changing a vowel is just changing F1/F2/F3.
+    // Syllables are scheduled a second ahead with a pitch contour that falls across each phrase
+    // and lands on its last syllable, short noise bursts stand in for consonants, and a breath
+    // of silence separates phrases. It reads unmistakably as a newsreader talking, without any
+    // audio file, speech API or per-syllable node allocation - the whole voice is six nodes and
+    // one timer, and it sits under the ambient wind like the music bed does.
+    tvVoice(on) {
+      if (!ac) return;
+      if (on && !tvVoiceS) {
+        const token = tvVgen = (tvVgen + 1);
+        const bus = ac.createGain(); bus.gain.value = 0;
+        // broadcast speaker band: cut only the sub-bass rumble and the hiss above the voice.
+        // The highpass sits at 90 Hz, not 230: a male fundamental is around 120 Hz, and cutting
+        // there would leave only harmonics behind - a thin, nasal voice instead of a chesty one.
+        const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90; hp.Q.value = 0.6;
+        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3400; lp.Q.value = 0.6;
+        hp.connect(lp); lp.connect(bus); bus.connect(musBus);
+
+        // glottal source: a sawtooth with a little vibrato, shaped later by the syllable envelope
+        const src = ac.createOscillator(); src.type = 'sawtooth'; src.frequency.value = 118;
+        const vib = ac.createOscillator(); vib.type = 'sine'; vib.frequency.value = 5.2;
+        const vibG = ac.createGain(); vibG.gain.value = 1.6;
+        vib.connect(vibG); vibG.connect(src.frequency);
+
+        // formants: three parallel resonators, the classic F1/F2/F3 of a male speaking voice.
+        // Q is deliberately wide (3.4, not 7+): a sawtooth only puts harmonics every F0 apart, so
+        // a very narrow band would catch one harmonic and the voice would come out thin and quiet.
+        // Gains rise towards F2/F3 because a sawtooth falls off as 1/f, and without the lift the
+        // voice ends up bass-heavy mush instead of something that reads as speech.
+        const F = [];
+        const formSum = ac.createGain(); formSum.gain.value = 1;
+        for (const spec of [[700, 1.0], [1220, 1.35], [2600, 0.95]]) {
+          const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = spec[0]; f.Q.value = 3.4;
+          const g = ac.createGain(); g.gain.value = spec[1];
+          src.connect(f); f.connect(g); g.connect(formSum); F.push(f);
+        }
+        // syllable envelope sits after the formants, so only the shaped voice is gated
+        const env = ac.createGain(); env.gain.value = 0.0001;
+        formSum.connect(env); env.connect(hp);
+
+        // consonants: a bandpassed noise burst on its own short envelope
+        const nz = ac.createBufferSource(); nz.buffer = noiseBuf; nz.loop = true;
+        const nF = ac.createBiquadFilter(); nF.type = 'bandpass'; nF.frequency.value = 2600; nF.Q.value = 1.1;
+        const nG = ac.createGain(); nG.gain.value = 0.0001;
+        nz.connect(nF); nF.connect(nG); nG.connect(hp);
+
+        src.start(); vib.start(); nz.start();
+
+        // vowels as (F1, F2, F3), the open unhurried set a reader actually uses
+        const VOW = [
+          [730, 1090, 2440],   // a
+          [530, 1840, 2480],   // e
+          [400, 1900, 2600],   // schwa
+          [570, 840, 2410],    // o
+          [300, 870, 2240],    // u
+          [270, 2290, 3010]    // i
+        ];
+        // Syllable queue. Kept in absolute AudioContext time and topped up ahead of the clock so
+        // a late timer cannot clip a syllable; `left` counts down the syllables of a phrase.
+        const st = { at: ac.currentTime + 1.3, left: 0, len: 6, startF0: 120, phrase: 0 };
+        const schedule = (horizon, now) => {
+          while (st.at < horizon) {
+            if (st.left <= 0) {
+              st.at += 0.18 + Math.random() * 0.22;         // a short breath between phrases
+              if (st.at < now) st.at = now;                  // never schedule into the past
+              st.len = 5 + ((Math.random() * 9) | 0);
+              st.left = st.len;
+              st.startF0 = 118 + Math.random() * 18;
+              st.phrase++;
+            }
+            const t = st.at;
+            const dur = 0.13 + Math.random() * 0.08;
+            const v = VOW[(Math.random() * VOW.length) | 0];
+            // pitch: a slow declination across the phrase, landing on the last syllable
+            const prog = (st.len - st.left) / Math.max(1, st.len - 1);
+            let f0 = st.startF0 * (1.05 - 0.17 * prog) * (1 + (Math.random() - 0.5) * 0.05);
+            if (st.left === 1) f0 *= 0.87;
+            for (let k = 0; k < 3; k++) F[k].frequency.setTargetAtTime(v[k], t, 0.018);
+            src.frequency.setTargetAtTime(f0, t, 0.03);
+            const amp = 0.115 + Math.random() * 0.035;
+            env.gain.setValueAtTime(0.0001, t);
+            env.gain.exponentialRampToValueAtTime(amp, t + 0.028);
+            env.gain.setValueAtTime(amp, t + Math.max(0.05, dur - 0.055));
+            env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            // a leading consonant on roughly every other syllable
+            if (Math.random() < 0.55) {
+              const ct = Math.max(0, t - 0.035);
+              nF.frequency.setValueAtTime(2200 + Math.random() * 1200, ct);
+              nG.gain.setValueAtTime(0.0001, ct);
+              nG.gain.exponentialRampToValueAtTime(0.045, ct + 0.008);
+              nG.gain.exponentialRampToValueAtTime(0.0001, ct + 0.048);
+            }
+            st.at = t + dur + 0.006 + Math.random() * 0.018;
+            st.left--;
+          }
+        };
+        const pump = () => {
+          if (!tvVoiceS || tvVgen !== token) return;
+          schedule(ac.currentTime + 1.0, ac.currentTime);
+        };
+        tvVoiceS = { bus, env, nG, src, vib, nz, F, timer: setInterval(pump, 140), token };
+        bus.gain.setTargetAtTime(0.38, ac.currentTime, 0.6);   // clear of the bed, under the wind
+        pump();
+      } else if (!on && tvVoiceS) {
+        const m = tvVoiceS; tvVoiceS = null;
+        tvVgen++;                                   // invalidate any in-flight scheduler tick
+        clearInterval(m.timer);
+        try {
+          m.bus.gain.setTargetAtTime(0.0001, ac.currentTime, 0.18);
+          setTimeout(() => {
+            try { m.src.stop(); } catch (e) { /* already stopped */ }
+            try { m.vib.stop(); } catch (e) { /* already stopped */ }
+            try { m.nz.stop(); } catch (e) { /* already stopped */ }
             try { m.bus.disconnect(); } catch (e) { /* already gone */ }
           }, 700);
         } catch (e) { /* ignore */ }
