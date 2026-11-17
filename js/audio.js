@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const DSZ = window.DSZ;
-  let ac = null, master = null, sfxBus = null, musBus = null, noiseBuf = null;
+  let ac = null, master = null, sfxBus = null, musBus = null, tvBus = null, noiseBuf = null, tvFocused = false;
   let lx = 0, ly = 0;
   let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0, tvVoiceS = null, tvVgen = 0;
 
@@ -46,6 +46,27 @@
     e.gain.exponentialRampToValueAtTime(gain, t + (attack || 0.005));
     e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(e); e.connect(g); o.start(t); o.stop(t + dur + 0.05);
+  }
+
+  // TV mix. While the popup is open the set is what the player is looking at, so the broadcast
+  // should sit on top of the world instead of being buried under the wind and footsteps.
+  //   - ambient/music bus ducks to 30% of its normal level
+  //   - world one-shot sfx duck too, so a nearby zombie or a step cannot talk over the news
+  //   - the TV bus rises to 185% of normal
+  // That is a 6x gap between the broadcast and the world, which is what makes the set read as
+  // the thing the player is listening to. All three are driven from the single music volume
+  // setting, so the user's slider (and the Volume setting above it) still governs the result.
+  const TV_DUCK = 0.30, TV_BOOST = 1.85, SFX_DUCK = 0.34, SFX_BASE = 0.9;
+  function applyTvMix(t, smooth) {
+    if (!ac || !musBus || !tvBus || !sfxBus) return;
+    const lv = DSZ.settings.music * 0.5;
+    const set = (param, v) => {
+      if (smooth > 0) param.setTargetAtTime(v, t, smooth);
+      else param.value = v;
+    };
+    set(musBus.gain, tvFocused ? lv * TV_DUCK : lv);
+    set(tvBus.gain, tvFocused ? lv * TV_BOOST : lv);
+    set(sfxBus.gain, tvFocused ? SFX_BASE * SFX_DUCK : SFX_BASE);
   }
 
   const SFX = {
@@ -111,11 +132,29 @@
         master.connect(comp); comp.connect(ac.destination);
         sfxBus = ac.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(master);
         musBus = ac.createGain(); musBus.gain.value = DSZ.settings.music * 0.5; musBus.connect(master);
+        // The TV gets its own bus, separate from the ambient/music bus. While a set is open the
+        // ambient bus is ducked and this one keeps its level, so the broadcast sits clearly on
+        // top of the wind instead of being buried in it.
+        tvBus = ac.createGain(); tvBus.gain.value = DSZ.settings.music * 0.5; tvBus.connect(master);
         noiseBuf = mkNoise();
         Audio.ready = true;
       } catch (e) { Audio.ready = false; }
     },
-    setVolume() { if (master) { master.gain.value = DSZ.settings.volume; musBus.gain.value = DSZ.settings.music * 0.5; } },
+    setVolume() {
+      if (!master) return;
+      master.gain.value = DSZ.settings.volume;
+      applyTvMix(ac.currentTime, 0.05);
+    },
+    // While a TV popup is open the player is watching that set, so the world audio should step
+    // back: duck the ambient/music bus and raise the TV bus above it. Restoring on close returns
+    // both buses to exactly their previous levels. The TV bus is raised, not boosted past the
+    // master, so the user's own volume and music settings are still respected.
+    tvFocus(on) {
+      if (!ac || !musBus || !tvBus) return;
+      if (on === tvFocused) return;
+      tvFocused = !!on;
+      applyTvMix(ac.currentTime, tvFocused ? 0.25 : 0.45);
+    },
     setListener(x, y) { lx = x; ly = y; },
     play(name, x, y, vol, maxd) {
       if (!ac || !SFX[name]) return;
@@ -177,7 +216,7 @@
         const t0 = ac.currentTime + 0.05;
         // generation token: a stale scheduler tick from a previous set must never revive the bed
         const gen = tvGen = (tvGen + 1);
-        const bed = ac.createGain(); bed.gain.value = 0; bed.connect(musBus);
+        const bed = ac.createGain(); bed.gain.value = 0; bed.connect(tvBus);
         const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 900; filt.Q.value = 0.7;
         filt.connect(bed);
 
@@ -295,7 +334,7 @@
       if (!ac) return;
       if (on && !tvTermS) {
         const gen = tvTgen = (tvTgen + 1);
-        const bus = ac.createGain(); bus.gain.value = 0; bus.connect(musBus);
+        const bus = ac.createGain(); bus.gain.value = 0; bus.connect(tvBus);
         // CRT hum: mains buzz through a resonant lowpass
         const hum = ac.createOscillator(); hum.type = 'sawtooth'; hum.frequency.value = 60;
         const humF = ac.createBiquadFilter(); humF.type = 'lowpass'; humF.frequency.value = 240; humF.Q.value = 4;
@@ -416,7 +455,7 @@
         // there would leave only harmonics behind - a thin, nasal voice instead of a chesty one.
         const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90; hp.Q.value = 0.6;
         const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3400; lp.Q.value = 0.6;
-        hp.connect(lp); lp.connect(bus); bus.connect(musBus);
+        hp.connect(lp); lp.connect(bus); bus.connect(tvBus);
 
         // glottal source: a sawtooth with a little vibrato, shaped later by the syllable envelope
         const src = ac.createOscillator(); src.type = 'sawtooth'; src.frequency.value = 118;

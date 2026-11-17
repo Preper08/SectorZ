@@ -76,6 +76,9 @@
   // Stop every TV audio bed. All beds are independent oscillators, so each one must be told
   // explicitly - missing a call here is what let the channel-2 bed outlive the window earlier.
   function tvAudioOff() { if (A.tvMusic) A.tvMusic(false); if (A.tvVoice) A.tvVoice(false); if (A.tvTerm) A.tvTerm(false); }
+  // While the popup is open the set is what the player is looking at, so its audio steps forward
+  // and the world ambience steps back. Both are restored on close.
+  function setTvFocus(on) { if (A.tvFocus) A.tvFocus(!!on); }
 
   UI.openTV = function (tv) {
     UI.open.tv = true; UI.tvT = 0;
@@ -85,6 +88,7 @@
     UI.tvChannel = 1;                                  // every set tunes in to channel 1 first
     UI.tvSwitch = 0;
     tvAudioOff();                                      // always open silent on channel 1
+    setTvFocus(true);                                  // broadcast steps forward, world fades back
     buildTVChannels();
     els.tvch.textContent = tvChannelLabel();
     els.tvwin.classList.remove('hidden');
@@ -92,7 +96,7 @@
     if (S) S.paused = true; // freeze player movement and the world while watching (same as the pause menu)
     A.play('click');
   };
-  UI.closeTV = function () { if (!UI.open.tv) return; UI.open.tv = false; tvAudioOff(); els.tvwin.classList.add('hidden'); if (S && !UI.open.menu) S.paused = false; A.play('click'); };
+  UI.closeTV = function () { if (!UI.open.tv) return; UI.open.tv = false; tvAudioOff(); setTvFocus(false); els.tvwin.classList.add('hidden'); if (S && !UI.open.menu) S.paused = false; A.play('click'); };
   // Channel strip: one button per channel, wired to the same setTvChannel() the number keys use.
   function buildTVChannels() {
     const box = document.getElementById('tvchans');
@@ -180,6 +184,7 @@
     // a TV may be open on a channel with its own audio: stop every bed before dropping the flag,
     // otherwise it keeps playing (and stacking) after the new game starts
     tvAudioOff();
+    setTvFocus(false);
     UI.loot = null; UI._isig = '';
     UI.open.win = false; UI.open.map = false; UI.open.menu = false; UI.open.settings = false;
     UI.open.controls = false; UI.open.tv = false; UI.open.death = false;
@@ -593,7 +598,8 @@
     if (UI.open.tv) renderTV(dt);
     // safety net: no channel may outlive the popup. If the window is gone but a channel is still
     // tuned (e.g. a transition bypassed closeTV), reset to 1 and silence the commentary bed.
-    else if (UI.tvChannel !== 1) { UI.tvChannel = 1; tvAudioOff(); }
+    // Focus is restored here too, so no code path can leave the world audio stuck ducked.
+    else { if (UI.tvChannel !== 1) UI.tvChannel = 1; tvAudioOff(); setTvFocus(false); }
     els.cursor.classList.toggle('ui', UI.blockMouse());
     if (!UI.open.title) {
       // key handling
