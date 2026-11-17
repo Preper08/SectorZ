@@ -172,6 +172,7 @@
   // ---------------------------------------------------------------- frame
   R.frame = function (S, dt) {
     roofFrame++; roofBakeBudget = 4;
+    tvGlowN = 0;
     R.stats.roofTiles = 0; R.stats.roofDraws = 0; R.stats.wallDraws = 0;
     T = S.time; zoom = S.cam.zoom * (R.zoomBoost || 1);
     const shake = S.cam.shake || 0, sxk = shake ? (Math.random() - 0.5) * shake * 6 : 0, syk = shake ? (Math.random() - 0.5) * shake * 6 : 0;
@@ -337,6 +338,7 @@
     // ---- emissive glows (lamps/fire flares) in world space
     ctx.setTransform(zoom, 0, 0, zoom, VW / 2 - camIx * zoom, VH / 2 - camIy * zoom);
     drawFlares(S, dl);
+    drawTvGlows(dl, px, py, insideB);      // after the lightmap, so night cannot multiply it away
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     drawPost(S, dl);
   };
@@ -501,6 +503,99 @@
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     }
     if (o.t === O.TRAFFIC && !o.dead) { const ph = ((S.time * 0.3 + (o.phase | 0)) | 0) % 3; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = ph === 0 ? 'rgba(255,50,40,0.9)' : (ph === 1 ? 'rgba(255,200,40,0.9)' : 'rgba(60,255,90,0.9)'); const hs = (S.time * 0.5 + tx) % 7 < 2; if (!hs) { ctx.beginPath(); ctx.arc(cx + 3, cy - 3 * 39.2 + 20 + ph * 7, 2.2, 0, 7); ctx.fill(); } ctx.globalCompositeOperation = 'source-over'; }
+    // The screen light is queued here but drawn after the lightmap (see drawTvGlows). The
+    // lightmap is composited with 'multiply' over the whole world, which would eat a glow painted
+    // during the normal object pass and leave the set dark at exactly the hour it should be
+    // brightest.
+    if (o.t === O.TV && a > 0.5) pushTvGlow(o, tx, ty, a);
+  }
+  // ---------------------------------------------------------------- world TV glow
+  // The set's picture is baked into a cached sprite, so it cannot animate by itself. Instead the
+  // screen quad is re-projected every frame and a soft light is laid over it with 'lighter', which
+  // reads as a CRT that is running: a slow breathing brightness, a band that rolls down the glass,
+  // and every so often a short tear. Two fills on a quad, no new canvas, no texture.
+  const tvGlowPool = [], tvGlowQueue = [];
+  let tvGlowN = 0;
+  function pushTvGlow(o, tx, ty, a) {
+    let it = tvGlowPool[tvGlowN];
+    if (!it) it = tvGlowPool[tvGlowN] = {};
+    it.o = o; it.tx = tx; it.ty = ty; it.a = a;
+    tvGlowQueue[tvGlowN] = it;
+    tvGlowN++;
+  }
+  function drawTvGlows(dl, px, py, insideB) {
+    if (!tvGlowN) return;
+    // A CRT is bright against a dark room and nearly lost in daylight, so the effect follows the
+    // inverse of the daylight curve rather than running at a constant strength.
+    const dark = 1 - dl * 0.72;
+    for (let i = 0; i < tvGlowN; i++) {
+      const it = tvGlowQueue[i];
+      const q = DSZ.Props.tvScreenQuad(it.o, it.tx, it.ty);
+      if (!q) continue;                                   // screen turned away from the camera
+      // Walls in front of the set must hide its light, exactly as they hide the set itself. Walls
+      // are drawn in depth order, so any wall on a tile deeper than the TV (tx+ty larger) and
+      // overlapping the screen quad on the page is in front of it. Its own building's walls count
+      // too - a screen facing into a wall is not visible from outside the room.
+      //
+      // This check is only a handful of tile lookups on a 7x7 neighbourhood, so it stays far
+      // cheaper than clipping the glow with a canvas path, and it needs no offscreen buffer.
+      const key = it.tx + it.ty + 1;
+      let hiddenBy = 0;
+      {
+        let qx0 = q[0][0], qx1 = q[0][0], qy0 = q[0][1], qy1 = q[0][1];
+        for (let k = 1; k < 4; k++) {
+          if (q[k][0] < qx0) qx0 = q[k][0]; if (q[k][0] > qx1) qx1 = q[k][0];
+          if (q[k][1] < qy0) qy0 = q[k][1]; if (q[k][1] > qy1) qy1 = q[k][1];
+        }
+        for (let dy = -2; dy <= 2 && !hiddenBy; dy++) for (let dx = -2; dx <= 2; dx++) {
+          const wx = it.tx + dx, wy = it.ty + dy;
+          if (wx + wy + 1 <= key) continue;               // drawn before the set, cannot cover it
+          if (!W.inb(wx, wy)) continue;
+          const wo = W.obj[wy * C.W + wx];
+          if (!wo || !D[wo.t].wall || wo.fa < 0.5) continue;   // faded walls do not hide anything
+          const bx = (wx - wy) * 32, by = (wx + wy) * 16;
+          if (bx + 34 > qx0 && bx - 34 < qx1 && by + 34 > qy0 && by - C.WH - 8 < qy1) { hiddenBy = 1; break; }
+        }
+        // A roof over the set is opaque too, and very much in front when the viewer is outside.
+        // Roofs fade as you walk in, so honouring roofA means the glow appears exactly when the
+        // ceiling above the set has opened up - never through an intact roof.
+        if (!hiddenBy) {
+          const rb = W.room[it.ty * C.W + it.tx];
+          if (rb) {
+            const b = W.blds[rb];
+            if (b && b.roofA > 0.5) hiddenBy = 1;
+          }
+        }
+      }
+      if (hiddenBy) continue;
+      const ph = it.tx * 2.7 + it.ty * 1.9;
+      const breathe = 0.5 + 0.5 * Math.sin(T * 2.1 + ph);
+      // occasional tear: a brief, brighter flash, the way a weak signal jumps
+      const tear = Math.sin(T * 6.7 + ph * 3.1) > 0.94 ? 0.5 : 0;
+      let y0 = q[0][1], y1 = q[0][1], x0 = q[0][0], x1 = q[0][0];
+      for (let k = 1; k < 4; k++) {
+        if (q[k][1] < y0) y0 = q[k][1]; if (q[k][1] > y1) y1 = q[k][1];
+        if (q[k][0] < x0) x0 = q[k][0]; if (q[k][0] > x1) x1 = q[k][0];
+      }
+      const hgt = Math.max(1, y1 - y0);
+      ctx.beginPath();
+      ctx.moveTo(q[0][0], q[0][1]);
+      for (let k = 1; k < 4; k++) ctx.lineTo(q[k][0], q[k][1]);
+      ctx.closePath();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = it.a * dark * (0.16 + breathe * 0.15 + tear * 0.18);
+      // Solid fills rather than per-frame createLinearGradient: at this size (the screen is a
+      // handful of pixels tall in the world view) the vertical shading is invisible, and it is
+      // the one allocation that made this cost real milliseconds instead of microseconds.
+      ctx.fillStyle = 'rgb(176,212,252)';
+      ctx.fill();
+      // rolling refresh band, the bright stripe that travels down a CRT
+      const by = y0 + (((T * 0.30 + ph * 0.11) % 1) * hgt), bh = hgt * 0.18;
+      ctx.globalAlpha = it.a * dark * (0.20 + tear * 0.18);
+      ctx.fillRect(x0 - 1, by - bh, (x1 - x0) + 2, bh);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
   }
   function wallMat(o) { return o.t === O.BWALL_W || o.t === O.BDOOR || o.t === O.BWINDOW ? 'bwood' : (o.t === O.BWALL_M ? 'bmetal' : o.mat); }
   function wallKind(o) {
