@@ -786,6 +786,16 @@
     S.difficulty = dk; DSZ.DIFFCUR = DSZ.DIFF[dk];
     if (d.horde) Object.assign(S.horde, d.horde);
     Object.assign(p, d.player); p.inv = d.player.inv; Inv.migrateEquip(p.inv, Game.dropFn(S)); Inv.refreshAll(p.inv, Game.dropFn(S)); p.dead = false; p.vx = p.vy = 0;
+    // A save written by an older build can hold a position wedged between props. Slide the
+    // player to the closest genuinely standable tile instead of dropping them inside geometry,
+    // where moveCircle would block every direction and they would have to wriggle for seconds.
+    if (!p.driving) {
+      const bld = W.buildingAt(Math.floor(p.x), Math.floor(p.y));
+      // Stay inside the same house when possible: sliding along a wall into the street reads as
+      // a teleport, while a step to the nearest free corner of the room does not.
+      const fix = DSZ.Bld.nearbyStandable(p.x, p.y, 6, bld && bld.kind === 'house' ? bld : null);
+      if (fix) { p.x = fix[0]; p.y = fix[1]; }
+    }
     for (const idx of d.removed || []) { const x = idx % C.W, y = (idx / C.W) | 0; const o = W.getObj(x, y); if (o && !o.base) { W.removeObj(x, y); } }
     for (const m of d.mods || []) { const o = W.getObj(m.x, m.y); if (!o) continue; if (m.grid) o.grid = m.grid; if (m.searched) o.searched = true; if (m.broken) o.broken = true; if (m.open !== undefined) o.open = m.open; if (m.locked !== undefined) o.locked = m.locked; if (m.hp !== undefined) o.hp = m.hp; if (m.chop) o.chop = m.chop; W.refresh(m.x, m.y); }
     for (const b of d.base || []) { const o = { t: b.t, f: b.f, v: 0, base: true, b: 0, open: b.open, hp: b.hp, fuel: b.fuel, lit: b.lit, water: b.water, grid: b.grid }; W.setObj(b.x, b.y, o); if (D[b.t].fire && b.lit || b.t === O.BLAMP) Game.attachBaseLight(o); }

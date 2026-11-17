@@ -344,7 +344,7 @@
     // player spawn
     const sh = startHouse || W.blds[1];
     sh.locked = false; const fd = W.getObj(sh.frontDoor[0], sh.frontDoor[1]); if (fd) { fd.locked = false; fd.open = false; }
-    const sp = Bld.randomInterior(sh, rng) || [sh.x + 2.5, sh.y + 2.5];
+    const sp = Bld.playerSpawn(sh, rng) || [sh.x + 2.5, sh.y + 2.5];
     Gen.playerSpawn = sp; Gen.startHouse = sh;
     Gen.zombieSpawns = Gen.zombieSpawns.filter(z => Math.hypot(z[0] - sp[0], z[1] - sp[1]) > 22);
     // forest zombies

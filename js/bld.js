@@ -303,4 +303,73 @@
     }
     return null;
   };
+
+  // Careful spawn picker, used only for the player.
+  //
+  // randomInterior rejects wall tiles but happily returns a spot wedged between furniture:
+  // a 1x1 nook between a wardrobe and two walls passes isSolid and leaves nowhere to walk.
+  // It also allows standing on the tile of a non-solid prop (a chair, a toilet, the bathtub),
+  // which looks like the player spawned inside the object.
+  //
+  // This keeps the same first pick when that pick is already good, so the generated world and
+  // every rng() call stay exactly as they were - only a bad pick is replaced. The replacement
+  // scans the building in a fixed order, so it is deterministic and consumes no randomness.
+  const PLAYER_R = 0.27;
+  // How many of the four axis directions the player could walk in from this tile centre.
+  function openDirs(cx, cy) {
+    const s = 0.45;
+    let n = 0;
+    if (!W.hitCircle(cx + s, cy, PLAYER_R)) n++;
+    if (!W.hitCircle(cx - s, cy, PLAYER_R)) n++;
+    if (!W.hitCircle(cx, cy + s, PLAYER_R)) n++;
+    if (!W.hitCircle(cx, cy - s, PLAYER_R)) n++;
+    return n;
+  }
+  // A tile is a safe standing spot when nothing solid pushes on the player, the tile itself
+  // carries no prop, and at least two axis directions are walkable (never a dead end).
+  Bld.standable = function (x, y) {
+    if (!W.inb(x, y) || W.isSolid(x, y) || W.getObj(x, y)) return false;
+    const cx = x + 0.5, cy = y + 0.5;
+    if (W.hitCircle(cx, cy, PLAYER_R)) return false;
+    return openDirs(cx, cy) >= 2;
+  };
+  // Nearest standable tile around a point, searched by widening rings so the result is the
+  // closest possible replacement. Used to rescue a player position saved inside geometry.
+  // When a building is given, only its interior is considered, so a player saved in a bad spot
+  // inside a house is moved within that house instead of through the wall and out of it.
+  Bld.nearbyStandable = function (cx, cy, maxR, b) {
+    const tx = Math.floor(cx), ty = Math.floor(cy);
+    const inside = (x, y) => !b || (x > b.x && x < b.x + b.w - 1 && y > b.y && y < b.y + b.h - 1);
+    if (inside(tx, ty) && Bld.standable(tx, ty)) return [tx + 0.5, ty + 0.5];
+    for (let r = 1; r <= (maxR || 6); r++) {
+      let best = null, bd = Infinity;
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (!inside(tx + dx, ty + dy)) continue;
+        if (!Bld.standable(tx + dx, ty + dy)) continue;
+        const d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = [tx + dx + 0.5, ty + dy + 0.5]; }
+      }
+      if (best) return best;
+    }
+    return null;
+  };
+  Bld.playerSpawn = function (b, rng) {
+    const first = Bld.randomInterior(b, rng);
+    if (first && Bld.standable(Math.floor(first[0]), Math.floor(first[1]))) return first;
+    // Fallback: walk the interior in a fixed order and take the roomiest tile. Prefer a tile
+    // with all four directions open, then any standable tile, then give up and keep the old pick.
+    let bestFour = null, bestAny = null;
+    for (let y = b.y + 1; y < b.y + b.h - 1; y++) {
+      for (let x = b.x + 1; x < b.x + b.w - 1; x++) {
+        if (W.isSolid(x, y) || W.getObj(x, y)) continue;
+        const cx = x + 0.5, cy = y + 0.5;
+        if (W.hitCircle(cx, cy, PLAYER_R)) continue;
+        const open = openDirs(cx, cy);
+        if (open === 4) { if (!bestFour) bestFour = [cx, cy]; }
+        else if (open >= 2 && !bestAny) bestAny = [cx, cy];
+      }
+    }
+    return bestFour || bestAny || first || [b.x + 2.5, b.y + 2.5];
+  };
 })();
