@@ -18,6 +18,10 @@
     canvas = document.getElementById('game');
     R.scale = DSZ.settings.quality === 'auto' ? 1 : +DSZ.settings.quality || 1;
     document.body.classList.toggle('noblur', !DSZ.settings.blur);
+    // The FPS readout is the only setting that lives purely as a class on one element, so it
+    // has to be applied here at boot; the settings row only toggles it while it is open.
+    // Without this, a saved "Show FPS: On" was forgotten on every reload.
+    document.getElementById('fps').classList.toggle('hidden', !DSZ.settings.showFps);
     await tick('Painting the world…', 0.1);
     DSZ.Tex.init();
     await tick('Preparing renderer…', 0.3);
