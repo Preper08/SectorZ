@@ -951,6 +951,22 @@
       case 'fire': { const sz = pt.size * (0.5 + t); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = t * 0.9; ctx.drawImage(sprites.fire, i[0] - sz / 2, y - sz / 2, sz, sz); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; break; }
       case 'blood': ctx.fillStyle = 'rgba(' + (110 + (pt.seed * 40 | 0)) + ',6,6,' + Math.min(1, t * 2 + 0.2) + ')'; ctx.fillRect(i[0] - pt.size / 2, y - pt.size / 2, pt.size, pt.size); break;
       case 'spark': ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,' + (150 + (t * 80 | 0)) + ',60,' + t + ')'; ctx.fillRect(i[0] - 1, y - 1, 2, 2); ctx.globalCompositeOperation = 'source-over'; break;
+      // TV arc: a blue-white fleck with a short streak behind it, so it reads as electricity
+      // rather than a fire ember. Drawn at roughly half the size of a spark and much whiter.
+      case 'tvSpark': {
+        const a = t;                                    // fade out as it dies
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = 'rgba(190,225,255,' + (a * 0.85) + ')';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(i[0] - pt.vx * 3.2, y - pt.vz * 3.2);
+        ctx.lineTo(i[0], y);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(240,250,255,' + Math.min(1, a * 1.5) + ')';
+        ctx.fillRect(i[0] - 0.9, y - 0.9, 1.8, 1.8);
+        ctx.globalCompositeOperation = 'source-over';
+        break;
+      }
       case 'casing': ctx.fillStyle = '#d8b050'; ctx.fillRect(i[0] - 1, y - 0.5, 2.4, 1.4); break;
       case 'debris': ctx.fillStyle = pt.col || '#7a5a3a'; ctx.fillRect(i[0] - pt.size / 2, y - pt.size / 2, pt.size, pt.size * 0.7); break;
       case 'dust': ctx.globalAlpha = t * 0.35; ctx.drawImage(sprites.smoke, i[0] - pt.size / 2, y - pt.size / 2, pt.size, pt.size); ctx.globalAlpha = 1; break;

@@ -105,6 +105,9 @@
     glass: (g, t) => { noise(g, t, 0.5, 9000, 2500, 1.5, 'highpass', 0.9, 0.001); for (let i = 0; i < 6; i++) tone(g, t + i * 0.05, 0.1, 3000 + Math.random() * 3000, 1500, 'triangle', 0.15); },
     pickup: (g, t) => { tone(g, t, 0.08, 500, 900, 'sine', 0.35); },
     click: (g, t) => tone(g, t, 0.03, 1100, 800, 'square', 0.18),
+    // CRT arc: a very short, very bright tick. Kept tiny on purpose - it fires often when you
+    // stand next to a set, so anything louder would become a nuisance rather than an accent.
+    tvArc: (g, t) => { noise(g, t, 0.035, 4200, 1400, 3.5, 'bandpass', 0.5, 0.001); tone(g, t, 0.02, 2600, 900, 'square', 0.07, 0.001); },
     craft: (g, t) => { tone(g, t, 0.07, 400, 300, 'square', 0.3); tone(g, t + 0.09, 0.07, 500, 380, 'square', 0.3); tone(g, t + 0.2, 0.2, 700, 1000, 'sine', 0.3); },
     build: (g, t) => { noise(g, t, 0.1, 1800, 400, 1, 'bandpass', 0.8); tone(g, t, 0.1, 160, 90, 'square', 0.4); noise(g, t + 0.14, 0.1, 1800, 400, 1, 'bandpass', 0.7); },
     eat: (g, t) => { for (let i = 0; i < 4; i++) noise(g, t + i * 0.12, 0.08, 1800, 600, 1, 'bandpass', 0.5); },
