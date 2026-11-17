@@ -18,22 +18,11 @@
   Inv.uid = 0;
   Inv.def = it => I[it.id];
   Inv.size = it => { const d = I[it.id]; return it.rot ? [d.h, d.w] : [d.w, d.h]; };
-  Inv.grid = (w, h, blocked) => ({ w, h, items: [], blocked: blocked && blocked.length ? blocked.slice() : null });
-  // A grid can carry holes: cells that exist in the rectangle but cannot hold anything. Some
-  // garments have a pocket count that is not a rectangle - jeans have five pockets, which the
-  // old cols/rows pair could only express as a 5x1 strip or a 1x5 column, both of which read
-  // badly in the inventory. A 3x2 bed with one corner closed says "five" and still looks like a
-  // pocket layout. Holes are stored as flat cell indices so a grid survives JSON save/load as-is.
-  Inv.gridUsed = g => g ? g.w * g.h - (g.blocked ? g.blocked.length : 0) : 0;
-  Inv.cellBlocked = (g, x, y) => !!(g && g.blocked && g.blocked.indexOf(y * g.w + x) >= 0);
+  Inv.grid = (w, h) => ({ w, h, items: [] });
 
   Inv.fits = function (g, it, x, y, ignore) {
     const [w, h] = Inv.size(it);
     if (x < 0 || y < 0 || x + w > g.w || y + h > g.h) return false;
-    if (g.blocked) {
-      for (let ry = 0; ry < h; ry++) for (let rx = 0; rx < w; rx++)
-        if (g.blocked.indexOf((y + ry) * g.w + (x + rx)) >= 0) return false;
-    }
     for (const o of g.items) {
       if (o === ignore || o === it) continue;
       const [ow, oh] = Inv.size(o);
@@ -122,15 +111,14 @@
     if (!P.grids) P.grids = { bag: null, legs: null, body: null, vest: null };
     const it = P.equip[slot], d = it && I[it.id];
     const cap = d && d.cols && d.rows ? [d.cols, d.rows] : null;
-    const holes = d && d.holes ? d.holes : null;
     const old = P.grids[slot];
     if (!cap) {
       P.grids[slot] = null;
       if (old) for (const o of old.items) { const left = Inv.give(P, o); if (left && dropFn) dropFn(left); }
       return;
     }
-    if (!old || old.w !== cap[0] || old.h !== cap[1] || JSON.stringify(old.blocked || null) !== JSON.stringify(holes)) {
-      const ng = Inv.grid(cap[0], cap[1], holes);
+    if (!old || old.w !== cap[0] || old.h !== cap[1]) {
+      const ng = Inv.grid(cap[0], cap[1]);
       P.grids[slot] = ng;
       if (old) for (const o of old.items) { if (Inv.addTo(ng, o) !== 0) { const left = Inv.give(P, o); if (left && dropFn) dropFn(left); } }
     }

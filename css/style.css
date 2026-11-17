@@ -103,9 +103,6 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 .grid { position: relative; background-color: rgba(0,0,0,0.25); border: 1px solid var(--line); background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: var(--cell) var(--cell); }
 .gi { position: absolute; background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(255, 255, 255, 0.22); display: flex; align-items: center; justify-content: center; cursor: grab; overflow: hidden; }
 .gi:hover { background: rgba(255, 255, 255, 0.11); border-color: var(--accent); }
-/* closed pocket cell: a garment with five pockets on a 3x2 bed shuts one corner */
-.gi.hole { background: rgba(0, 0, 0, 0.55); border-color: rgba(255, 255, 255, 0.07); cursor: default; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
-.gi.hole:hover { background: rgba(0, 0, 0, 0.55); border-color: rgba(255, 255, 255, 0.07); }
 .gi img { width: 88%; height: 88%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); }
 .gi .q { position: absolute; right: 3px; bottom: 1px; font-size: 12px; font-weight: 700; text-shadow: 0 1px 2px #000; pointer-events: none; }
 .gi .dur { position: absolute; left: 2px; right: 2px; bottom: 1px; height: 3px; background: rgba(0,0,0,0.55); pointer-events: none; }

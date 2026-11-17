@@ -103,7 +103,7 @@
   it('shorts', 'Shorts', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 2, rows: 1, col: '#c8b48a', desc: 'Two shallow front pockets.' });
   it('tracksuit', 'Tracksuit Pants', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 3, rows: 1, col: '#3c5a48', desc: 'Track pants. Two side pockets and a zip pocket.' });
   it('trousers', 'Trousers', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 2, rows: 2, col: '#8a8f96', desc: 'Four pockets.' });
-  it('jeans', 'Jeans', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 3, rows: 2, holes: [5], col: '#3a5a8c', desc: 'Sturdy denim. The classic five pockets.' });
+  it('jeans', 'Jeans', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 1, rows: 5, col: '#3a5a8c', desc: 'Sturdy denim. The classic five pockets.' });
   it('cargopants', 'Cargo Pants', 'clothes', { w: 2, h: 2, slot: 'legs', def: 2, cols: 3, rows: 2, col: '#5a6248', desc: 'Six pockets, four of them cargo.' });
   // feet (FEET slot): sneakers are quieter than boots; running shoes add a small speed bonus
   it('sneakers', 'Sneakers', 'clothes', { w: 1, h: 1, slot: 'feet', def: 1, warm: 2, quiet: 2.5, col: '#8a8a8a', desc: 'Quiet steps.' });

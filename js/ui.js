@@ -210,10 +210,7 @@
     if (d.type === 'light' && it.bat !== undefined) add('Battery', Math.round(it.bat) + '%'); if (it.burn !== undefined) add('Burn time', Math.round(it.burn) + 's');
     if (it.fuel !== undefined && d.type === 'fuel') add('Fuel', Math.round(it.fuel) + ' / ' + d.maxfuel);
     if (d.sick) add('Risk', 'Sickness');
-    if (d.cols) {
-      const cells = d.cols * d.rows - (d.holes ? d.holes.length : 0);
-      add(d.slot === 'bag' ? 'Storage' : 'Pockets', cells + (d.holes ? ' (' + d.cols + ' × ' + d.rows + ')' : ''));
-    }
+    if (d.cols) add(d.slot === 'bag' ? 'Storage' : 'Pockets', d.cols + ' × ' + d.rows);
     if (d.quiet !== undefined) add('Noise', d.quiet);
     add('Size', d.w + ' × ' + d.h);
     return '<div class="t">' + d.type + '</div><b>' + d.name + (it.q > 1 ? ' ×' + it.q : '') + '</b>' + (d.desc ? '<div class="d">' + d.desc + '</div>' : '') + '<div class="s">' + rows.join('') + '</div>';
@@ -301,14 +298,6 @@
     el.style.display = 'block'; el.style.width = (g.w * CELL + 2) + 'px'; el.style.height = (g.h * CELL + 2) + 'px';
     el.style.setProperty('--cell', CELL + 'px');
     el.innerHTML = '';
-    // closed cells: drawn as a solid slot so a 3x2 pocket layout with one corner shut reads as
-    // "five pockets", not as a grid that failed to fill.
-    if (g.blocked) for (const idx of g.blocked) {
-      const bx = idx % g.w, by = (idx / g.w) | 0;
-      const d = document.createElement('div'); d.className = 'gi hole';
-      d.style.cssText = 'left:' + (bx * CELL) + 'px;top:' + (by * CELL) + 'px;width:' + CELL + 'px;height:' + CELL + 'px';
-      el.appendChild(d);
-    }
     for (const it of g.items) el.appendChild(itemEl(it, name));
   }
   const EQ = [['head', 'Head'], ['body', 'Body'], ['vest', 'Vest'], ['legs', 'Legs'], ['feet', 'Feet'], ['bag', 'Bag'], ['light', 'Light']];
@@ -337,7 +326,7 @@
     for (const slot of Inv.STORE) {
       const g = Inv.gridOf(P, slot); if (!g) continue;
       const it = P.equip[slot], name = it ? I[it.id].name : (slot === 'bag' ? 'Bag' : slot);
-      const h = document.createElement('h4'); h.textContent = name + '  ' + g.w + '×' + g.h + (g.blocked ? ' (' + Inv.gridUsed(g) + ')' : ''); col.appendChild(h);
+      const h = document.createElement('h4'); h.textContent = name + '  ' + g.w + '×' + g.h; col.appendChild(h);
       const d = document.createElement('div'); d.className = 'grid'; d.dataset.slot = slot; col.appendChild(d);
       gridEls[slot] = d;
     }
