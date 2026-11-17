@@ -95,12 +95,16 @@
   it('vest', 'Kevlar Vest', 'clothes', { w: 2, h: 2, slot: 'vest', def: 38, warm: 4, cols: 4, rows: 3, col: '#3a4046', desc: 'Reduces bite damage. Many pouches.' });
   it('helmet', 'Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#4c5436' });
   it('cap', 'Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#4a6a8a' });
-  // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags)
-  it('shorts', 'Shorts', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 2, rows: 1, col: '#c8b48a', desc: 'Two pockets.' });
-  it('jeans', 'Jeans', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 2, rows: 1, col: '#3a5a8c', desc: 'Sturdy denim.' });
-  it('trousers', 'Trousers', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 2, rows: 1, col: '#8a8f96', desc: 'Two pockets.' });
-  it('tracksuit', 'Tracksuit Pants', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 1, rows: 1, col: '#3c5a48', desc: 'Comfortable.' });
-  it('cargopants', 'Cargo Pants', 'clothes', { w: 2, h: 2, slot: 'legs', def: 2, cols: 2, rows: 2, col: '#5a6248', desc: 'Cargo pockets.' });
+  // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags).
+  // The ladder follows how much cloth and how many seams an item has, from nothing but a
+  // waistband up to proper cargo trousers: 2, 3, 4, 5, 6. Leg length alone is not the whole
+  // story - a tracksuit has no rear pockets and only one side seam - but it must never hold
+  // less than a pair of shorts, which is what it used to do at a single cell.
+  it('shorts', 'Shorts', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 2, rows: 1, col: '#c8b48a', desc: 'Two shallow front pockets.' });
+  it('tracksuit', 'Tracksuit Pants', 'clothes', { w: 1, h: 2, slot: 'legs', def: 0, cols: 3, rows: 1, col: '#3c5a48', desc: 'Track pants. Two side pockets and a zip pocket.' });
+  it('trousers', 'Trousers', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 2, rows: 2, col: '#8a8f96', desc: 'Four pockets.' });
+  it('jeans', 'Jeans', 'clothes', { w: 2, h: 2, slot: 'legs', def: 1, cols: 5, rows: 1, col: '#3a5a8c', desc: 'Sturdy denim. The classic five pockets.' });
+  it('cargopants', 'Cargo Pants', 'clothes', { w: 2, h: 2, slot: 'legs', def: 2, cols: 3, rows: 2, col: '#5a6248', desc: 'Six pockets, four of them cargo.' });
   // feet (FEET slot): sneakers are quieter than boots; running shoes add a small speed bonus
   it('sneakers', 'Sneakers', 'clothes', { w: 1, h: 1, slot: 'feet', def: 1, warm: 2, quiet: 2.5, col: '#8a8a8a', desc: 'Quiet steps.' });
   it('runners', 'Running Shoes', 'clothes', { w: 1, h: 1, slot: 'feet', def: 0, warm: 1, quiet: 3, speed: 0.08, col: '#c8c8d0', desc: 'Light. Faster running.' });
