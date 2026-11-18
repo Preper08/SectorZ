@@ -206,7 +206,7 @@
       x: spot[0], y: spot[1], ang: p.ang, vx: 0, vy: 0,
       gait: 0, moving: false, r: 0.2,
       barkT: 0, whineT: 6 + Math.random() * 10, wagT: 0, alert: 0,
-      sprite: null, name: 'Zuca'
+      sprite: null, name: 'Rozika'
     };
     return S.dog;
   };

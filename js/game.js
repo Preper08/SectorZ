@@ -827,7 +827,10 @@
     // not an optional extra. A saved dog that ended up inside geometry is nudged to a free tile.
     if (d.dog && isFinite(d.dog.x) && isFinite(d.dog.y)) {
       S.dog = { x: d.dog.x, y: d.dog.y, ang: d.dog.ang || 0, vx: 0, vy: 0, gait: 0, moving: false, r: 0.2,
-                barkT: 0, whineT: 8 + Math.random() * 10, wagT: 0, alert: 0, sprite: null, name: d.dog.name || 'Zuca' };
+                barkT: 0, whineT: 8 + Math.random() * 10, wagT: 0, alert: 0, sprite: null,
+                // A save from the build where she was called Zuca must not keep the old name, so
+                // only a name that differs from both defaults survives the load.
+                name: (d.dog.name && d.dog.name !== 'Zuca') ? d.dog.name : 'Rozika' };
       const u = W.unstick(S.dog.x, S.dog.y, 0.2); S.dog.x = u[0]; S.dog.y = u[1];
     } else {
       DSZ.Dog.spawn(S);
