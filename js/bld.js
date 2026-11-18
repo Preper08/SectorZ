@@ -261,13 +261,17 @@
     } else if (kind === 'police') {
       rooms.forEach(r => r.area = (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1));
       const sorted = rooms.slice().sort((a, c) => c.area - a.area);
-      sorted.forEach((r, i) => { r.type = i === 0 ? 'lobby' : (i === 1 ? 'armory' : (i % 2 ? 'office' : 'cells')); });
+      // A police station has no beds. The two smaller rooms used to be holding cells, each
+      // with a bunk and a toilet in the same space, which read as a bedroom with a lavatory
+      // in the corner. They are now dedicated restrooms instead: the toilet gets a room of
+      // its own, with a sink, and no bed anywhere in the building.
+      sorted.forEach((r, i) => { r.type = i === 0 ? 'lobby' : (i === 1 ? 'armory' : (i % 2 ? 'office' : 'bath')); });
       for (const r of rooms) {
-        floorRect(r, G.LINO);
+        floorRect(r, r.type === 'bath' ? G.TILE : G.LINO);
         if (r.type === 'lobby') { put(b, r, rng, O.DESK, { loot: 'police' }); putFree(b, r, rng, O.CHAIR); putFree(b, r, rng, O.CHAIR); put(b, r, rng, O.BENCH); }
         else if (r.type === 'armory') { for (let i = 0; i < 3; i++) put(b, r, rng, O.LOCKER, { loot: 'armory' }); put(b, r, rng, O.CRATE, { loot: 'armory' }); }
         else if (r.type === 'office') { put(b, r, rng, O.COMPUTERDESK, { loot: 'police' }); put(b, r, rng, O.DESK, { loot: 'office' }); put(b, r, rng, O.LOCKER, { loot: 'locker' }); }
-        else { put(b, r, rng, O.BED, { loot: 'cell' }); put(b, r, rng, O.TOILET); }
+        else { put(b, r, rng, O.TOILET); put(b, r, rng, O.SINK); }
       }
     } else if (kind === 'hospital') {
       rooms.forEach(r => r.area = (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1));
