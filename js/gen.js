@@ -366,6 +366,127 @@
     for (const b of W.blds) if (b && b.lit) {
       for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) { const o = W.getObj(x, y); if (o && o.t === O.WINDOW && o.v === 3) { const ox = x === b.x ? -1 : (x === b.x + b.w - 1 ? 1 : 0), oy = y === b.y ? -1 : (y === b.y + b.h - 1 ? 1 : 0); W.addLight({ x: x + 0.5 + ox * 1.2, y: y + 0.5 + oy * 1.2, r: 4.2, col: [255, 180, 90], a: 0.8, kind: 'window', flick: 3, seed: rng() * 100, h: 1.6 }); } }
     }
+    // The police holding cell is trimmed here, at the very end, where nothing downstream reads
+    // the generator any more. Shrinking it inside Bld.furnish was not safe: adding wall tiles
+    // changes how many attempts Bld.randomInterior needs to find a free tile for a zombie, and
+    // every extra attempt consumes draws, which reshuffles every building generated afterwards.
+    // At this point the cost is zero for the rest of the world.
+    shrinkPoliceCell();
     return Gen;
   };
+
+  // Narrow the first holding cell of the police station so it reads as a cell rather than as
+  // another office-sized room, and fit a cot, a toilet and a sink inside it. Runs after the
+  // whole town exists, takes nothing from rng, and only touches that one building.
+  function shrinkPoliceCell() {
+    const pol = W.blds.find(b => b && b.kind === 'police');
+    if (!pol) return;
+    // bld.js has already re-typed the first holding cell to 'cell' and the second to 'bath',
+    // so the room to trim is the one now called 'cell'.
+    const R2 = pol.rooms.find(r => r.type === 'cell');
+    if (!R2) return;
+    const orig = { x0: R2.x0, y0: R2.y0, x1: R2.x1, y1: R2.y1 };
+    const door = pol.doors.find(d =>
+      ((d[0] === orig.x0 - 1 || d[0] === orig.x1 + 1) && d[1] >= orig.y0 && d[1] <= orig.y1) ||
+      ((d[1] === orig.y0 - 1 || d[1] === orig.y1 + 1) && d[0] >= orig.x0 && d[0] <= orig.x1));
+    const fillWall = (ax0, ay0, ax1, ay1) => {
+      for (let y = ay0; y <= ay1; y++) for (let x = ax0; x <= ax1; x++)
+        W.setObj(x, y, { t: O.WALL, mat: pol.imat, imat: pol.imat, v: (x * 7 + y * 13) & 3, b: pol.id });
+    };
+    // Cut a strip off the side furthest from the door, leaving a room at least 3 tiles across
+    // on the door axis so the doorway is still usable and the player can walk in.
+    if (door) {
+      const doorInSideWall = door[0] === orig.x0 - 1 || door[0] === orig.x1 + 1;
+      if (doorInSideWall) {
+        const h = orig.y1 - orig.y0 + 1, target = Math.max(3, h - 2), cut = h - target;
+        if (cut > 0) {
+          if ((orig.y1 - door[1]) < (door[1] - orig.y0)) { fillWall(orig.x0, orig.y0, orig.x1, orig.y0 + cut - 1); R2.y0 += cut; }
+          else { fillWall(orig.x0, orig.y1 - cut + 1, orig.x1, orig.y1); R2.y1 -= cut; }
+        }
+      } else {
+        const w = orig.x1 - orig.x0 + 1, target = Math.max(3, w - 2), cut = w - target;
+        if (cut > 0) {
+          if ((orig.x1 - door[0]) < (door[0] - orig.x0)) { fillWall(orig.x0, orig.y0, orig.x0 + cut - 1, orig.y1); R2.x0 += cut; }
+          else { fillWall(orig.x1 - cut + 1, orig.y0, orig.x1, orig.y1); R2.x1 -= cut; }
+        }
+      }
+    }
+    // clear the old fixtures, including any the new wall has just covered
+    for (const p of pol.props.slice()) {
+      if (p.t !== O.BED && p.t !== O.TOILET && p.t !== O.SINK) continue;
+      if (p.x < orig.x0 || p.x > orig.x1 || p.y < orig.y0 || p.y > orig.y1) continue;
+      W.removeObj(p.x, p.y); pol.props.splice(pol.props.indexOf(p), 1);
+    }
+    for (let y = R2.y0; y <= R2.y1; y++) for (let x = R2.x0; x <= R2.x1; x++) W.ground[W.idx(x, y)] = G.TILE;
+    // a doorway tile inside the trimmed room, kept free so the door still opens into it
+    let doorTile = null;
+    if (door) {
+      if (door[0] === R2.x0 - 1) doorTile = [R2.x0, door[1]];
+      else if (door[0] === R2.x1 + 1) doorTile = [R2.x1, door[1]];
+      else if (door[1] === R2.y0 - 1) doorTile = [door[0], R2.y0];
+      else if (door[1] === R2.y1 + 1) doorTile = [door[0], R2.y1];
+    }
+    const inb = (x, y) => x >= R2.x0 && x <= R2.x1 && y >= R2.y0 && y <= R2.y1;
+    const free = [];
+    for (let y = R2.y0; y <= R2.y1; y++) for (let x = R2.x0; x <= R2.x1; x++)
+      if (!W.getObj(x, y) && !(doorTile && doorTile[0] === x && doorTile[1] === y)) free.push([x, y]);
+    const key = (x, y) => x + ',' + y;
+    // A trio of fixtures is only accepted if every one of them can be walked up to from the
+    // door - a cot wedged into a corner with walls on two sides cannot be slept in - and if the
+    // door still reaches every remaining free tile over unoccupied floor.
+    const touches = (occ, x, y) => {
+      let n = 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < R2.x0 || nx > R2.x1 || ny < R2.y0 || ny > R2.y1) continue;
+        if (occ.has(key(nx, ny)) || W.getObj(nx, ny)) continue;
+        n++;
+      }
+      return n;
+    };
+    // The cot needs at least two walkable sides. With only one, the doorway's own prompt wins
+    // the focus contest on that single tile and the bed can never be used, which is what
+    // happened on the first attempt: the cot sat in a corner and "Open door" always beat
+    // "Sleep". Toilet and sink read fine with one side, so they only need one.
+    const usable = (occ, spots) => {
+      if (touches(occ, spots[0][0], spots[0][1]) < 2) return false;
+      for (let i = 1; i < spots.length; i++) if (touches(occ, spots[i][0], spots[i][1]) < 1) return false;
+      let start = doorTile && !occ.has(key(doorTile[0], doorTile[1])) ? doorTile : null;
+      if (!start) {
+        for (const [x, y] of free) if (!occ.has(key(x, y))) { start = [x, y]; break; }
+      }
+      if (!start) return false;
+      const seen = new Set([key(start[0], start[1])]), q = [start];
+      while (q.length) {
+        const [x, y] = q.pop();
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (!inb(nx, ny)) continue;
+          const k = key(nx, ny);
+          if (seen.has(k) || occ.has(k) || W.getObj(nx, ny)) continue;
+          seen.add(k); q.push([nx, ny]);
+        }
+      }
+      for (const [x, y] of free) if (!occ.has(key(x, y)) && !seen.has(key(x, y))) return false;
+      return true;
+    };
+    let trio = null;
+    for (let a = 0; a < free.length && !trio; a++)
+      for (let c = a + 1; c < free.length && !trio; c++)
+        for (let d = c + 1; d < free.length && !trio; d++) {
+          const spots = [free[a], free[c], free[d]];
+          const occ = new Set(spots.map(s => key(s[0], s[1])));
+          if (usable(occ, spots)) trio = spots;
+        }
+    if (trio) {
+      const add = (xy, t, extra) => {
+        const o = Object.assign({ t, f: 0, b: pol.id, v: 0 }, extra || {});
+        W.setObj(xy[0], xy[1], o); pol.props.push(o);
+      };
+      add(trio[0], O.BED, { loot: 'cell', prison: true });
+      add(trio[1], O.TOILET);
+      add(trio[2], O.SINK);
+    }
+    R2.type = 'cell';
+  }
 })();

@@ -271,12 +271,12 @@
       }
       // The furnishing above is deliberately the layout this building always produced, so the
       // shared generator stream is consumed exactly as before and every building created later
-      // in the world keeps its old shape. The two holding cells are re-purposed afterwards, in
-      // place, which costs no draws:
-      //   - the first stays a cell, but its bed becomes a bare prison cot (o.prison) instead of
-      //     bedroom bedding, so a cell reads as a cell;
-      //   - the second becomes a restroom, with the bed swapped for a sink, so there is a
-      //     toilet in the building that is not standing next to someone's bed.
+      // in the world keeps its old shape. The two holding cells are re-typed here and given a
+      // tiled floor, which costs no draws; the first cell is then narrowed and its three
+      // fixtures replaced at the very end of world generation, by shrinkPoliceCell() in gen.js.
+      // That has to happen last: adding wall tiles changes how many attempts randomInterior
+      // needs to find a free tile for a zombie, and each extra attempt consumes draws that
+      // would reshuffle every building generated after the station.
       const cellsRooms = rooms.filter(r => r.type === 'cells');
       cellsRooms.forEach((r, i) => {
         floorRect(r, G.TILE);
