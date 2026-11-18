@@ -125,6 +125,35 @@
   };
   // refresh every storage slot (used on load / migration)
   Inv.refreshAll = function (P, dropFn) { for (const s of Inv.STORE) Inv.refreshSlot(P, s, dropFn); };
+  // An item definition can change size between builds - the torso garments went from a
+  // one-wide flannel to two tiles wide, which turns a legal old layout into an illegal one.
+  // Positions are saved, footprints are not, so a bag saved under the old rule can hold two
+  // items that overlap under the new one. Re-pack only the grids that actually overlap, so a
+  // player's carefully arranged bag is never touched when nothing changed.
+  Inv.repairOverlaps = function (P, dropFn) {
+    for (const s of Inv.STORE) {
+      const g = Inv.gridOf(P, s); if (!g || !g.items || g.items.length < 2) continue;
+      let bad = false;
+      for (let i = 0; i < g.items.length && !bad; i++) {
+        const a = g.items[i], [aw, ah] = Inv.size(a);
+        if (a.x < 0 || a.y < 0 || a.x + aw > g.w || a.y + ah > g.h) { bad = true; break; }
+        for (let j = i + 1; j < g.items.length; j++) {
+          const b = g.items[j], [bw, bh] = Inv.size(b);
+          if (a.x < b.x + bw && a.x + aw > b.x && a.y < b.y + bh && a.y + ah > b.y) { bad = true; break; }
+        }
+      }
+      if (!bad) continue;
+      const stray = g.items.slice();
+      g.items.length = 0;
+      for (const it of stray) {
+        if (Inv.addTo(g, it) !== 0) {
+          // nowhere left in this garment: try the other grids, then the ground
+          const left = Inv.give(P, it);
+          if (left && dropFn) dropFn(left);
+        }
+      }
+    }
+  };
   // backwards-compatible aliases (bag / legs were the original drivers)
   Inv.refreshBag = function (P, dropFn) { Inv.refreshSlot(P, 'bag', dropFn); };
   Inv.refreshPants = function (P, dropFn) { Inv.refreshSlot(P, 'legs', dropFn); };

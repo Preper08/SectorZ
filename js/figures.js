@@ -226,6 +226,19 @@
       const xf = J.pel[0] + 0.19;
       for (const t of [0.25, 0.5, 0.75]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf, -0.1, z], [xf, 0.1, z], 0.011, dk); } // quilting
     },
+    // rain coat: oilskin slicker - high storm collar, smooth waterproof sheen, long hem and
+    // a front placket. Kept visually distinct from the winter coat (no fur) and from the
+    // leather jacket (no zip, brighter and thicker).
+    raincoat: (J, cap, shirt) => {
+      const lt = [Math.min(255, shirt[0] * 1.35 + 18), Math.min(255, shirt[1] * 1.35 + 18), Math.min(255, shirt[2] * 1.35 + 18)];
+      const dk = [shirt[0] * 0.55, shirt[1] * 0.55, shirt[2] * 0.55];
+      const xf = J.pel[0] + 0.15;
+      cap([J.neck[0] - 0.01, -0.1, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.1, J.neck[2] + 0.01], 0.095, lt); // storm collar
+      cap([xf, 0, J.pel[2] + 0.07], [xf, 0, J.neck[2] - 0.1], 0.02, dk);                                    // front placket
+      for (const t of [0.3, 0.62]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf - 0.01, -0.06, z], [xf - 0.01, 0.06, z], 0.016, dk); } // pocket flaps
+      cap([J.pel[0] + 0.02, -0.15, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.15, J.pel[2] + 0.02], 0.155, shirt);  // long hem
+      cap([J.pel[0] + 0.02, -0.14, J.pel[2] - 0.12], [J.pel[0] + 0.02, 0.14, J.pel[2] - 0.12], 0.13, shirt);   // skirt past the hips
+    },
     // winter coat: wide fur collar + double-breasted front + long hem over the hips
     wintercoat: (J, cap, shirt) => {
       const fur = [Math.min(255, shirt[0] * 1.4 + 40), Math.min(255, shirt[1] * 1.4 + 40), Math.min(255, shirt[2] * 1.4 + 40)];

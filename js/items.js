@@ -80,15 +80,28 @@
   it('radio', 'Radio', 'misc', { w: 2, h: 1, col: '#555' });
   // ---- clothing / bags
   // upper body (BODY slot): only ONE at a time; a VEST is a separate slot worn over it.
-  // Trade-off: more protection or warmth = a bigger footprint (more carried weight + bag
-  // space) and, for most items, more pockets. The t-shirt has NO pockets.
+  // Two sizes and two pocket counts, so the whole group reads as one ladder:
+  //
+  //   size      items                                  cells  pockets
+  //   1x1       t-shirt                                  1      none
+  //   2x2       flannel, sweater, hoodie, leather,
+  //             rain coat, jacket                        4      2, 2, 4, 4, 4, 6
+  //   2x3       padded jacket                            6      6
+  //   3x2       winter coat                              6      8
+  //
+  // Anything worn on the torso is two tiles wide, because it covers the whole chest - a
+  // one-wide garment was the odd one out in the bag. Pockets grow with bulk: a light shirt
+  // has two chest pockets, a jacket has roomy sides, and only the big coats reach six or
+  // eight. The padded jacket is the single 2x3 exception: it is armour, so it is tall rather
+  // than wide, and its six pockets are not the reason to wear it.
   // storage (cols/rows) is the item's own pocket grid.
   it('tshirt', 'T-shirt', 'clothes', { slot: 'body', def: 0, col: '#e8e8e8', desc: 'Plain and worn. No pockets.' });
-  it('flannel', 'Flannel Shirt', 'clothes', { w: 1, h: 2, slot: 'body', def: 3, warm: 9, cols: 2, rows: 1, col: '#9c3a34', desc: 'Light work shirt. Two chest pockets.' });
+  it('flannel', 'Flannel Shirt', 'clothes', { w: 2, h: 2, slot: 'body', def: 3, warm: 9, cols: 2, rows: 1, col: '#9c3a34', desc: 'Light work shirt. Two chest pockets.' });
   it('sweater', 'Wool Sweater', 'clothes', { w: 2, h: 2, slot: 'body', def: 2, warm: 18, cols: 2, rows: 1, col: '#b8862e', desc: 'Very warm. Two loose pockets.' });
-  it('jacket', 'Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 8, warm: 10, cols: 3, rows: 2, col: '#4a5a6a', desc: 'Roomy side pockets.' });
-  it('hoodie', 'Hoodie', 'clothes', { w: 2, h: 2, slot: 'body', def: 5, warm: 14, cols: 3, rows: 2, col: '#6a4a4a', desc: 'Big kangaroo pocket.' });
+  it('hoodie', 'Hoodie', 'clothes', { w: 2, h: 2, slot: 'body', def: 5, warm: 14, cols: 2, rows: 2, col: '#6a4a4a', desc: 'One big kangaroo pocket and two sides.' });
   it('leather', 'Leather Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 12, warm: 6, cols: 2, rows: 2, col: '#3e2e26', desc: 'Tough hide. Four zip pockets.' });
+  it('raincoat', 'Rain Coat', 'clothes', { w: 2, h: 2, slot: 'body', def: 4, warm: 8, cols: 2, rows: 2, col: '#c8a828', desc: 'Oilskin slicker. Keeps the rain off.' });
+  it('jacket', 'Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 8, warm: 10, cols: 3, rows: 2, col: '#4a5a6a', desc: 'Roomy side pockets.' });
   it('padded', 'Padded Jacket', 'clothes', { w: 2, h: 3, slot: 'body', def: 16, warm: 5, cols: 3, rows: 2, col: '#38414e', desc: 'Best body armour, but bulky and cold.' });
   it('wintercoat', 'Winter Coat', 'clothes', { w: 3, h: 2, slot: 'body', def: 5, warm: 26, cols: 4, rows: 2, col: '#a5602c', desc: 'Warmest coat. Huge pockets.' });
   // vest slot: worn over the BODY clothing, drawn as an overlay layer; more pockets than any body item
@@ -119,7 +132,7 @@
     kitchen: { n: [1, 3], t: [['beans', 8], ['soup', 7], ['bread', 5], ['chips', 4], ['cereal', 5], ['water', 5], ['soda', 5], ['knife', 4], ['matches', 3], ['lighter', 1.5], ['rags', 3], ['bottle', 3], ['juice', 3]] },
     fridge: { n: [0, 3], t: [['meat', 5], ['soda', 8], ['juice', 6], ['apple', 6], ['water', 6], ['candy', 4]] },
     bedroom: { n: [0, 2], t: [['rags', 5], ['cloth', 4], ['painkillers', 3], ['candy', 2], ['flashlight', 1.2], ['battery', 3], ['cap', 2], ['sneakers', 1.5], ['bandage', 2], ['radio', 1]] },
-    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['flannel', 5], ['sweater', 3], ['leather', 1.8], ['cap', 4], ['boots', 3], ['sneakers', 3], ['jeans', 5], ['trousers', 3], ['tracksuit', 2], ['cargopants', 1.5], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
+    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['flannel', 5], ['sweater', 3], ['leather', 1.8], ['raincoat', 1.6], ['cap', 4], ['boots', 3], ['sneakers', 3], ['jeans', 5], ['trousers', 3], ['tracksuit', 2], ['cargopants', 1.5], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
     living: { n: [0, 2], t: [['battery', 4], ['rags', 3], ['candy', 3], ['chips', 3], ['soda', 3], ['radio', 1], ['lighter', 2], ['tape', 1]] },
     books: { n: [0, 1], t: [['rags', 3], ['map', 2], ['matches', 3], ['candy', 1]] },
     medical: { n: [0, 3], t: [['bandage', 9], ['painkillers', 6], ['antibiotics', 2.5], ['splint', 1.5], ['medkit', 1.2], ['rags', 3]] },
@@ -129,7 +142,7 @@
     grocery: { n: [1, 3], t: [['beans', 10], ['soup', 8], ['bread', 5], ['chips', 7], ['cereal', 6], ['water', 8], ['soda', 8], ['juice', 6], ['apple', 4], ['candy', 6], ['mre', 0.6]] },
     store: { n: [1, 3], t: [['beans', 4], ['water', 4], ['soda', 4], ['chips', 4], ['battery', 4], ['flashlight', 2], ['lighter', 2], ['tape', 3], ['rags', 3], ['backpack', 1.2], ['map', 1.5]] },
     hardware: { n: [1, 3], t: [['nails', 8], ['hammer', 3.5], ['crowbar', 3], ['wood', 5], ['scrap', 5], ['tape', 5], ['wire', 5], ['axe', 1.2], ['pipe', 3], ['battery', 3], ['flashlight', 2.5], ['gascan', 2], ['sheetmetal', 2.5], ['rope', 3], ['cement', 1.5], ['metalplate', 1.5]] },
-    clothing: { n: [1, 3], t: [['jacket', 6], ['hoodie', 6], ['flannel', 5], ['sweater', 5], ['leather', 3], ['padded', 1.5], ['wintercoat', 1.5], ['cap', 5], ['boots', 5], ['sneakers', 4], ['runners', 2.5], ['jeans', 5], ['trousers', 4], ['tracksuit', 3], ['cargopants', 2], ['cloth', 6], ['fannypack', 3], ['backpack', 3], ['bigpack', 0.8]] },
+    clothing: { n: [1, 3], t: [['jacket', 6], ['hoodie', 6], ['flannel', 5], ['sweater', 5], ['leather', 3], ['raincoat', 3], ['padded', 1.5], ['wintercoat', 1.5], ['cap', 5], ['boots', 5], ['sneakers', 4], ['runners', 2.5], ['jeans', 5], ['trousers', 4], ['tracksuit', 3], ['cargopants', 2], ['cloth', 6], ['fannypack', 3], ['backpack', 3], ['bigpack', 0.8]] },
     electronics: { n: [1, 3], t: [['battery', 10], ['flashlight', 5], ['radio', 3], ['wire', 5], ['tape', 3], ['fusebox', 3]] },
     gas: { n: [1, 3], t: [['gascan', 3], ['soda', 6], ['chips', 6], ['candy', 6], ['water', 5], ['map', 3], ['battery', 3], ['lighter', 3], ['keys', 0.6]] },
     guns: { n: [1, 3], t: [['pistol', 3], ['shotgun', 1.8], ['rifle', 1.2], ['ammo9', 6], ['shell', 4], ['ammo762', 3], ['knife', 3], ['machete', 2], ['vest', 0.8]] },
@@ -141,7 +154,7 @@
     industrial: { n: [1, 3], t: [['scrap', 8], ['metalplate', 3], ['wire', 4], ['nails', 4], ['gascan', 3], ['pipe', 3], ['tape', 3], ['wood', 4], ['sheetmetal', 3], ['chemicals', 2], ['cement', 2], ['tire', 2]] },
     tools: { n: [1, 3], t: [['hammer', 5], ['nails', 7], ['crowbar', 3], ['wire', 4], ['pipe', 3], ['axe', 1.2], ['battery', 3], ['scrap', 4], ['tape', 3]] },
     storage: { n: [1, 3], t: [['scrap', 4], ['nails', 3], ['wood', 3], ['tape', 3], ['rags', 3], ['beans', 3], ['water', 3], ['battery', 3]] },
-    attic: { n: [0, 2], t: [['rags', 5], ['cloth', 5], ['wood', 3], ['rope', 2], ['tape', 2], ['nails', 2], ['lantern', 0.8], ['jacket', 1.5], ['wintercoat', 1]] },
+    attic: { n: [0, 2], t: [['rags', 5], ['cloth', 5], ['wood', 3], ['rope', 2], ['tape', 2], ['nails', 2], ['lantern', 0.8], ['jacket', 1.5], ['raincoat', 1], ['wintercoat', 1]] },
     trash: { n: [0, 2], t: [['rags', 6], ['scrap', 4], ['bottle', 5], ['soda', 3], ['cloth', 3], ['bread', 2], ['tape', 1], ['nails', 1.5]] },
     mail: { n: [0, 1], t: [['candy', 2], ['rags', 2], ['map', 1], ['keys', 0.6]] },
     register: { n: [0, 1], t: [['candy', 3], ['battery', 2], ['keys', 1], ['lighter', 3]] },
@@ -206,6 +219,7 @@
     { id: 'r_helmet', tab: 'Gear', out: ['helmet', 1], in: [['metalplate', 1], ['cloth', 2], ['tape', 1]], station: 'bench' },
     { id: 'r_backpack', tab: 'Gear', out: ['backpack', 1], in: [['cloth', 6], ['tape', 2], ['rope', 1]] },
     { id: 'r_fanny', tab: 'Gear', out: ['fannypack', 1], in: [['cloth', 2], ['tape', 1]] },
+    { id: 'r_raincoat', tab: 'Gear', out: ['raincoat', 1], in: [['cloth', 4], ['tape', 2], ['chemicals', 1]], desc: 'Cloth sealed with tape and tar.' },
     { id: 'r_plank', tab: 'Materials', out: ['wood', 1], in: [['plank_bundle', 1]] },
     { id: 'r_scrap_plate', tab: 'Materials', out: ['metalplate', 1], in: [['scrap', 4]], station: 'bench' },
     { id: 'r_tape', tab: 'Materials', out: ['tape', 1], in: [['cloth', 2], ['chemicals', 1]] },

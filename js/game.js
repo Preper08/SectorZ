@@ -131,7 +131,7 @@
   };
 
   // ---------------------------------------------------------------- equipment visuals
-  const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], flannel: [156, 58, 52], sweater: [184, 134, 46], leather: [62, 46, 38], padded: [56, 65, 78], wintercoat: [165, 96, 44], vest: [58, 64, 70], helmet: [76, 86, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], fannypack: [74, 74, 82], tshirt: [232, 232, 232], shorts: [200, 180, 138], jeans: [58, 90, 140], trousers: [138, 143, 150], tracksuit: [60, 90, 72], cargopants: [90, 98, 72], sneakers: [138, 138, 138] };
+  const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], flannel: [156, 58, 52], sweater: [184, 134, 46], leather: [62, 46, 38], padded: [56, 65, 78], raincoat: [200, 168, 40], wintercoat: [165, 96, 44], vest: [58, 64, 70], helmet: [76, 86, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], fannypack: [74, 74, 82], tshirt: [232, 232, 232], shorts: [200, 180, 138], jeans: [58, 90, 140], trousers: [138, 143, 150], tracksuit: [60, 90, 72], cargopants: [90, 98, 72], sneakers: [138, 138, 138] };
   // p.look carries only what the figure renderer consumes: an id per equipment slot
   // (selects the draw entry in CLOTHING/VEST/HEADWEAR/FOOTWEAR/LEGS_FIGS) and its colour
   Game.refreshEquipVisuals = function (S) {
@@ -790,6 +790,10 @@
     S.difficulty = dk; DSZ.DIFFCUR = DSZ.DIFF[dk];
     if (d.horde) Object.assign(S.horde, d.horde);
     Object.assign(p, d.player); p.inv = d.player.inv; Inv.migrateEquip(p.inv, Game.dropFn(S)); Inv.refreshAll(p.inv, Game.dropFn(S)); p.dead = false; p.vx = p.vy = 0;
+    // An item can change size between builds (torso garments went to two tiles wide), which can
+    // leave a bag saved under the old rule with two items sharing a cell. Re-pack only the
+    // grids that actually overlap.
+    Inv.repairOverlaps(p.inv, Game.dropFn(S));
     // A save written by an older build can hold a position wedged between props. Slide the
     // player to the closest genuinely standable tile instead of dropping them inside geometry,
     // where moveCircle would block every direction and they would have to wriggle for seconds.
