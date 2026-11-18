@@ -100,6 +100,24 @@
     return J;
   }
 
+  // Depth of the lower-leg capsule the legwear actually draws, one value per leg.
+  //
+  // Parts are sorted by this depth, so a boot only wins against the shin it covers if its depth
+  // is larger. Anchoring shoes to the ankle joint is not enough: shorts draw the bare shin as a
+  // single capsule from the hem down to the ankle, and a capsule's depth is the average of its
+  // ends - the hem sits high up the leg, so the average lands well in front of the ankle and the
+  // shoe was drawn behind the very leg it should wrap. Full-length trousers end at the knee, so
+  // their average is low and the shoe already sorted in front, which is why only shorts were
+  // affected.
+  function shinDepth(spec, J, pr) {
+    const shorts = !spec.legsId || spec.legsId === 'shorts';
+    const one = (hip, knee, foot) => {
+      const top = shorts ? lerp3(hip, knee, 0.62) : knee;
+      return (pr(top).d + pr(foot).d) / 2;
+    };
+    return { L: one(J.hipL, J.kneeL, J.footL), R: one(J.hipR, J.kneeR, J.footR) };
+  }
+
   // legs: thighs + shins follow the LEGS_FIGS entry (shorts keep shins bare, trousers
   // cover them to the ankle); footwear drawn after from FOOTWEAR_FIGS
   function drawLegs(J, spec, cap, pr, skin, pants, shoes) {
@@ -107,7 +125,7 @@
     const lg = LEGS_FIGS[spec.legsId] || LEGS_FIGS.shorts;
     lg(J, cap, pr, skin, pants, legR);
     const fw = FOOTWEAR_FIGS[spec.feetId] || FOOTWEAR_FIGS.barefoot;
-    fw(J, cap, pr, skin, shoes);
+    fw(J, cap, pr, skin, shoes, shinDepth(spec, J, pr));
   }
 
   // torso: pelvis-to-neck capsule + shoulder line + shorts hip piece, plus the clothing
@@ -311,42 +329,52 @@
     }
   };
   // footwear: shaft / laces / foot / heel / sole per item; barefoot is the default
-  // entry (skin-toned feet). entries receive (J, cap, pr, skin, shoes)
+  // entry (skin-toned feet). entries receive (J, cap, pr, skin, shoes, shin)
+  //
+  // shin carries the depth of the lower-leg capsule each leg already drew. Anything that must
+  // wrap the ankle has to sort in front of that value rather than in front of the raw joint,
+  // or it is painted behind the shin on shorts, where the shin capsule reaches far up the leg.
   const FOOTWEAR_FIGS = {
     barefoot: (J, cap, pr, skin, shoes) => {
       cap([J.footL[0] - 0.02, J.footL[1], J.footL[2] + 0.04], [J.footL[0] + 0.15, J.footL[1], J.footL[2] + 0.04], 0.055, skin);
       cap([J.footR[0] - 0.02, J.footR[1], J.footR[2] + 0.04], [J.footR[0] + 0.15, J.footR[1], J.footR[2] + 0.04], 0.055, skin);
     },
     // sneakers: low shoe over the foot + light-coloured sole strip, slimmer than boots
-    sneakers: (J, cap, pr, skin, shoes) => {
-      for (const ft of [J.footL, J.footR]) {
-        cap([ft[0] - 0.05, ft[1], ft[2] + 0.035], [ft[0] + 0.16, ft[1], ft[2] + 0.035], 0.052, shoes, { d: pr(ft).d + 0.03 });
-        cap([ft[0] - 0.05, ft[1], ft[2] + 0.006], [ft[0] + 0.16, ft[1], ft[2] + 0.006], 0.045, [shoes[0] * 1.35, shoes[1] * 1.35, shoes[2] * 1.35], { sole: true, d: pr(ft).d + 0.035 });
-      }
+    sneakers: (J, cap, pr, skin, shoes, shin) => {
+      [[J.footL, shin && shin.L], [J.footR, shin && shin.R]].forEach(([ft, sd]) => {
+        const d = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
+        cap([ft[0] - 0.05, ft[1], ft[2] + 0.035], [ft[0] + 0.16, ft[1], ft[2] + 0.035], 0.052, shoes, { d });
+        cap([ft[0] - 0.05, ft[1], ft[2] + 0.006], [ft[0] + 0.16, ft[1], ft[2] + 0.006], 0.045, [shoes[0] * 1.35, shoes[1] * 1.35, shoes[2] * 1.35], { sole: true, d: d + 0.005 });
+      });
     },
     // running shoes: slimmer low profile with a white stripe, lighter colour
-    runners: (J, cap, pr, skin, shoes) => {
-      for (const ft of [J.footL, J.footR]) {
-        cap([ft[0] - 0.04, ft[1], ft[2] + 0.035], [ft[0] + 0.17, ft[1], ft[2] + 0.035], 0.046, shoes, { d: pr(ft).d + 0.03 });
-        cap([ft[0] - 0.04, ft[1], ft[2] + 0.005], [ft[0] + 0.17, ft[1], ft[2] + 0.005], 0.042, [255, 255, 255], { sole: true, d: pr(ft).d + 0.035 }); // white sole
-      }
+    runners: (J, cap, pr, skin, shoes, shin) => {
+      [[J.footL, shin && shin.L], [J.footR, shin && shin.R]].forEach(([ft, sd]) => {
+        const d = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
+        cap([ft[0] - 0.04, ft[1], ft[2] + 0.035], [ft[0] + 0.17, ft[1], ft[2] + 0.035], 0.046, shoes, { d });
+        cap([ft[0] - 0.04, ft[1], ft[2] + 0.005], [ft[0] + 0.17, ft[1], ft[2] + 0.005], 0.042, [255, 255, 255], { sole: true, d: d + 0.005 }); // white sole
+      });
     },
     // boots: shaft + laces + foot + heel + dark sole, both legs
-    boots: (J, cap, pr, skin, shoes) => {
-      for (const [kne, ft] of [[J.kneeL, J.footL], [J.kneeR, J.footR]]) {
+    boots: (J, cap, pr, skin, shoes, shin) => {
+      [[J.kneeL, J.footL, shin && shin.L], [J.kneeR, J.footR, shin && shin.R]].forEach(([kne, ft, sd]) => {
+        // A shoe wraps the ankle, so it has to be in front of whatever the leg drew there. The
+        // shin depth already accounts for how far up the leg that capsule reaches, which is the
+        // whole difference between shorts and trousers.
+        const front = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
         // shaft: one piece from just below the knee to the ankle, drawn IN FRONT of the
         // bare shin so the leg tucks into the boot and no skin shows through
         const t0 = lerp3(kne, ft, 0.02), t1 = ft;
-        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.079, shoes, { d: (pr(t0).d + pr(t1).d) / 2 + 0.03 });
+        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.079, shoes, { d: front });
         // laces: cross stitches down the front of the shaft
         const l0 = lerp3(kne, ft, 0.3), l1 = lerp3(kne, ft, 0.08);
-        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.026, shoes, { lace: true, d: (pr(l0).d + pr(l1).d) / 2 + 0.04 });
+        cap([l0[0], l0[1], l0[2] + 0.012], [l1[0], l1[1], l1[2] + 0.012], 0.026, shoes, { lace: true, d: front + 0.01 });
         // foot: ankle to toe box as one piece, plus a heel block behind
-        cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.058, shoes, { d: pr(ft).d + 0.03 });
-        cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.048, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85], { d: pr(ft).d + 0.03 });
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.058, shoes, { d: front });
+        cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.048, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85], { d: front });
         // dark sole line under the whole foot
-        cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.042, shoes, { sole: true, d: pr(ft).d + 0.04 });
-      }
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.042, shoes, { sole: true, d: front + 0.01 });
+      });
     }
   };
 
