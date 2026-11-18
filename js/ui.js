@@ -53,7 +53,7 @@
     window.addEventListener('mouseup', dragUp);
     // Re-fit the inventory when the window is resized, so an open container never drifts
     // off screen after the player resizes the game.
-    window.addEventListener('resize', () => { fitHud(); if (UI.open.win && UI.open.tab === 'inv') renderInv(); });
+    window.addEventListener('resize', () => { fitHud(); if (UI.open.win && UI.open.tab === 'inv') renderInv(); if (UI.open.pc) UI.resizePC(); });
     els.cursor.classList.remove('hidden');
     buildSettings(); buildControls();
     DSZ.on('death', s => UI.showDeath(s));
@@ -144,6 +144,7 @@
   UI.openPC = function (obj) {
     UI.open.pc = true; UI.pcT = 0; UI.pcTab = 0;
     UI.pcRef = obj || null;
+    UI.pcResized = false;
     buildPCTabs();
     els.pcwin.classList.remove('hidden');
     els.cursor.classList.toggle('ui', true);
@@ -172,13 +173,31 @@
     });
     els.pcmode.textContent = pcTabLabel();
   }
+  // The canvas is 1080x660 in the markup, but it is displayed smaller on most windows. Rather
+  // than draw at 1080 and let the browser shrink it (which is what made the text soft), resize
+  // the backing store to the exact CSS size x devicePixelRatio. Text is then drawn at its true
+  // size and is pixel-crisp at any window size.
+  function sizePCScreen() {
+    const cv = els.pcscreen; if (!cv) return false;
+    const r = cv.getBoundingClientRect();
+    if (r.width < 8) return false;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const wantW = Math.max(320, Math.round(r.width * dpr));
+    const wantH = Math.round(wantW * 660 / 1080);
+    if (cv.width === wantW && cv.height === wantH) return true;
+    cv.width = wantW; cv.height = wantH;
+    return true;
+  }
   function renderPC(dt) {
     UI.pcT = (UI.pcT || 0) + (dt || 0.016);
     const cv = els.pcscreen; if (!cv) return;
+    if (UI.pcResized !== true) UI.pcResized = sizePCScreen();
+    if (!cv.width) return;
     const x = cv.getContext('2d');
     DSZ.Props.pcDraw(x, cv.width, cv.height, UI.pcT, UI.pcTab || 0);
   }
   UI.renderPC = renderPC;
+  UI.resizePC = function () { UI.pcResized = false; sizePCScreen(); };
 
   // animate the enlarged broadcast on the popup canvas using the shared TV screen content
   function renderTV(dt) {

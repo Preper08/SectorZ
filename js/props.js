@@ -464,11 +464,15 @@
 
   Props.pcResetMap = function () { pcMapCache = null; };
 
+  // The terminal is read sitting at a desk, so it has to stay legible at the popup's real
+  // on-screen size, not just at canvas resolution. The canvas is drawn at 1080x660 and scaled
+  // down by CSS, and every size below is a fraction of that height - so the whole screen
+  // rescales from one place instead of drifting out of proportion.
   Props.pcDraw = function (x, w, h, t, tab) {
     t = t || 0;
     const MONO = '"Courier New", Consolas, monospace';
-    const font = (s, b) => (b ? 'bold ' : '') + Math.max(6, Math.round(s)) + 'px ' + MONO;
-    const AMBER = '#e8b04a', GREEN = '#4ad07a', DIM = '#6d7d86', RED = '#e05a4a', TEXT = '#c2cdd4';
+    const font = (s, b) => (b ? 'bold ' : '') + Math.max(8, Math.round(s)) + 'px ' + MONO;
+    const AMBER = '#e8b04a', GREEN = '#5fe08c', DIM = '#a2b2bc', RED = '#f08a7e', TEXT = '#dbe5ec';
     const S = DSZ.Game && DSZ.Game.S;
     let clock = '03:00';
     if (S) {
@@ -478,59 +482,72 @@
 
     x.save();
     x.fillStyle = '#070b0f'; x.fillRect(0, 0, w, h);
-    // faint CRT scanlines over everything
-    x.fillStyle = 'rgba(0,0,0,0.20)';
-    for (let yy = 0; yy < h; yy += 3) x.fillRect(0, yy, w, 1);
+    // Faint CRT scanlines. Spaced 4px, not 3: the canvas is resampled down to its CSS size, and
+    // a 1-in-3 pattern turns into a moire grid at that scale rather than reading as scanlines.
+    x.fillStyle = 'rgba(0,0,0,0.14)';
+    for (let yy = 0; yy < h; yy += 4) x.fillRect(0, yy, w, 1);
 
     const headH = Math.round(h * 0.105);
+    const fy = h - Math.round(h * 0.052);              // top of the footer bar
+    const top = headH + Math.round(h * 0.042);         // first content baseline
+    const pad = Math.round(w * 0.035);
+    const bodyW = w - pad * 2;
+
     // ---- header bar
     x.fillStyle = '#0d141a'; x.fillRect(0, 0, w, headH);
     x.fillStyle = 'rgba(74,122,208,0.55)'; x.fillRect(0, headH - 2, w, 2);
     x.textAlign = 'left'; x.textBaseline = 'middle';
-    x.font = font(h * 0.030, true); x.fillStyle = '#9ec0e8';
+    const fsBrand = h * 0.038;
+    x.font = font(fsBrand, true);
+    const brandW = x.measureText('NORLEY VALE POLICE').width;
+    x.fillStyle = '#a8c8ee';
     x.fillText('NORLEY VALE POLICE', Math.round(w * 0.028), headH * 0.5);
-    x.font = font(h * 0.022); x.fillStyle = DIM;
-    x.fillText('TERMINAL 03', Math.round(w * 0.028) + Math.round(w * 0.235), headH * 0.5);
+    // the subtitle is placed after the measured brand width, so a larger font cannot collide
+    x.font = font(h * 0.025); x.fillStyle = DIM;
+    x.fillText('TERMINAL 03', Math.round(w * 0.028) + brandW + Math.round(w * 0.022), headH * 0.5);
     x.textAlign = 'right';
-    x.font = font(h * 0.026, true); x.fillStyle = AMBER;
+    x.font = font(h * 0.032, true); x.fillStyle = AMBER;
     x.fillText(clock, w - Math.round(w * 0.028), headH * 0.5);
     x.textAlign = 'left';
 
-    const top = headH + Math.round(h * 0.045);
-    const pad = Math.round(w * 0.035);
-    const bodyW = w - pad * 2;
-
     if (tab === 1) {
       // ---------------- CITY MAP
-      x.font = font(h * 0.026, true); x.fillStyle = TEXT;
+      x.font = font(h * 0.035, true); x.fillStyle = TEXT;
       x.fillText('CITY OVERVIEW', pad, top);
       // legend on the right of the title row
       const leg = [['POLICE', '#4a7ad0'], ['HOSPITAL', '#b8534a'], ['STORES', '#3f7350'], ['WAREHOUSE', '#525a64']];
       let lx = w - pad;
-      x.textAlign = 'right'; x.font = font(h * 0.019);
+      x.textAlign = 'right'; x.font = font(h * 0.024);
+      const sw = Math.round(h * 0.017), sa = Math.round(h * 0.011);
       for (let i = leg.length - 1; i >= 0; i--) {
-        x.fillStyle = leg[i][1]; x.fillRect(lx - 9, top - 4, 7, 7);
-        x.fillStyle = DIM; x.fillText(leg[i][0], lx - 13, top);
-        lx -= 13 + x.measureText(leg[i][0]).width + 14;
+        x.fillStyle = leg[i][1]; x.fillRect(lx - sw, top - sw / 2, sw, sw);
+        x.fillStyle = DIM; x.fillText(leg[i][0], lx - sw - sa, top);
+        lx -= sw + sa + x.measureText(leg[i][0]).width + Math.round(h * 0.026);
       }
       x.textAlign = 'left';
 
       const map = pcBuildMap();
       const C = DSZ.C;
-      const availW = bodyW, availH = h - top - Math.round(h * 0.10);
+      const availW = bodyW, availH = fy - top - Math.round(h * 0.085);
       const sc = Math.min(availW / (C.W * map.k), availH / (C.H * map.k));
       const dw = C.W * map.k * sc, dh = C.H * map.k * sc;
-      const dx = pad + (availW - dw) / 2, dy = top + Math.round(h * 0.045);
+      const dx = pad + (availW - dw) / 2, dy = top + Math.round(h * 0.042);
       x.imageSmoothingEnabled = false;
       x.drawImage(map.c, dx, dy, dw, dh);
       x.strokeStyle = 'rgba(74,122,208,0.4)'; x.lineWidth = 1;
       x.strokeRect(dx + 0.5, dy + 0.5, dw - 1, dh - 1);
 
-      // points of interest
-      x.font = font(h * 0.017, true); x.textAlign = 'center'; x.textBaseline = 'bottom';
+      // points of interest. Labels are drawn last and over a dark backing plate, because at the
+      // old size they were set straight onto the map and vanished into the building colours.
+      x.font = font(h * 0.028, true); x.textAlign = 'center'; x.textBaseline = 'bottom';
+      const plate = 'rgba(4,8,12,0.72)';
       for (const q of DSZ.Gen.poi || []) {
         const px = dx + q.x * map.k * sc, py = dy + q.y * map.k * sc;
-        x.fillStyle = '#dfe8f0';
+        const tw = x.measureText(q.name.toUpperCase()).width;
+        const th = h * 0.026;
+        x.fillStyle = plate;
+        x.fillRect(px - tw / 2 - 3, py - 3 - th, tw + 6, th + 2);
+        x.fillStyle = '#eaf2f8';
         x.fillText(q.name.toUpperCase(), px, py - 2);
       }
       // player position
@@ -538,13 +555,13 @@
         const px = dx + S.player.x * map.k * sc, py = dy + S.player.y * map.k * sc;
         const bl = (Math.sin(t * 4) * 0.5 + 0.5);
         x.strokeStyle = 'rgba(255,221,85,' + (0.4 + bl * 0.6).toFixed(2) + ')';
-        x.lineWidth = 2; x.beginPath(); x.arc(px, py, 5 + bl * 3, 0, 7); x.stroke();
-        x.fillStyle = '#ffdd55'; x.beginPath(); x.arc(px, py, 2.6, 0, 7); x.fill();
+        x.lineWidth = 2; x.beginPath(); x.arc(px, py, 7 + bl * 4, 0, 7); x.stroke();
+        x.fillStyle = '#ffdd55'; x.beginPath(); x.arc(px, py, 3.6, 0, 7); x.fill();
       }
       x.textAlign = 'left'; x.textBaseline = 'middle';
     } else if (tab === 2) {
       // ---------------- CASE FILE
-      x.font = font(h * 0.026, true); x.fillStyle = TEXT;
+      x.font = font(h * 0.034, true); x.fillStyle = TEXT;
       x.fillText('CASE 14-087  ·  THE NORLEY VALE INCIDENT', pad, top);
       const lines = [
         ['OPENED', '21:40, the night the roadblock fell.', DIM],
@@ -558,78 +575,96 @@
         ['EVIDENCE', '12 boxes, sealed. Untouched since the evacuation.', TEXT],
         ['', 'This terminal still has power. The phone does not.', DIM]
       ];
-      let y = top + Math.round(h * 0.075);
-      const lh = Math.round(h * 0.052);
+      const keyX = pad, valX = pad + Math.round(w * 0.125);
+      let y = top + Math.round(h * 0.072);
+      const lh = Math.round(h * 0.056);
       for (const [k, v, col] of lines) {
-        if (k) { x.font = font(h * 0.022, true); x.fillStyle = AMBER; x.fillText(k, pad, y); }
-        x.font = font(h * 0.022); x.fillStyle = col;
-        x.fillText(v, pad + Math.round(w * 0.105), y);
+        if (k) { x.font = font(h * 0.030, true); x.fillStyle = AMBER; x.fillText(k, keyX, y); }
+        x.font = font(h * 0.030); x.fillStyle = col;
+        x.fillText(v, valX, y);
         y += lh;
       }
       // blinking cursor, because the machine is still waiting
       if (Math.sin(t * 3) > 0) {
         x.fillStyle = GREEN;
-        const cw = Math.round(w * 0.012);
-        x.fillRect(pad, y - Math.round(h * 0.018), cw, Math.round(h * 0.026));
+        const cw = Math.round(w * 0.011);
+        x.fillRect(pad, y - Math.round(h * 0.020), cw, Math.round(h * 0.028));
       }
     } else {
       // ---------------- SUSPECTS
-      x.font = font(h * 0.026, true); x.fillStyle = TEXT;
+      x.font = font(h * 0.035, true); x.fillStyle = TEXT;
       x.fillText('SUSPECT DATABASE', pad, top);
-      x.font = font(h * 0.019); x.fillStyle = DIM;
+      x.font = font(h * 0.028); x.fillStyle = DIM;
       x.textAlign = 'right';
       x.fillText(PC_SUSPECTS.length + ' RECORDS', w - pad, top);
       x.textAlign = 'left';
 
-      const hdrY = top + Math.round(h * 0.055);
-      x.font = font(h * 0.018, true); x.fillStyle = '#54646e';
-      x.fillText('NAME', pad, hdrY);
-      x.fillText('STATUS', pad + Math.round(w * 0.26), hdrY);
-      x.fillText('NOTES', pad + Math.round(w * 0.42), hdrY);
-      x.fillStyle = 'rgba(84,100,110,0.4)';
-      x.fillRect(pad, hdrY + Math.round(h * 0.020), bodyW, 1);
+      // Column positions are measured with the *same* font the names are drawn in, and the status
+      // column is widened to the actual widest status word. Measuring with a smaller font was
+      // what let "LEON DE LA VEGA" run into "WANTED".
+      const colName = pad;
+      const hdrY = top + Math.round(h * 0.062);
+      x.font = font(h * 0.030, true);
+      let nameW = 0;
+      for (const s of PC_SUSPECTS) nameW = Math.max(nameW, x.measureText(s.name).width);
+      const colStatus = colName + Math.max(nameW, x.measureText('NAME').width) + Math.round(w * 0.022);
+      x.font = font(h * 0.027, true);
+      let statusW = 0;
+      for (const s of PC_SUSPECTS) statusW = Math.max(statusW, x.measureText(s.status).width);
+      const colNotes = colStatus + Math.max(statusW, x.measureText('STATUS').width) + Math.round(w * 0.022);
 
-      const rowH = Math.round(h * 0.083);
-      let ry = hdrY + Math.round(h * 0.045);
+      x.font = font(h * 0.025, true); x.fillStyle = '#6c7f8a';
+      x.fillText('NAME', colName, hdrY);
+      x.fillText('STATUS', colStatus, hdrY);
+      x.fillText('NOTES', colNotes, hdrY);
+      x.fillStyle = 'rgba(108,127,138,0.4)';
+      x.fillRect(pad, hdrY + Math.round(h * 0.022), bodyW, 1);
+
+      // Six rows fitted between the header rule and the footer bar, so nothing is clipped.
+      const firstRow = hdrY + Math.round(h * 0.030);
+      const rowH = Math.round((fy - firstRow - h * 0.012) / PC_SUSPECTS.length);
+      let ry = firstRow + rowH * 0.62;
       for (let i = 0; i < PC_SUSPECTS.length; i++) {
         const s = PC_SUSPECTS[i];
+        const isLeon = s.name.indexOf('LEON') === 0;
         // Leon is the live lead: give him a band so the eye lands on him
-        if (s.name.indexOf('LEON') === 0) {
-          const pulse = 0.10 + 0.06 * (Math.sin(t * 2.2) * 0.5 + 0.5);
+        if (isLeon) {
+          const pulse = 0.12 + 0.07 * (Math.sin(t * 2.2) * 0.5 + 0.5);
           x.fillStyle = 'rgba(224,90,74,' + pulse.toFixed(3) + ')';
-          x.fillRect(pad - 6, ry - rowH * 0.44, bodyW + 12, rowH * 0.88);
-          x.fillStyle = RED; x.fillRect(pad - 6, ry - rowH * 0.44, 2, rowH * 0.88);
+          x.fillRect(pad - 6, ry - rowH * 0.42, bodyW + 12, rowH * 0.84);
+          x.fillStyle = RED; x.fillRect(pad - 6, ry - rowH * 0.42, 2, rowH * 0.84);
         }
-        x.font = font(h * 0.021, true); x.fillStyle = s.name.indexOf('LEON') === 0 ? '#ffffff' : TEXT;
-        x.fillText(s.name, pad, ry);
-        x.font = font(h * 0.018, true); x.fillStyle = s.col;
-        x.fillText(s.status, pad + Math.round(w * 0.26), ry);
-        x.font = font(h * 0.016); x.fillStyle = DIM;
+        x.font = font(h * 0.030, true); x.fillStyle = isLeon ? '#ffffff' : TEXT;
+        x.fillText(s.name, colName, ry);
+        x.font = font(h * 0.027, true); x.fillStyle = s.col;
+        x.fillText(s.status, colStatus, ry);
+        x.font = font(h * 0.028); x.fillStyle = DIM;
         // wrap the note to the remaining width
-        const maxW = bodyW - Math.round(w * 0.42);
+        const maxW = w - pad - colNotes;
         const words = s.note.split(' ');
-        let line = '', ly = ry - Math.round(h * 0.010);
+        let line = '', ly = ry - Math.round(h * 0.015);
         for (const wd of words) {
           const test = line ? line + ' ' + wd : wd;
-          if (x.measureText(test).width > maxW && line) { x.fillText(line, pad + Math.round(w * 0.42), ly); line = wd; ly += Math.round(h * 0.021); }
+          if (x.measureText(test).width > maxW && line) { x.fillText(line, colNotes, ly); line = wd; ly += Math.round(h * 0.034); }
           else line = test;
         }
-        if (line) x.fillText(line, pad + Math.round(w * 0.42), ly);
+        if (line) x.fillText(line, colNotes, ly);
         ry += rowH;
       }
     }
 
     // ---- footer status bar
-    const fy = h - Math.round(h * 0.055);
     x.fillStyle = '#0d141a'; x.fillRect(0, fy, w, h - fy);
     x.fillStyle = 'rgba(74,122,208,0.35)'; x.fillRect(0, fy, w, 1);
     x.textBaseline = 'middle';
-    x.font = font(h * 0.018);
-    x.fillStyle = GREEN; x.fillText('● ONLINE', pad, fy + (h - fy) * 0.5);
+    x.font = font(h * 0.025);
+    const fmid = fy + (h - fy) * 0.5;
+    x.fillStyle = GREEN; x.fillText('● ONLINE', pad, fmid);
+    const onlineW = x.measureText('● ONLINE').width;
     x.fillStyle = DIM;
-    x.fillText('NVPB INTERNAL — AUTHORISED PERSONNEL ONLY', pad + Math.round(w * 0.11), fy + (h - fy) * 0.5);
+    x.fillText('NVPB INTERNAL — AUTHORISED PERSONNEL ONLY', pad + onlineW + Math.round(w * 0.028), fmid);
     x.textAlign = 'right';
-    x.fillText('SECTOR Z', w - pad, fy + (h - fy) * 0.5);
+    x.fillText('SECTOR Z', w - pad, fmid);
     x.textAlign = 'left';
 
     x.restore();
