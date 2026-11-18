@@ -21,7 +21,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.eqcol = $('eqcol');
@@ -318,13 +318,24 @@
     if (els.hud.classList.contains('hidden')) return;
     const vr = v.getBoundingClientRect(), hr = hb.getBoundingClientRect();
     if (!hr.width || !vr.width) return;                     // not laid out yet
+    // Rozika sits directly above the vitals. Her offset is derived from the measured height of
+    // that panel rather than hard-coded, because the status chips wrap and change it. Set before
+    // the clash test below so the branch there can add to it rather than replace it.
+    const dh = els.doghud;
+    let baseV = 18;
+    if (dh) dh.style.bottom = (baseV + Math.round(vr.height) + 8) + 'px';
     const GAP = 10;
     const need = vr.right + GAP - hr.left;                  // px of horizontal clash
     if (need <= 0) return;                                  // already side by side
     const room = innerWidth - 18 - hr.right;                // space left of the right edge
     const shift = Math.min(need, Math.max(0, room));
     if (shift > 0) hb.style.transform = 'translateX(calc(-50% + ' + Math.ceil(shift) + 'px))';
-    if (shift < need) v.style.bottom = Math.round(window.innerHeight - hr.top + GAP) + 'px';
+    if (shift < need) {
+      const nb = Math.round(window.innerHeight - hr.top + GAP);
+      v.style.bottom = nb + 'px';
+      // the vitals lifted, so she has to lift with them or she would end up on top of the bars
+      if (dh) dh.style.bottom = (nb + Math.round(vr.height) + 8) + 'px';
+    }
   }
   // Largest cell size that still keeps the equipment column, the widest storage grid and
   // (when a container is open) the container column visible at the same time. The 276px
@@ -657,6 +668,34 @@
 
   // ------------------------------------------------------------------ per-frame HUD
   const vrows = {};
+  // Rozika's panel. Hidden until a dog exists, so the HUD is unchanged for anyone without one.
+  // The bar is bond itself; the note line carries the one thing the player actually needs to act
+  // on - whether she will eat right now - rather than repeating the number twice.
+  let dogSig = '';
+  function renderDogHud(S) {
+    const d = S && S.dog, el = els.doghud; if (!el) return;
+    if (!d) {
+      if (!el.classList.contains('hidden')) { el.classList.add('hidden'); dogSig = ''; }
+      return;
+    }
+    el.classList.remove('hidden');
+    const bond = Math.round(d.bond || 0);
+    const tName = DSZ.Dog.tierName(bond);
+    const ti = DSZ.Dog.tierIndex(bond);
+    // The note is the actionable half of the panel: can she eat right now, or not.
+    let note, sig;
+    if (d.fedT > 0) { note = '<b>' + Math.ceil(d.fedT) + 's</b> until she is hungry'; }
+    else if (DSZ.Dog.pickFood(S.player.inv)) { note = 'E to <b>feed</b> her'; }
+    else { note = 'no food - E to <b>pet</b>'; }
+    sig = bond + '|' + ti + '|' + note;
+    if (sig === dogSig) return;
+    dogSig = sig;
+    els.dogtier.textContent = tName;
+    els.dogtier.className = 'dtier t' + ti;
+    els.dogbond.style.width = bond + '%';
+    els.dogbond.className = 't' + ti;
+    els.dognote.innerHTML = note;
+  }
   UI.update = function (state, dt) {
     S = state; if (!S) return;
     const p = S.player;
@@ -696,7 +735,7 @@
     renderHot(false);
     if (slow) {
       let st = ''; if (DSZ.settings.godmode) st += '<span class="warn">GOD MODE</span>'; if (p.bleed > 0) st += '<span>Bleeding</span>'; if (p.infection > 30) st += '<span>Infected</span>'; else if (p.infection > 0) st += '<span class="warn">Feverish</span>'; if (p.broken) st += '<span>Broken leg</span>'; if (p.food < 25) st += '<span class="warn">Hungry</span>'; if (p.water < 25) st += '<span class="warn">Thirsty</span>'; if (p.energy < 20) st += '<span class="warn">Tired</span>'; if (p.reload > 0) st += '<span class="warn">Reloading</span>';
-      if (els.status.innerHTML !== st) els.status.innerHTML = st;
+      if (els.status.innerHTML !== st) { els.status.innerHTML = st; if (S.dog) fitHud(); }
       const h = Math.floor(S.hour), m = Math.floor((S.hour - h) * 60); els.clk.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); els.dayl.textContent = 'Day ' + S.day;
       const dname = (DSZ.DIFF[S.difficulty] || DSZ.DIFF.normal).name;
       if (els.dlab && els.dlab.textContent !== dname) els.dlab.textContent = dname;
@@ -707,6 +746,7 @@
       } else { els.nightw.classList.add('hidden'); }
       els.wx.textContent = S.weather.rain > 0.7 ? 'Storm' : (S.weather.rain > 0.15 ? 'Rain' : (DSZ.Render.daylight(S.hour) < 0.3 ? 'Night' : 'Clear'));
       drawMini();
+      renderDogHud(S);
       const sig = S.toasts.map(t => t.text + t.kind).join('|'); if (sig !== toastSig) { toastSig = sig; els.toasts.innerHTML = S.toasts.map(t => '<div class="toast ' + t.kind + '">' + t.text + '</div>').join(''); }
       if (UI.open.win) { if (UI.open.tab === 'inv' && !UI.drag) { renderCondition(); } else if (UI.open.tab === 'craft') { /* only when the recipe availability actually changed */ if (!UI.drag) { const cs = craftSig(); if (cs !== UI._csig) { UI._csig = cs; renderCraft(); } } } if (UI.open.tab === 'inv' && !UI.drag) { const sg = invSig(); if (sg !== UI._isig) { UI._isig = sg; renderInv(); } } }
       if (UI.open.map) drawBigMap();

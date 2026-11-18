@@ -247,6 +247,11 @@
     for (const x of TIERS) if (bond >= x.at) t = x;
     return t;
   };
+  Dog.tierIndex = function (bond) {
+    let i = 0;
+    for (let k = 0; k < TIERS.length; k++) if (bond >= TIERS[k].at) i = k;
+    return i + 1;                     // 1..4, for the HUD's colour classes
+  };
   Dog.tierName = bond => Dog.tier(bond || 0).name;
 
   // Feeding. She will not eat again for 30 s, which is what stops a player emptying the whole
