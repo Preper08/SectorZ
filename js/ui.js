@@ -21,12 +21,13 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.eqcol = $('eqcol');
     els.ver.textContent = 'v' + C.VERSION;
     els.tvx.onclick = () => UI.closeTV(); els.tvclose.onclick = () => UI.closeTV();
+  els.pcx.onclick = () => UI.closePC(); els.pcclose.onclick = () => UI.closePC();
     // tabs
     document.querySelectorAll('#win .tabs button').forEach(b => b.addEventListener('click', () => UI.showTab(b.dataset.tab)));
     $('winx').onclick = () => UI.closeWin(); $('mapx').onclick = () => UI.closeMap();
@@ -136,6 +137,49 @@
     A.play('click', null, null, 0.35);
   }
   UI.setTvChannel = setTvChannel;
+  // ---------------------------------------------------------------- police computer
+  // The office computer on the police desk. Same popup pattern as the TV: it pauses the
+  // world, keeps its own small animation timer, and animates a canvas.
+  UI.pcTab = 0;
+  UI.openPC = function (obj) {
+    UI.open.pc = true; UI.pcT = 0; UI.pcTab = 0;
+    UI.pcRef = obj || null;
+    buildPCTabs();
+    els.pcwin.classList.remove('hidden');
+    els.cursor.classList.toggle('ui', true);
+    if (S) S.paused = true;
+    A.play('click');
+  };
+  UI.closePC = function () {
+    if (!UI.open.pc) return;
+    UI.open.pc = false;
+    els.pcwin.classList.add('hidden');
+    if (S && !UI.open.menu && !UI.open.tv) S.paused = false;
+    A.play('click');
+  };
+  function pcTabLabel() {
+    return (DSZ.Props.PC_TABS || [])[UI.pcTab] || '';
+  }
+  function buildPCTabs() {
+    const box = els.pctabs; if (!box) return;
+    box.innerHTML = '';
+    (DSZ.Props.PC_TABS || []).forEach((name, i) => {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.className = i === UI.pcTab ? 'on' : '';
+      b.onclick = () => { UI.pcTab = i; buildPCTabs(); els.pcmode.textContent = pcTabLabel(); A.play('click', null, null, 0.3); };
+      box.appendChild(b);
+    });
+    els.pcmode.textContent = pcTabLabel();
+  }
+  function renderPC(dt) {
+    UI.pcT = (UI.pcT || 0) + (dt || 0.016);
+    const cv = els.pcscreen; if (!cv) return;
+    const x = cv.getContext('2d');
+    DSZ.Props.pcDraw(x, cv.width, cv.height, UI.pcT, UI.pcTab || 0);
+  }
+  UI.renderPC = renderPC;
+
   // animate the enlarged broadcast on the popup canvas using the shared TV screen content
   function renderTV(dt) {
     UI.tvT = (UI.tvT || 0) + (dt || 0.016);
@@ -190,7 +234,7 @@
     UI.loot = null; UI._isig = '';
     UI.open.win = false; UI.open.map = false; UI.open.menu = false; UI.open.settings = false;
     UI.open.controls = false; UI.open.tv = false; UI.open.death = false;
-    for (const el of [els.win, els.mapwin, els.pause, els.settings, els.controls, els.death, els.tvwin, els.lootcol]) el.classList.add('hidden');
+    for (const el of [els.win, els.mapwin, els.pause, els.settings, els.controls, els.death, els.tvwin, els.pcwin, els.lootcol]) el.classList.add('hidden');
     for (const k in In.keys) In.keys[k] = false; // drop any key held across the transition
     In.mouse.down = In.mouse.rdown = false;
     // window-open state must not leak into the next session (it hides the HUD corner panels)
@@ -598,6 +642,7 @@
     S = state; if (!S) return;
     const p = S.player;
     if (UI.open.tv) renderTV(dt);
+    if (UI.open.pc) renderPC(dt);
     // safety net: no channel may outlive the popup. If the window is gone but a channel is still
     // tuned (e.g. a transition bypassed closeTV), reset to 1 and silence the commentary bed.
     // Focus is restored here too, so no code path can leave the world audio stuck ducked.
@@ -606,7 +651,7 @@
     if (!UI.open.title) {
       // key handling
       if (!UI.open.death && !UI.open.settings && !UI.open.controls) {
-        if (In.pressed('Escape')) { if (UI.drag) cancelDrag(); else if (UI.open.tv) UI.closeTV(); else if (UI.open.map) UI.closeMap(); else if (UI.open.win) UI.closeWin(); else if (S.build.active) { DSZ.Game.setBuild(S, false); } else UI.toggleMenu(); }
+        if (In.pressed('Escape')) { if (UI.drag) cancelDrag(); else if (UI.open.tv) UI.closeTV(); else if (UI.open.pc) UI.closePC(); else if (UI.open.map) UI.closeMap(); else if (UI.open.win) UI.closeWin(); else if (S.build.active) { DSZ.Game.setBuild(S, false); } else UI.toggleMenu(); }
         else if (UI.open.tv) {
           // TV open: gameplay keys are blocked; the channel can be changed with the number keys or arrows
           if (In.pressed('Digit1')) setTvChannel(1);

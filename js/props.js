@@ -423,6 +423,218 @@
     return Props.tvDraw(x, w, h, t, seed);
   };
 
+  // ------------------------------------------------------------------ computer screen
+  // The office computer on the police desk shows a small terminal: a suspect board, a city
+  // map built from the real building footprints, and a case note. Drawn entirely on canvas,
+  // so it reuses the same popup machinery as the TV and costs no extra DOM.
+  Props.PC_TABS = ['SUSPECTS', 'CITY MAP', 'CASE FILE'];
+
+  const PC_SUSPECTS = [
+    { name: 'LEON VASQUEZ', status: 'WANTED', col: '#e05a4a', note: 'Armed robbery, assault on an officer. Last seen north of the river.' },
+    { name: 'MARA KOVAC', status: 'IN CUSTODY', col: '#4ad07a', note: 'Possession. Picked up at the gas station, talking freely.' },
+    { name: 'IVAN HORVAT', status: 'WANTED', col: '#e05a4a', note: 'Homicide. Dropped out of sight the night the roadblock fell.' },
+    { name: 'ANA MILIC', status: 'MISSING', col: '#e8b04a', note: 'Reported missing three days ago. Last address on Elm Street.' },
+    { name: 'DUSAN PETROVIC', status: 'RELEASED', col: '#7a8a92', note: 'Questioned over the warehouse fire. No charge.' },
+    { name: 'SOFIA BRANKOVIC', status: 'WANTED', col: '#e05a4a', note: 'Forgery, fraud. Believed to be travelling with Vasquez.' }
+  ];
+
+  let pcMapCache = null;
+  function pcBuildMap() {
+    if (pcMapCache) return pcMapCache;
+    const C = DSZ.C, W = DSZ.World, k = 2;
+    const [c, x] = U.canvas2d(C.W * k, C.H * k);
+    x.fillStyle = '#0a0f14'; x.fillRect(0, 0, C.W * k, C.H * k);
+    // streets first, so buildings sit on top of them
+    x.fillStyle = '#19212a';
+    for (let y = 0; y < C.H; y++) for (let xx = 0; xx < C.W; xx++)
+      if (W.roadMask[y * C.W + xx]) x.fillRect(xx * k, y * k, k, k);
+    // building footprints, coloured by what they are
+    const K = { police: '#4a7ad0', hospital: '#b8534a', shop: '#3f7350', super: '#3f7350', diner: '#7a6634',
+                warehouse: '#525a64', church: '#6f5a80', gasstore: '#7a5430', house: '#33404c' };
+    for (const b of W.blds) {
+      if (!b) continue;
+      x.fillStyle = K[b.kind] || '#33404c';
+      x.fillRect(b.x * k, b.y * k, b.w * k, b.h * k);
+      x.strokeStyle = 'rgba(0,0,0,0.5)'; x.lineWidth = 1;
+      x.strokeRect(b.x * k + 0.5, b.y * k + 0.5, b.w * k - 1, b.h * k - 1);
+    }
+    pcMapCache = { c, k };
+    return pcMapCache;
+  }
+
+  Props.pcResetMap = function () { pcMapCache = null; };
+
+  Props.pcDraw = function (x, w, h, t, tab) {
+    t = t || 0;
+    const MONO = '"Courier New", Consolas, monospace';
+    const font = (s, b) => (b ? 'bold ' : '') + Math.max(6, Math.round(s)) + 'px ' + MONO;
+    const AMBER = '#e8b04a', GREEN = '#4ad07a', DIM = '#6d7d86', RED = '#e05a4a', TEXT = '#c2cdd4';
+    const S = DSZ.Game && DSZ.Game.S;
+    let clock = '03:00';
+    if (S) {
+      const hh = Math.floor(S.hour) % 24, mm = Math.floor((S.hour % 1) * 60);
+      clock = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    }
+
+    x.save();
+    x.fillStyle = '#070b0f'; x.fillRect(0, 0, w, h);
+    // faint CRT scanlines over everything
+    x.fillStyle = 'rgba(0,0,0,0.20)';
+    for (let yy = 0; yy < h; yy += 3) x.fillRect(0, yy, w, 1);
+
+    const headH = Math.round(h * 0.105);
+    // ---- header bar
+    x.fillStyle = '#0d141a'; x.fillRect(0, 0, w, headH);
+    x.fillStyle = 'rgba(74,122,208,0.55)'; x.fillRect(0, headH - 2, w, 2);
+    x.textAlign = 'left'; x.textBaseline = 'middle';
+    x.font = font(h * 0.030, true); x.fillStyle = '#9ec0e8';
+    x.fillText('NORLEY VALE POLICE', Math.round(w * 0.028), headH * 0.5);
+    x.font = font(h * 0.022); x.fillStyle = DIM;
+    x.fillText('TERMINAL 03', Math.round(w * 0.028) + Math.round(w * 0.235), headH * 0.5);
+    x.textAlign = 'right';
+    x.font = font(h * 0.026, true); x.fillStyle = AMBER;
+    x.fillText(clock, w - Math.round(w * 0.028), headH * 0.5);
+    x.textAlign = 'left';
+
+    const top = headH + Math.round(h * 0.045);
+    const pad = Math.round(w * 0.035);
+    const bodyW = w - pad * 2;
+
+    if (tab === 1) {
+      // ---------------- CITY MAP
+      x.font = font(h * 0.026, true); x.fillStyle = TEXT;
+      x.fillText('CITY OVERVIEW', pad, top);
+      // legend on the right of the title row
+      const leg = [['POLICE', '#4a7ad0'], ['HOSPITAL', '#b8534a'], ['STORES', '#3f7350'], ['WAREHOUSE', '#525a64']];
+      let lx = w - pad;
+      x.textAlign = 'right'; x.font = font(h * 0.019);
+      for (let i = leg.length - 1; i >= 0; i--) {
+        x.fillStyle = leg[i][1]; x.fillRect(lx - 9, top - 4, 7, 7);
+        x.fillStyle = DIM; x.fillText(leg[i][0], lx - 13, top);
+        lx -= 13 + x.measureText(leg[i][0]).width + 14;
+      }
+      x.textAlign = 'left';
+
+      const map = pcBuildMap();
+      const C = DSZ.C;
+      const availW = bodyW, availH = h - top - Math.round(h * 0.10);
+      const sc = Math.min(availW / (C.W * map.k), availH / (C.H * map.k));
+      const dw = C.W * map.k * sc, dh = C.H * map.k * sc;
+      const dx = pad + (availW - dw) / 2, dy = top + Math.round(h * 0.045);
+      x.imageSmoothingEnabled = false;
+      x.drawImage(map.c, dx, dy, dw, dh);
+      x.strokeStyle = 'rgba(74,122,208,0.4)'; x.lineWidth = 1;
+      x.strokeRect(dx + 0.5, dy + 0.5, dw - 1, dh - 1);
+
+      // points of interest
+      x.font = font(h * 0.017, true); x.textAlign = 'center'; x.textBaseline = 'bottom';
+      for (const q of DSZ.Gen.poi || []) {
+        const px = dx + q.x * map.k * sc, py = dy + q.y * map.k * sc;
+        x.fillStyle = '#dfe8f0';
+        x.fillText(q.name.toUpperCase(), px, py - 2);
+      }
+      // player position
+      if (S && S.player) {
+        const px = dx + S.player.x * map.k * sc, py = dy + S.player.y * map.k * sc;
+        const bl = (Math.sin(t * 4) * 0.5 + 0.5);
+        x.strokeStyle = 'rgba(255,221,85,' + (0.4 + bl * 0.6).toFixed(2) + ')';
+        x.lineWidth = 2; x.beginPath(); x.arc(px, py, 5 + bl * 3, 0, 7); x.stroke();
+        x.fillStyle = '#ffdd55'; x.beginPath(); x.arc(px, py, 2.6, 0, 7); x.fill();
+      }
+      x.textAlign = 'left'; x.textBaseline = 'middle';
+    } else if (tab === 2) {
+      // ---------------- CASE FILE
+      x.font = font(h * 0.026, true); x.fillStyle = TEXT;
+      x.fillText('CASE 14-087  ·  THE NORLEY VALE INCIDENT', pad, top);
+      const lines = [
+        ['OPENED', '21:40, the night the roadblock fell.', DIM],
+        ['LEAD', 'Leon Vasquez. Prints on the warehouse door, and a witness', TEXT],
+        ['', 'puts him north of the river two nights later.', TEXT],
+        ['STATUS', 'At large. Considered armed.', RED],
+        ['', '', TEXT],
+        ['NOTE', 'The town was cut off before we could call anything in.', DIM],
+        ['', 'Everything in this file is now the only record that exists.', DIM],
+        ['', '', TEXT],
+        ['EVIDENCE', '12 boxes, sealed. Untouched since the evacuation.', TEXT],
+        ['', 'This terminal still has power. The phone does not.', DIM]
+      ];
+      let y = top + Math.round(h * 0.075);
+      const lh = Math.round(h * 0.052);
+      for (const [k, v, col] of lines) {
+        if (k) { x.font = font(h * 0.022, true); x.fillStyle = AMBER; x.fillText(k, pad, y); }
+        x.font = font(h * 0.022); x.fillStyle = col;
+        x.fillText(v, pad + Math.round(w * 0.105), y);
+        y += lh;
+      }
+      // blinking cursor, because the machine is still waiting
+      if (Math.sin(t * 3) > 0) {
+        x.fillStyle = GREEN;
+        const cw = Math.round(w * 0.012);
+        x.fillRect(pad, y - Math.round(h * 0.018), cw, Math.round(h * 0.026));
+      }
+    } else {
+      // ---------------- SUSPECTS
+      x.font = font(h * 0.026, true); x.fillStyle = TEXT;
+      x.fillText('SUSPECT DATABASE', pad, top);
+      x.font = font(h * 0.019); x.fillStyle = DIM;
+      x.textAlign = 'right';
+      x.fillText(PC_SUSPECTS.length + ' RECORDS', w - pad, top);
+      x.textAlign = 'left';
+
+      const hdrY = top + Math.round(h * 0.055);
+      x.font = font(h * 0.018, true); x.fillStyle = '#54646e';
+      x.fillText('NAME', pad, hdrY);
+      x.fillText('STATUS', pad + Math.round(w * 0.26), hdrY);
+      x.fillText('NOTES', pad + Math.round(w * 0.42), hdrY);
+      x.fillStyle = 'rgba(84,100,110,0.4)';
+      x.fillRect(pad, hdrY + Math.round(h * 0.020), bodyW, 1);
+
+      const rowH = Math.round(h * 0.083);
+      let ry = hdrY + Math.round(h * 0.045);
+      for (let i = 0; i < PC_SUSPECTS.length; i++) {
+        const s = PC_SUSPECTS[i];
+        // Leon is the live lead: give him a band so the eye lands on him
+        if (s.name.indexOf('LEON') === 0) {
+          const pulse = 0.10 + 0.06 * (Math.sin(t * 2.2) * 0.5 + 0.5);
+          x.fillStyle = 'rgba(224,90,74,' + pulse.toFixed(3) + ')';
+          x.fillRect(pad - 6, ry - rowH * 0.44, bodyW + 12, rowH * 0.88);
+          x.fillStyle = RED; x.fillRect(pad - 6, ry - rowH * 0.44, 2, rowH * 0.88);
+        }
+        x.font = font(h * 0.021, true); x.fillStyle = s.name.indexOf('LEON') === 0 ? '#ffffff' : TEXT;
+        x.fillText(s.name, pad, ry);
+        x.font = font(h * 0.018, true); x.fillStyle = s.col;
+        x.fillText(s.status, pad + Math.round(w * 0.26), ry);
+        x.font = font(h * 0.016); x.fillStyle = DIM;
+        // wrap the note to the remaining width
+        const maxW = bodyW - Math.round(w * 0.42);
+        const words = s.note.split(' ');
+        let line = '', ly = ry - Math.round(h * 0.010);
+        for (const wd of words) {
+          const test = line ? line + ' ' + wd : wd;
+          if (x.measureText(test).width > maxW && line) { x.fillText(line, pad + Math.round(w * 0.42), ly); line = wd; ly += Math.round(h * 0.021); }
+          else line = test;
+        }
+        if (line) x.fillText(line, pad + Math.round(w * 0.42), ly);
+        ry += rowH;
+      }
+    }
+
+    // ---- footer status bar
+    const fy = h - Math.round(h * 0.055);
+    x.fillStyle = '#0d141a'; x.fillRect(0, fy, w, h - fy);
+    x.fillStyle = 'rgba(74,122,208,0.35)'; x.fillRect(0, fy, w, 1);
+    x.textBaseline = 'middle';
+    x.font = font(h * 0.018);
+    x.fillStyle = GREEN; x.fillText('● ONLINE', pad, fy + (h - fy) * 0.5);
+    x.fillStyle = DIM;
+    x.fillText('NVPB INTERNAL — AUTHORISED PERSONNEL ONLY', pad + Math.round(w * 0.11), fy + (h - fy) * 0.5);
+    x.textAlign = 'right';
+    x.fillText('SECTOR Z', w - pad, fy + (h - fy) * 0.5);
+    x.textAlign = 'left';
+
+    x.restore();
+  };
+
   Props.tvDraw = function (x, w, h, t, seed) {
     t = t || 0; seed = seed || 0;
     const small = h < 60, nz = tvNoiseTile();

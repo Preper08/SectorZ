@@ -297,6 +297,9 @@
       // cont), which stays reachable through the same secondary 'T' key vehicles use, so the
       // sleep action is never shadowed by the container check.
       else if (d.bed) { const label = d.cont ? 'E  Sleep    T  ' + (o.searched ? 'Open' : 'Search') : 'E  Sleep'; consider('bed', o, cx, cy, label, 1.7); }
+      // The office computer is a desk with a container, so this has to come before the generic
+      // container branch: E opens the terminal, T still searches the drawers underneath.
+      else if (o.t === O.COMPUTERDESK) consider('pc', o, cx, cy, 'E  Use computer    T  ' + (o.searched ? 'Open' : 'Search'), 1.7, -0.1);
       else if (d.cont) { const open = o.base || o.grid; consider('cont', o, cx, cy, (o.base ? 'E  Open ' : (o.searched ? 'E  Open ' : 'E  Search ')) + d.cont.name, 1.7); }
       else if (d.station === 'fire' || d.station === 'furnace') consider('fire', o, cx, cy, o.lit ? 'E  Add fuel (' + Math.round(o.fuel) + 's)' : 'E  Light fire (needs log/sticks)', 1.8);
       else if (o.t === O.BRAIN) consider('rain', o, cx, cy, 'E  Collect water (' + Math.floor(o.water || 0) + ')', 1.8);
@@ -354,6 +357,7 @@
       }
       case 'sink': { const b = Inv.count(p.inv, 'bottle'); if (b > 0) { Inv.take(p.inv, 'bottle', 1); Game.giveOrDrop(S, Inv.make('dirtywater')); A.play('drink'); Game.toast(S, 'Filled bottle (dirty). Boil it.'); } else Game.toast(S, 'You need an empty bottle.'); break; }
       case 'tv': { A.play('click'); DSZ.UI.openTV(f.ref); break; }
+      case 'pc': { A.play('click'); DSZ.UI.openPC(f.ref); break; }
       case 'pump': {
         const o = f.ref; if (o.fuelLeft === undefined) o.fuelLeft = 10 + Math.random() * 30;
         const can = Inv.all(p.inv).find(x => x.id === 'gascan' && x.fuel < 100);
@@ -456,7 +460,11 @@
       if (In.pressed('KeyR') && !S.build.active) Game.reload(S);
       if (In.pressed('KeyQ')) Game.dropSelected(S);
       if (In.pressed('KeyG')) Game.refuelNearby(S);
-      if (In.pressed('KeyT')) { if (S.focus && S.focus.kind === 'bed' && D[S.focus.ref.t].cont) Game.searchBed(S, S.focus.ref); else Game.searchNearbyVehicle(S); }
+      if (In.pressed('KeyT')) {
+      if (S.focus && S.focus.kind === 'bed' && D[S.focus.ref.t].cont) Game.searchBed(S, S.focus.ref);
+      else if (S.focus && S.focus.kind === 'pc') Game.searchBed(S, S.focus.ref);  // same drawer search, the desk just also has a screen
+      else Game.searchNearbyVehicle(S);
+    }
     }
     // reload progress
     if (p.reload > 0) { p.reload -= dt; if (p.reload <= 0) { const it = p.reloadItem, d = I[it.id]; const need = d.mag - it.mag, have = Inv.count(P, d.ammo), n = Math.min(need, have); Inv.take(P, d.ammo, n); it.mag += n; Game.toast(S, 'Reloaded'); } if (held(S) !== p.reloadItem) p.reload = 0; }
