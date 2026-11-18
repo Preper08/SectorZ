@@ -91,12 +91,40 @@
       o.connect(fl); fl.connect(e); e.connect(g); o.start(t); lf.start(t); o.stop(t + d + 0.05); lf.stop(t + d + 0.05);
       noise(g, t, d, 900, 400, 2, 'bandpass', 0.18, 0.2);
     },
+    // A zombie's hunting call. The old version was a pure sawtooth that climbed to 820 Hz through
+    // a narrow 1400 Hz band, which read as a human - specifically female - shriek and was the one
+    // voice that grated. This is a low, torn-open roar instead: two chest-register sawtooths
+    // detuned against each other so they beat, sagging as the breath runs out, shaped by two low
+    // formants so it carries a vowel rather than a whistle, and buried in wet breath noise. Still
+    // unmistakably an alert, but a throat rather than a voice.
     scream: (g, t) => {
-      const d = 1.1, o = ac.createOscillator(); o.type = 'sawtooth';
-      o.frequency.setValueAtTime(380, t); o.frequency.linearRampToValueAtTime(820, t + 0.3); o.frequency.linearRampToValueAtTime(300, t + d);
-      const fl = ac.createBiquadFilter(); fl.type = 'bandpass'; fl.Q.value = 3; fl.frequency.value = 1400;
-      const e = ac.createGain(); e.gain.setValueAtTime(0.0001, t); e.gain.linearRampToValueAtTime(0.5, t + 0.08); e.gain.linearRampToValueAtTime(0.0001, t + d);
-      o.connect(fl); fl.connect(e); e.connect(g); o.start(t); o.stop(t + d + 0.05);
+      const d = 1.0 + Math.random() * 0.55;
+      const f0 = 92 + Math.random() * 36;                    // stays in the male chest register
+      const o1 = ac.createOscillator(); o1.type = 'sawtooth';
+      const o2 = ac.createOscillator(); o2.type = 'sawtooth';
+      o1.frequency.setValueAtTime(f0, t);
+      o2.frequency.setValueAtTime(f0 * (1.045 + Math.random() * 0.03), t);
+      o1.frequency.linearRampToValueAtTime(f0 * 0.60, t + d);
+      o2.frequency.linearRampToValueAtTime(f0 * 0.64, t + d);
+      // ragged flutter: a fast, uneven wobble on the pitch, which is what makes a throat sound torn
+      const lf = ac.createOscillator(); lf.frequency.value = 10 + Math.random() * 7;
+      const lg = ac.createGain(); lg.gain.value = 9 + Math.random() * 7;
+      lf.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency);
+      // two formants, an open "aah" falling toward a closed "uhh"
+      const f1 = ac.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 3.2;
+      f1.frequency.setValueAtTime(520, t); f1.frequency.linearRampToValueAtTime(330, t + d);
+      const f2 = ac.createBiquadFilter(); f2.type = 'bandpass'; f2.Q.value = 4.5;
+      f2.frequency.setValueAtTime(1150, t); f2.frequency.linearRampToValueAtTime(700, t + d);
+      const g2 = ac.createGain(); g2.gain.value = 0.55;
+      const e = ac.createGain(); e.gain.setValueAtTime(0.0001, t);
+      e.gain.linearRampToValueAtTime(0.62, t + 0.06);
+      e.gain.linearRampToValueAtTime(0.34, t + d * 0.45);
+      e.gain.linearRampToValueAtTime(0.0001, t + d);
+      o1.connect(f1); f1.connect(e); o2.connect(f2); f2.connect(g2); g2.connect(e); e.connect(g);
+      // wet breath riding on top, so it reads as a throat and not as a synth
+      noise(g, t, d, 900, 300, 1.4, 'bandpass', 0.30, 0.05);
+      o1.start(t); o2.start(t); lf.start(t);
+      o1.stop(t + d + 0.05); o2.stop(t + d + 0.05); lf.stop(t + d + 0.05);
     },
     bite: (g, t) => { noise(g, t, 0.12, 2200, 400, 1, 'bandpass', 0.8); tone(g, t, 0.1, 200, 80, 'square', 0.3); },
     hurt: (g, t) => { tone(g, t, 0.25, 260, 120, 'sawtooth', 0.6); noise(g, t, 0.2, 1200, 300, 1, 'lowpass', 0.5); },
