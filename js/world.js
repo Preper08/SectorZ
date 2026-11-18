@@ -8,7 +8,7 @@
     FENCE: 6, FENCE_CL: 7, TREE_PINE: 8, TREE_OAK: 9, TREE_DEAD: 10, BUSH: 11, ROCK: 12,
     CRATE: 13, SHELF: 14, FRIDGE: 15, KCAB: 16, BED: 17, TABLE: 18, CHAIR: 19, COUCH: 20, WARDROBE: 21, TOILET: 22,
     COUNTER: 23, DUMPSTER: 24, STREETLAMP: 25, TRAFFIC: 26, BARREL: 27, LOCKER: 28, DESK: 29, MEDCAB: 30, BENCH: 31,
-    GENERATOR: 32, SIGN: 33, HYDRANT: 34, MAILBOX: 35, BARRIER: 36, TV: 37, SINK: 38, BOOKSHELF: 39, WORKBENCH: 40,
+    GENERATOR: 32, SIGN: 33, HYDRANT: 34, MAILBOX: 35, BARRIER: 36, TV: 37, SINK: 38, BOOKSHELF: 39, WORKBENCH: 40, COMPUTERDESK: 41,
     TRASHCAN: 42, PILLAR: 43, CHECKOUT: 44, PALLET: 45, CONTAINER: 46, GRAVE: 47, TENT: 48, WRECKFIRE: 49,
     BWALL_W: 50, BWALL_M: 51, BDOOR: 52, BWINDOW: 53, BSTORAGE: 54, BWORKBENCH: 55, BFIRE: 56, BBED: 57, BLAMP: 58, BFENCE: 59, BGATE: 60, BBARR: 61, BRAIN: 62, BFURNACE: 63
   };
@@ -56,6 +56,9 @@
   def(O.SINK, 'Sink', { h: 32, solid: true });
   def(O.BOOKSHELF, 'Bookshelf', { h: 66, cont: { w: 6, h: 3, loot: 'books', name: 'Bookshelf' } });
   def(O.WORKBENCH, 'Workbench', { h: 32, cont: { w: 6, h: 3, loot: 'tools', name: 'Workbench' } });
+  // A writing desk with a computer on it: office furniture, not a crafting station. It hides
+  // papers in its drawers like any other desk, so the office loot table applies unchanged.
+  def(O.COMPUTERDESK, 'Computer Desk', { h: 32, cont: { w: 5, h: 3, loot: 'office', name: 'Computer desk' } });
   def(O.TRASHCAN, 'Trash can', { h: 28, solid: true, cont: { w: 3, h: 3, loot: 'trash', name: 'Trash can' } });
   def(O.PILLAR, 'Pillar', { h: 92, opaque: true, hp: 999 });
   def(O.CHECKOUT, 'Checkout', { h: 32, cont: { w: 4, h: 2, loot: 'register', name: 'Register' } });

@@ -476,6 +476,34 @@
   B3[O.TRASHCAN] = () => G3.prism(0, 0, 0, 0.72, 0.24, 9, [96, 100, 104], { top: [74, 78, 82], r1: 0.27 });
   B3[O.LOCKER] = () => { const f = B(-0.22, -0.4, 0, 0.22, 0.4, 1.7, [92, 106, 116]); for (const s of f) if (s.role === 'px') s.d = (x, w, h) => { x.strokeStyle = 'rgba(0,0,0,0.5)'; x.lineWidth = 1.2; x.strokeRect(1, 1, w / 2 - 1, h - 2); x.strokeRect(w / 2 + 1, 1, w / 2 - 2, h - 2); x.fillStyle = 'rgba(0,0,0,0.5)'; for (let i = 0; i < 4; i++) { x.fillRect(5, 5 + i * 3, w / 2 - 10, 1); x.fillRect(w / 2 + 5, 5 + i * 3, w / 2 - 10, 1); } grime(x, w, h, 0.35); }; return f; };
   B3[O.DESK] = (o) => { const f = B(-0.36, -0.46, 0, 0.36, 0.46, 0.76, [110, 84, 56], { top: [150, 120, 84] }); for (const s of f) if (s.role === 'px') s.d = drawers(3); return f; };
+  // Screen of the office computer: dark glass with a green phosphor cast and a few lines of
+  // text, baked into the sprite. It is furniture, so it never animates - the TV is the only
+  // prop that gets a live screen.
+  const screenPx = (x, w, h) => {
+    x.fillStyle = '#050a06'; x.fillRect(0, 0, w, h);
+    const g = x.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(80,200,120,0.22)'); g.addColorStop(1, 'rgba(20,80,46,0.10)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgba(130,230,160,0.85)';
+    for (let i = 0; i < 5; i++) x.fillRect(w * 0.12, h * (0.22 + i * 0.13), w * (0.34 + ((i * 37) % 30) / 100), Math.max(1, h * 0.05));
+    x.strokeStyle = 'rgba(0,0,0,0.7)'; x.lineWidth = 1.5; x.strokeRect(0.75, 0.75, w - 1.5, h - 1.5);
+  };
+  // A writing desk with a computer on it. Same carcass and drawers as O.DESK so it sits in an
+  // office without standing out; the monitor and keyboard are what make it different. The tower
+  // lives under the desk in real life, but at 59x64 px it would be hidden behind the carcass, so
+  // the parts that actually read at this scale are the screen and the keyboard.
+  B3[O.COMPUTERDESK] = () => {
+    const f = B(-0.36, -0.46, 0, 0.36, 0.46, 0.76, [110, 84, 56], { top: [150, 120, 84] });
+    for (const s of f) if (s.role === 'px') s.d = drawers(3);
+    // monitor, set back from the user side, on a short neck so it does not float
+    f.push(...B(-0.04, -0.26, 0.76, 0.12, -0.10, 0.82, [150, 148, 140]));
+    const mon = B(-0.08, -0.32, 0.82, 0.16, 0.02, 1.20, [128, 128, 122], { top: [148, 148, 140] });
+    for (const s of mon) if (s.role === 'px') s.d = screenPx;
+    f.push(...mon);
+    // keyboard, sitting proud of the desktop so its top face is visible from above
+    f.push(...B(0.18, -0.26, 0.76, 0.34, 0.04, 0.82, [126, 124, 116], { top: [148, 146, 138] }));
+    return f;
+  };
   B3[O.MEDCAB] = () => { const f = B(-0.14, -0.3, 0.9, 0.14, 0.3, 1.6, [226, 228, 228]); for (const s of f) if (s.role === 'px') s.d = (x, w, h) => { x.fillStyle = '#c03030'; x.fillRect(w / 2 - 1.5, h * 0.3, 3, h * 0.4); x.fillRect(w / 2 - 5, h * 0.45, 10, 3); grime(x, w, h, 0.3); }; return f; };
   B3[O.BENCH] = () => { const f = []; for (const sy of [-1, 1]) f.push(...B(-0.14, sy * 0.4 - 0.03, 0, 0.14, sy * 0.4 + 0.03, 0.4, [50, 50, 54])); f.push(...B(-0.17, -0.47, 0.4, 0.17, 0.47, 0.46, [120, 84, 50]), ...B(-0.2, -0.47, 0.46, -0.16, 0.47, 0.82, [120, 84, 50])); return f; };
   B3[O.GENERATOR] = (o) => o.pump ? (() => { const f = B(-0.18, -0.18, 0, 0.18, 0.18, 1.25, [200, 50, 44]); f.push(...B(-0.22, -0.22, 0, 0.22, 0.22, 0.1, [90, 90, 94]), ...B(-0.2, -0.2, 1.25, 0.2, 0.2, 1.34, [60, 60, 66])); for (const s of f) if (s.role === 'px' || s.role === 'py') s.d = (x, w, h) => { x.fillStyle = '#101810'; x.fillRect(w * 0.2, h * 0.16, w * 0.6, h * 0.16); x.fillStyle = '#3ae050'; x.fillRect(w * 0.26, h * 0.2, w * 0.35, h * 0.08); x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0, h * 0.5, w, 2); }; return f; })() : (() => { const f = B(-0.35, -0.3, 0, 0.35, 0.3, 0.7, [214, 130, 40]); f.push(...B(-0.3, -0.25, 0.7, 0.3, 0.25, 0.82, [40, 40, 44])); for (const s of f) if (s.role === 'px') s.d = (x, w, h) => { x.fillStyle = 'rgba(0,0,0,0.5)'; for (let i = 0; i < 4; i++) x.fillRect(w * 0.1, h * (0.2 + i * 0.16), w * 0.8, 2); grime(x, w, h, 0.4); }; return f; })();

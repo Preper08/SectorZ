@@ -266,7 +266,7 @@
         floorRect(r, G.LINO);
         if (r.type === 'lobby') { put(b, r, rng, O.DESK, { loot: 'police' }); putFree(b, r, rng, O.CHAIR); putFree(b, r, rng, O.CHAIR); put(b, r, rng, O.BENCH); }
         else if (r.type === 'armory') { for (let i = 0; i < 3; i++) put(b, r, rng, O.LOCKER, { loot: 'armory' }); put(b, r, rng, O.CRATE, { loot: 'armory' }); }
-        else if (r.type === 'office') { put(b, r, rng, O.DESK, { loot: 'police' }); put(b, r, rng, O.DESK, { loot: 'office' }); put(b, r, rng, O.LOCKER, { loot: 'locker' }); }
+        else if (r.type === 'office') { put(b, r, rng, O.COMPUTERDESK, { loot: 'police' }); put(b, r, rng, O.DESK, { loot: 'office' }); put(b, r, rng, O.LOCKER, { loot: 'locker' }); }
         else { put(b, r, rng, O.BED, { loot: 'cell' }); put(b, r, rng, O.TOILET); }
       }
     } else if (kind === 'hospital') {
