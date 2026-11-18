@@ -9,12 +9,12 @@
 
   // ---- melee
   it('fists', 'Fists', 'melee', { dmg: 8, range: 1.0, rate: 0.45, stam: 4, noise: 4, hidden: true });
-  it('bat', 'Baseball Bat', 'melee', { w: 1, h: 3, dmg: 26, range: 1.5, rate: 0.62, stam: 9, noise: 7, dur: 60, desc: 'Solid wood. Reliable.', col: '#b08848' });
+  it('bat', 'Baseball Bat', 'melee', { w: 1, h: 2, dmg: 26, range: 1.5, rate: 0.62, stam: 9, noise: 7, dur: 60, desc: 'Solid wood. Reliable.', col: '#b08848' });
   it('crowbar', 'Crowbar', 'melee', { w: 1, h: 2, dmg: 22, range: 1.4, rate: 0.5, stam: 7, noise: 7, dur: 90, pry: true, desc: 'Great for opening locked doors.', col: '#7a8088' });
   it('knife', 'Kitchen Knife', 'melee', { w: 1, h: 2, dmg: 14, range: 1.1, rate: 0.32, stam: 3, noise: 2, dur: 45, desc: 'Fast and quiet.', col: '#c4c8cc' });
-  it('machete', 'Machete', 'melee', { w: 1, h: 3, dmg: 34, range: 1.6, rate: 0.55, stam: 8, noise: 4, dur: 80, desc: 'Cuts through the dead.', col: '#9aa0a4' });
+  it('machete', 'Machete', 'melee', { w: 1, h: 2, dmg: 34, range: 1.6, rate: 0.55, stam: 8, noise: 4, dur: 80, desc: 'Cuts through the dead.', col: '#9aa0a4' });
   it('axe', 'Fire Axe', 'melee', { w: 2, h: 3, dmg: 48, range: 1.5, rate: 0.85, stam: 14, noise: 8, dur: 100, chop: true, pry: true, desc: 'Heavy. Chops wood and skulls.', col: '#c43c30' });
-  it('pipe', 'Lead Pipe', 'melee', { w: 1, h: 3, dmg: 24, range: 1.4, rate: 0.6, stam: 9, noise: 8, dur: 120, desc: 'Heavy and dependable.', col: '#7c828a' });
+  it('pipe', 'Lead Pipe', 'melee', { w: 1, h: 2, dmg: 24, range: 1.4, rate: 0.6, stam: 9, noise: 8, dur: 120, desc: 'Heavy and dependable.', col: '#7c828a' });
   it('hammer', 'Hammer', 'melee', { w: 1, h: 2, dmg: 16, range: 1.1, rate: 0.45, stam: 5, noise: 6, dur: 100, tool: true, desc: 'Needed to build.', col: '#946a3c' });
   it('spear', 'Wooden Spear', 'melee', { w: 1, h: 4, dmg: 30, range: 2.0, rate: 0.7, stam: 8, noise: 3, dur: 40, desc: 'Long reach.', col: '#a07c48' });
   // ---- guns
