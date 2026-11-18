@@ -430,12 +430,12 @@
   Props.PC_TABS = ['SUSPECTS', 'CITY MAP', 'CASE FILE'];
 
   const PC_SUSPECTS = [
-    { name: 'LEON VASQUEZ', status: 'WANTED', col: '#e05a4a', note: 'Armed robbery, assault on an officer. Last seen north of the river.' },
+    { name: 'LEON DE LA VEGA', status: 'WANTED', col: '#e05a4a', note: 'Armed robbery, assault on an officer. Last seen north of the river.' },
     { name: 'MARA KOVAC', status: 'IN CUSTODY', col: '#4ad07a', note: 'Possession. Picked up at the gas station, talking freely.' },
     { name: 'IVAN HORVAT', status: 'WANTED', col: '#e05a4a', note: 'Homicide. Dropped out of sight the night the roadblock fell.' },
     { name: 'ANA MILIC', status: 'MISSING', col: '#e8b04a', note: 'Reported missing three days ago. Last address on Elm Street.' },
     { name: 'DUSAN PETROVIC', status: 'RELEASED', col: '#7a8a92', note: 'Questioned over the warehouse fire. No charge.' },
-    { name: 'SOFIA BRANKOVIC', status: 'WANTED', col: '#e05a4a', note: 'Forgery, fraud. Believed to be travelling with Vasquez.' }
+    { name: 'SOFIA BRANKOVIC', status: 'WANTED', col: '#e05a4a', note: 'Forgery, fraud. Believed to be travelling with de la Vega.' }
   ];
 
   let pcMapCache = null;
@@ -548,7 +548,7 @@
       x.fillText('CASE 14-087  ·  THE NORLEY VALE INCIDENT', pad, top);
       const lines = [
         ['OPENED', '21:40, the night the roadblock fell.', DIM],
-        ['LEAD', 'Leon Vasquez. Prints on the warehouse door, and a witness', TEXT],
+        ['LEAD', 'Leon de la Vega. Prints on the warehouse door, and a witness', TEXT],
         ['', 'puts him north of the river two nights later.', TEXT],
         ['STATUS', 'At large. Considered armed.', RED],
         ['', '', TEXT],
