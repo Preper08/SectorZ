@@ -16,7 +16,7 @@
   it('axe', 'Fire Axe', 'melee', { w: 2, h: 3, dmg: 48, range: 1.5, rate: 0.85, stam: 14, noise: 8, dur: 100, chop: true, pry: true, desc: 'Heavy. Chops wood and skulls.', col: '#c43c30' });
   it('pipe', 'Lead Pipe', 'melee', { w: 1, h: 2, dmg: 24, range: 1.4, rate: 0.6, stam: 9, noise: 8, dur: 120, desc: 'Heavy and dependable.', col: '#7c828a' });
   it('hammer', 'Hammer', 'melee', { w: 1, h: 2, dmg: 16, range: 1.1, rate: 0.45, stam: 5, noise: 6, dur: 100, tool: true, desc: 'Needed to build.', col: '#946a3c' });
-  it('spear', 'Wooden Spear', 'melee', { w: 1, h: 4, dmg: 30, range: 2.0, rate: 0.7, stam: 8, noise: 3, dur: 40, desc: 'Long reach.', col: '#a07c48' });
+  it('spear', 'Wooden Spear', 'melee', { w: 1, h: 3, dmg: 30, range: 2.0, rate: 0.7, stam: 8, noise: 3, dur: 40, desc: 'Long reach.', col: '#a07c48' });
   // ---- guns
   it('pistol', '9mm Pistol', 'gun', { w: 2, h: 2, dmg: 28, range: 18, rate: 0.28, mag: 12, ammo: 'ammo9', spread: 0.05, noise: 22, snd: 'gun_pistol', dur: 150, reload: 1.4, desc: 'Standard sidearm.', col: '#444' });
   it('shotgun', 'Pump Shotgun', 'gun', { w: 4, h: 2, dmg: 14, pellets: 8, range: 11, rate: 0.9, mag: 6, ammo: 'shell', spread: 0.2, noise: 32, snd: 'gun_shotgun', dur: 150, reload: 2.2, desc: 'Devastating up close.', col: '#5a3c22' });
