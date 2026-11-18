@@ -488,20 +488,27 @@
     for (let i = 0; i < 5; i++) x.fillRect(w * 0.12, h * (0.22 + i * 0.13), w * (0.34 + ((i * 37) % 30) / 100), Math.max(1, h * 0.05));
     x.strokeStyle = 'rgba(0,0,0,0.7)'; x.lineWidth = 1.5; x.strokeRect(0.75, 0.75, w - 1.5, h - 1.5);
   };
-  // A writing desk with a computer on it. Same carcass and drawers as O.DESK so it sits in an
-  // office without standing out; the monitor and keyboard are what make it different. The tower
-  // lives under the desk in real life, but at 59x64 px it would be hidden behind the carcass, so
-  // the parts that actually read at this scale are the screen and the keyboard.
+  // A proper office desk: a thin laminate top on a steel frame, open underneath, with a
+  // drawer pedestal under one end only. The first attempt reused the wooden drawer-chest
+  // carcass from O.DESK, which read as a filing cabinet rather than a desk to sit at.
   B3[O.COMPUTERDESK] = () => {
-    const f = B(-0.36, -0.46, 0, 0.36, 0.46, 0.76, [110, 84, 56], { top: [150, 120, 84] });
-    for (const s of f) if (s.role === 'px') s.d = drawers(3);
+    const f = [];
+    // thin top with a slight overhang past the frame
+    f.push(...B(-0.43, -0.46, 0.70, 0.43, 0.46, 0.765, [158, 154, 142], { top: [184, 180, 166] }));
+    // steel frame: four square-section legs, leaving the knee space open
+    for (const sx of [-1, 1]) for (const sy of [-1, 1])
+      f.push(...B(sx * 0.37 - 0.024, sy * 0.41 - 0.024, 0, sx * 0.37 + 0.024, sy * 0.41 + 0.024, 0.70, [100, 104, 108]));
+    // drawer pedestal under the right end, flush with the top
+    const ped = B(0.16, -0.37, 0.05, 0.40, 0.37, 0.70, [140, 136, 124], { top: [158, 154, 142] });
+    for (const s of ped) if (s.role === 'px') s.d = drawers(3);
+    f.push(...ped);
     // monitor, set back from the user side, on a short neck so it does not float
-    f.push(...B(-0.04, -0.26, 0.76, 0.12, -0.10, 0.82, [150, 148, 140]));
-    const mon = B(-0.08, -0.32, 0.82, 0.16, 0.02, 1.20, [128, 128, 122], { top: [148, 148, 140] });
+    f.push(...B(-0.06, -0.22, 0.765, 0.10, -0.06, 0.82, [120, 122, 118]));
+    const mon = B(-0.10, -0.28, 0.82, 0.14, 0.06, 1.20, [128, 128, 122], { top: [148, 148, 140] });
     for (const s of mon) if (s.role === 'px') s.d = screenPx;
     f.push(...mon);
     // keyboard, sitting proud of the desktop so its top face is visible from above
-    f.push(...B(0.18, -0.26, 0.76, 0.34, 0.04, 0.82, [126, 124, 116], { top: [148, 146, 138] }));
+    f.push(...B(0.13, -0.22, 0.765, 0.29, 0.04, 0.815, [126, 124, 116], { top: [148, 146, 138] }));
     return f;
   };
   B3[O.MEDCAB] = () => { const f = B(-0.14, -0.3, 0.9, 0.14, 0.3, 1.6, [226, 228, 228]); for (const s of f) if (s.role === 'px') s.d = (x, w, h) => { x.fillStyle = '#c03030'; x.fillRect(w / 2 - 1.5, h * 0.3, 3, h * 0.4); x.fillRect(w / 2 - 5, h * 0.45, 10, 3); grime(x, w, h, 0.3); }; return f; };
