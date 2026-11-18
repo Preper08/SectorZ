@@ -261,18 +261,32 @@
     } else if (kind === 'police') {
       rooms.forEach(r => r.area = (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1));
       const sorted = rooms.slice().sort((a, c) => c.area - a.area);
-      // A police station has no beds. The two smaller rooms used to be holding cells, each
-      // with a bunk and a toilet in the same space, which read as a bedroom with a lavatory
-      // in the corner. They are now dedicated restrooms instead: the toilet gets a room of
-      // its own, with a sink, and no bed anywhere in the building.
-      sorted.forEach((r, i) => { r.type = i === 0 ? 'lobby' : (i === 1 ? 'armory' : (i % 2 ? 'office' : 'bath')); });
+      sorted.forEach((r, i) => { r.type = i === 0 ? 'lobby' : (i === 1 ? 'armory' : (i % 2 ? 'office' : 'cells')); });
       for (const r of rooms) {
-        floorRect(r, r.type === 'bath' ? G.TILE : G.LINO);
+        floorRect(r, G.LINO);
         if (r.type === 'lobby') { put(b, r, rng, O.DESK, { loot: 'police' }); putFree(b, r, rng, O.CHAIR); putFree(b, r, rng, O.CHAIR); put(b, r, rng, O.BENCH); }
         else if (r.type === 'armory') { for (let i = 0; i < 3; i++) put(b, r, rng, O.LOCKER, { loot: 'armory' }); put(b, r, rng, O.CRATE, { loot: 'armory' }); }
         else if (r.type === 'office') { put(b, r, rng, O.COMPUTERDESK, { loot: 'police' }); put(b, r, rng, O.DESK, { loot: 'office' }); put(b, r, rng, O.LOCKER, { loot: 'locker' }); }
-        else { put(b, r, rng, O.TOILET); put(b, r, rng, O.SINK); }
+        else { put(b, r, rng, O.BED, { loot: 'cell' }); put(b, r, rng, O.TOILET); }
       }
+      // The furnishing above is deliberately the layout this building always produced, so the
+      // shared generator stream is consumed exactly as before and every building created later
+      // in the world keeps its old shape. The two holding cells are re-purposed afterwards, in
+      // place, which costs no draws:
+      //   - the first stays a cell, but its bed becomes a bare prison cot (o.prison) instead of
+      //     bedroom bedding, so a cell reads as a cell;
+      //   - the second becomes a restroom, with the bed swapped for a sink, so there is a
+      //     toilet in the building that is not standing next to someone's bed.
+      const cellsRooms = rooms.filter(r => r.type === 'cells');
+      cellsRooms.forEach((r, i) => {
+        floorRect(r, G.TILE);
+        const bed = b.props.find(p => p.t === O.BED && p.x >= r.x0 && p.x <= r.x1 && p.y >= r.y0 && p.y <= r.y1);
+        if (i === 0) { r.type = 'cell'; if (bed) bed.prison = true; }
+        else {
+          r.type = 'bath';
+          if (bed) { bed.t = O.SINK; delete bed.loot; delete bed.grid; delete bed.searched; W.refresh(bed.x, bed.y); }
+        }
+      });
     } else if (kind === 'hospital') {
       rooms.forEach(r => r.area = (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1));
       const sorted = rooms.slice().sort((a, c) => c.area - a.area);

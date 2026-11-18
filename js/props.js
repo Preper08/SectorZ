@@ -465,7 +465,21 @@
   B3[O.KCAB] = () => { const f = B(-0.3, -0.47, 0, 0.3, 0.47, 0.88, [140, 112, 80], { top: [170, 164, 150] }); for (const s of f) if (s.role === 'px') s.d = doors2; return f; };
   B3[O.COUNTER] = () => { const f = B(-0.32, -0.47, 0, 0.32, 0.47, 0.92, [120, 96, 70], { top: [188, 182, 170] }); for (const s of f) if (s.role === 'px') s.d = doors2; return f; };
   B3[O.SINK] = () => { const f = B(-0.3, -0.45, 0, 0.3, 0.45, 0.9, [180, 182, 184], { top: [200, 204, 206] }); f.push(...B(0.0, -0.18, 0.9, 0.22, 0.18, 0.96, [120, 126, 132])); for (const s of f) if (s.role === 'px') s.d = doors2; return f; };
-  B3[O.BED] = (o) => { const m = FAB[o.v % FAB.length]; const f = B(-0.5, -0.46, 0, 0.5, 0.46, 0.22, [98, 72, 48]); f.push(...B(-0.47, -0.43, 0.22, 0.47, 0.43, 0.38, m), ...B(-0.46, -0.3, 0.38, -0.22, 0.3, 0.46, [226, 224, 216]), ...B(-0.52, -0.46, 0, -0.45, 0.46, 0.72, [86, 62, 40])); f.push(...B(-0.0, -0.43, 0.38, 0.47, 0.43, 0.42, mul(m, 0.85))); return f; };
+  // A prison cot for holding cells: bare steel frame, thin grey mattress, no colourful
+  // bedding. Selected with o.prison on a normal O.BED tile, so the cell still behaves exactly
+  // like a bed (it is still solid and still hides cell loot underneath) and no new object id
+  // has to be spent on a second bed type.
+  const prisonCot = () => {
+    const f = [];
+    f.push(...B(-0.48, -0.33, 0.32, 0.48, 0.33, 0.38, [96, 100, 104], { top: [116, 120, 124] }));
+    for (const sx of [-1, 1]) for (const sy of [-1, 1])
+      f.push(...B(sx * 0.44 - 0.022, sy * 0.29 - 0.022, 0, sx * 0.44 + 0.022, sy * 0.29 + 0.022, 0.32, [86, 90, 94]));
+    f.push(...B(-0.46, -0.31, 0.38, 0.46, 0.31, 0.44, [138, 140, 138]));      // thin mattress
+    f.push(...B(-0.44, -0.29, 0.44, -0.30, 0.29, 0.50, [156, 152, 144]));     // pillow
+    f.push(...B(-0.52, -0.33, 0.38, -0.47, 0.33, 0.72, [92, 96, 100], { top: [112, 116, 120] })); // headboard
+    return f;
+  };
+  B3[O.BED] = (o) => { if (o.prison) return prisonCot(); const m = FAB[o.v % FAB.length]; const f = B(-0.5, -0.46, 0, 0.5, 0.46, 0.22, [98, 72, 48]); f.push(...B(-0.47, -0.43, 0.22, 0.47, 0.43, 0.38, m), ...B(-0.46, -0.3, 0.38, -0.22, 0.3, 0.46, [226, 224, 216]), ...B(-0.52, -0.46, 0, -0.45, 0.46, 0.72, [86, 62, 40])); f.push(...B(-0.0, -0.43, 0.38, 0.47, 0.43, 0.42, mul(m, 0.85))); return f; };
   B3[O.TABLE] = (o) => { const f = []; for (const sx of [-1, 1]) for (const sy of [-1, 1]) f.push(...B(sx * 0.38 - 0.04, sy * 0.38 - 0.04, 0, sx * 0.38 + 0.04, sy * 0.38 + 0.04, 0.7, [84, 62, 42])); f.push(...B(-0.46, -0.46, 0.7, 0.46, 0.46, 0.78, PALETTE[o.v & 3], { top: mul(PALETTE[o.v & 3], 1.12) })); return f; };
   B3[O.CHAIR] = () => { const f = []; for (const sx of [-1, 1]) for (const sy of [-1, 1]) f.push(...B(sx * 0.15 - 0.025, sy * 0.15 - 0.025, 0, sx * 0.15 + 0.025, sy * 0.15 + 0.025, 0.4, [80, 58, 40])); f.push(...B(-0.19, -0.19, 0.4, 0.19, 0.19, 0.45, [120, 90, 60]), ...B(-0.19, -0.19, 0.45, -0.15, 0.19, 0.9, [110, 82, 56])); return f; };
   B3[O.COUCH] = (o) => { const m = FAB[o.v % FAB.length]; const f = B(-0.4, -0.5, 0, 0.4, 0.5, 0.38, m); f.push(...B(-0.4, -0.5, 0.38, -0.2, 0.5, 0.82, mul(m, 0.9)), ...B(-0.4, -0.5, 0.3, 0.4, -0.36, 0.58, mul(m, 0.8)), ...B(-0.4, 0.36, 0.3, 0.4, 0.5, 0.58, mul(m, 0.8))); for (const s of f) if (s.role === 'top') s.d = (x, w, h) => { x.fillStyle = 'rgba(0,0,0,0.12)'; x.fillRect(w / 2, 0, 1.5, h); grime(x, w, h, 0.2); }; return f; };
@@ -650,7 +664,7 @@
     const flags = (o.dead ? 1 : 0) | (o.pump ? 2 : 0) | (t === O.BGATE && o.open ? 4 : 0);
     let last = lastProps.get(o);
     if (last && last.t === t && last.f === f && last.v === v && last.flags === flags) return last.sprite;
-    const key = t + '|' + f + '|' + v + (o.dead ? 'd' : '') + (o.pump ? 'p' : '') + (t === O.BGATE && o.open ? 'o' : '');
+    const key = t + '|' + f + '|' + v + (o.dead ? 'd' : '') + (o.pump ? 'p' : '') + (o.prison ? 'j' : '') + (t === O.BGATE && o.open ? 'o' : '');
     let s = cache.get(key);
     if (!s) {
       if (d.tree) s = tree(o);
