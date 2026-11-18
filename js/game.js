@@ -50,6 +50,9 @@
     if (best) { best.state = 'ok'; best.drivable = true; best.dead = false; best.hp = 140; best.fuel = 38; best.color = best.color % 10; }
     for (const c of S.cars) if (c.state === 'ok' && c !== best && Math.random() < 0.4) c.fuel = 5 + Math.random() * 25;
     S.cam.x = p.x; S.cam.y = p.y;
+    // the companion. Spawned next to the player on a new game; a loaded save restores its own
+    // position in applySave, which runs just below.
+    DSZ.Dog.spawn(S);
     Game.refreshEquipVisuals(S);
     if (saved) Game.applySave(S, saved);
     // new games start bare-handed: the bat lies on the floor near the spawn.
@@ -731,6 +734,7 @@
     updateBuild(S, dt);
     updateSurvival(S, dt);
     updateSleep(S, dt);
+    DSZ.Dog.update(S, dt);
     E.updateZombies(S, dt); E.updateCars(S, dt); E.updateParticles(S, dt);
     updateCamera(S, dt);
     // autosave is spread over several frames so it never stalls the game loop
@@ -757,6 +761,7 @@
       horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights, killed: S.horde.killed || 0 },
       v: 1, seed: S.seed, hour: S.hour, day: S.day, difficulty: S.difficulty || 'normal', stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
       player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
+      dog: S.dog ? { x: S.dog.x, y: S.dog.y, ang: S.dog.ang, name: S.dog.name } : null,
       mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
     };
   }
@@ -817,5 +822,15 @@
     for (const b of d.base || []) { const o = { t: b.t, f: b.f, v: 0, base: true, b: 0, open: b.open, hp: b.hp, fuel: b.fuel, lit: b.lit, water: b.water, grid: b.grid }; W.setObj(b.x, b.y, o); if (D[b.t].fire && b.lit || b.t === O.BLAMP) Game.attachBaseLight(o); }
     S.drops = d.drops || []; S.cars.length = 0; for (const c of d.cars || []) { const car = E.spawnCar(S, { x: c.x, y: c.y, ang: c.ang, kind: c.kind, color: c.color, state: c.state, seed: 1 }); Object.assign(car, { hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, lightsOn: c.lightsOn }); }
     S.cam.x = p.x; S.cam.y = p.y; Game.refreshEquipVisuals(S); DSZ.Render.dirtyAll();
+    // The dog. A save from before the companion existed has no dog record, so one is placed
+    // beside the player instead of the player loading in alone - the dog is part of the game now,
+    // not an optional extra. A saved dog that ended up inside geometry is nudged to a free tile.
+    if (d.dog && isFinite(d.dog.x) && isFinite(d.dog.y)) {
+      S.dog = { x: d.dog.x, y: d.dog.y, ang: d.dog.ang || 0, vx: 0, vy: 0, gait: 0, moving: false, r: 0.2,
+                barkT: 0, whineT: 8 + Math.random() * 10, wagT: 0, alert: 0, sprite: null, name: d.dog.name || 'Zuca' };
+      const u = W.unstick(S.dog.x, S.dog.y, 0.2); S.dog.x = u[0]; S.dog.y = u[1];
+    } else {
+      DSZ.Dog.spawn(S);
+    }
   };
 })();

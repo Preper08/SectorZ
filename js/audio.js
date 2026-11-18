@@ -149,7 +149,49 @@
     thud: (g, t) => { tone(g, t, 0.2, 90, 40, 'sine', 1.0); noise(g, t, 0.1, 400, 100, 1, 'lowpass', 0.5); },
     carHit: (g, t) => { noise(g, t, 0.3, 2000, 200, 0.8, 'lowpass', 1.2, 0.001); tone(g, t, 0.25, 100, 40, 'sine', 1); },
     ding: (g, t) => { tone(g, t, 0.6, 880, 880, 'sine', 0.3, 0.01); tone(g, t, 0.6, 1320, 1320, 'sine', 0.15, 0.01); },
-    sleep: (g, t) => tone(g, t, 1.2, 220, 110, 'sine', 0.25, 0.3)
+    sleep: (g, t) => tone(g, t, 1.2, 220, 110, 'sine', 0.25, 0.3),
+    // ---- the dog. Two short voiced sounds, both built from a sawtooth glottal source pushed
+    // through a formant pair, the same technique as the TV commentator. A chihuahua is small,
+    // so the fundamental is high for a dog (330-420 Hz) and the formants sit close together,
+    // which is what gives a yappy, nasal character rather than a big dog's chesty woof.
+    dogBark: (g, t) => {
+      for (let k = 0; k < 2; k++) {
+        const t0 = t + k * 0.17, d = 0.11;
+        const f = 350 + Math.random() * 70;
+        const o = ac.createOscillator(); o.type = 'sawtooth';
+        o.frequency.setValueAtTime(f, t0);
+        o.frequency.exponentialRampToValueAtTime(f * 0.62, t0 + d);
+        const f1 = ac.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 5;
+        f1.frequency.setValueAtTime(1150, t0); f1.frequency.exponentialRampToValueAtTime(820, t0 + d);
+        const f2 = ac.createBiquadFilter(); f2.type = 'bandpass'; f2.Q.value = 7; f2.frequency.value = 2400;
+        const g2 = ac.createGain(); g2.gain.value = 0.34;
+        const e = ac.createGain();
+        e.gain.setValueAtTime(0.0001, t0);
+        e.gain.exponentialRampToValueAtTime(0.5, t0 + 0.008);
+        e.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+        o.connect(f1); f1.connect(e); o.connect(f2); f2.connect(g2); g2.connect(e); e.connect(g);
+        o.start(t0); o.stop(t0 + d + 0.02);
+        noise(g, t0, d * 0.8, 2400, 900, 2, 'bandpass', 0.16, 0.004);
+      }
+    },
+    // a thin, rising whine: one slow sine sweep with a little breath on it
+    dogWhine: (g, t) => {
+      const d = 0.62;
+      const o = ac.createOscillator(); o.type = 'triangle';
+      const f = 620 + Math.random() * 120;
+      o.frequency.setValueAtTime(f, t);
+      o.frequency.linearRampToValueAtTime(f * 1.34, t + d * 0.45);
+      o.frequency.linearRampToValueAtTime(f * 1.12, t + d);
+      const lf = ac.createOscillator(); lf.frequency.value = 5.5 + Math.random() * 2;
+      const lg = ac.createGain(); lg.gain.value = 12; lf.connect(lg); lg.connect(o.frequency);
+      const fl = ac.createBiquadFilter(); fl.type = 'bandpass'; fl.Q.value = 2.4; fl.frequency.value = 1300;
+      const e = ac.createGain();
+      e.gain.setValueAtTime(0.0001, t);
+      e.gain.linearRampToValueAtTime(0.22, t + 0.12);
+      e.gain.linearRampToValueAtTime(0.0001, t + d);
+      o.connect(fl); fl.connect(e); e.connect(g);
+      o.start(t); lf.start(t); o.stop(t + d + 0.05); lf.stop(t + d + 0.05);
+    }
   };
 
   const Audio = DSZ.Audio = {

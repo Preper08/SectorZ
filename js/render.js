@@ -303,6 +303,9 @@
     for (const c of S.cars) { if (c.x < tx0 - 4 || c.x > tx1 + 4 || c.y < ty0 - 4 || c.y > ty1 + 4) continue; if (!entOn(c.x, c.y, 200, 240)) continue; pushItem(c.x + c.y + 0.0, 3, c); }
     for (const d of S.drops) { if (d.x < tx0 - 2 || d.x > tx1 + 2 || d.y < ty0 - 2 || d.y > ty1 + 2) continue; if (!entOn(d.x, d.y, 90, 90)) continue; pushItem(d.x + d.y - 0.5, 4, d); }
     if (!p.driving) pushItem(p.x + p.y + 0.01, 5, p);
+    // the dog sorts by its own ground position, and sits just in front of the player's depth so
+    // the two never fight for the same sort key when it is standing at the heel
+    if (S.dog) pushItem(S.dog.x + S.dog.y - 0.02, 8, S.dog);
     for (const pt of S.particles) { if (pt.x < tx0 - 2 || pt.x > tx1 + 2 || pt.y < ty0 - 2 || pt.y > ty1 + 2) continue; if (!entOn(pt.x, pt.y, 120, 160)) continue; pushItem(pt.x + pt.y + 0.5, 6, pt); }
     // ---- shadows (ground pass)
     drawShadows(S, sun, tx0, ty0, tx1, ty1);
@@ -320,6 +323,7 @@
         case 5: drawPlayer(S); break;
         case 6: drawParticle(it.a, S); break;
         case 7: ctx.drawImage(it.a.c, it.a.x, it.a.y); R.stats.roofDraws++; break;
+        case 8: DSZ.Dog.setContext(ctx); DSZ.Dog.draw(S); break;
       }
     }
     // bullets / tracers
@@ -413,15 +417,18 @@
         shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.9 * DSZ.CarArt.SCALE);
       } else if (it.t === 5) {
         const s = S.player.sprite; if (s) { const i = iso(S.player.x, S.player.y); shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.75); }
+      } else if (it.t === 8) {
+        const d = it.a; if (!d.sprite) continue; const i = iso(d.x, d.y);
+        shadowSprite(d.sprite, i[0], i[1], sun, str * 0.9, 0.62);
       }
     }
     // lamp shadows on entities (nearest bright light)
     for (const it of order) {
-      if (it.t !== 2 && it.t !== 5) continue;
+      if (it.t !== 2 && it.t !== 5 && it.t !== 8) continue;
       const e = it.t === 5 ? S.player : it.a; if (!e.sprite || e.dead && e.deadT > 0) continue;
       const ls = entityLamp(e); if (!ls) continue;
       const i = iso(e.x, e.y);
-      shadowSprite(e.sprite, i[0], i[1], ls, ls.intensity * 0.55 * (1 - sun.dl * 0.7), 0.7);
+      shadowSprite(e.sprite, i[0], i[1], ls, ls.intensity * 0.55 * (1 - sun.dl * 0.7), it.t === 8 ? 0.62 : 0.7);
     }
     ctx.restore();
   }
