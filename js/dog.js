@@ -206,7 +206,9 @@
       x: spot[0], y: spot[1], ang: p.ang, vx: 0, vy: 0,
       gait: 0, moving: false, r: 0.2,
       barkT: 0, whineT: 6 + Math.random() * 10, wagT: 0, alert: 0,
-      sprite: null, name: 'Rozika'
+      sprite: null, name: 'Rozika',
+      // bond: 0-100. Starts friendly rather than devoted, so there is somewhere to go.
+      bond: 40, fedT: 0, petT: 0, unfed: 0, happy: 0
     };
     return S.dog;
   };
@@ -226,13 +228,102 @@
     return [x, y];
   };
 
+  // ---------------------------------------------------------------- bonding
+  // How close Rozika stays, how far she can smell trouble, and how often she complains are all
+  // driven by one number: bond, 0-100. Feeding her is the fast way to raise it; petting her is
+  // the slow, free way. She starts at 40 - friendly but not yet devoted.
+  //
+  // The tiers are the whole point of the system: they are visible in how she behaves, not hidden
+  // in a number. A wary dog trails you at a distance and barely warns you; a devoted one walks at
+  // your heel and barks at anything within nine tiles.
+  const TIERS = [
+    { at: 0,  name: 'Wary',     heel: 1.50, maxD: 1.90, barkR: 4.0, barkCool: 5.0, whine: 12 },
+    { at: 25, name: 'Friendly', heel: 1.15, maxD: 1.60, barkR: 6.0, barkCool: 4.0, whine: 26 },
+    { at: 50, name: 'Loyal',    heel: 0.90, maxD: 1.35, barkR: 7.5, barkCool: 3.2, whine: 34 },
+    { at: 75, name: 'Devoted',  heel: 0.70, maxD: 1.15, barkR: 9.0, barkCool: 2.6, whine: 46 }
+  ];
+  Dog.tier = function (bond) {
+    let t = TIERS[0];
+    for (const x of TIERS) if (bond >= x.at) t = x;
+    return t;
+  };
+  Dog.tierName = bond => Dog.tier(bond || 0).name;
+
+  // Feeding. She will not eat again for 30 s, which is what stops a player emptying the whole
+  // larder into her in ten seconds and jumping straight to devoted.
+  const FEED_COOLDOWN = 30, PET_COOLDOWN = 45;
+  const PET_GAIN = 1;
+
+  // The cheapest edible thing in the pack. Deliberately the *worst* food first: a companion who
+  // quietly eats your military rations would be a bad companion.
+  Dog.pickFood = function (P) {
+    let best = null, bestVal = Infinity;
+    for (const it of DSZ.Inv.all(P)) {
+      const def = DSZ.ITEMS[it.id];
+      if (!def || (def.type !== 'food' && def.type !== 'drink')) continue;
+      const val = (def.food || 0) + (def.water || 0);
+      if (val <= 0) continue;
+      if (val < bestVal) { bestVal = val; best = it; }
+    }
+    return best;
+  };
+
+  Dog.canFeed = function (S) {
+    const d = S.dog; if (!d) return null;
+    if ((d.fedT || 0) > 0) return null;
+    return Dog.pickFood(S.player.inv);
+  };
+
+  // Returns a short message for the toast, or null if nothing happened.
+  Dog.feed = function (S) {
+    const d = S.dog, p = S.player;
+    if (!d) return null;
+    if ((d.fedT || 0) > 0) return 'Rozika is not hungry yet.';
+    const it = Dog.pickFood(p.inv);
+    if (!it) return 'You have nothing to feed her.';
+    const def = DSZ.ITEMS[it.id];
+    const val = (def.food || 0) + (def.water || 0);
+    // Consume exactly one from the stack, through the same path the player uses, so a half-eaten
+    // can and the "empty" bottle rule behave identically.
+    it.q -= 1; if (it.q <= 0) DSZ.Inv.removeItem(p.inv, it);
+    if (def.empty) DSZ.Game.giveOrDrop(S, DSZ.Inv.make(def.empty));
+
+    const gain = Math.min(9, 3 + val * 0.06) * (1 - (d.bond || 0) / 140);
+    const before = Dog.tierName(d.bond || 0);
+    d.bond = Math.min(100, (d.bond || 0) + gain);
+    d.fedT = FEED_COOLDOWN;
+    d.happy = 1;
+    d.unfed = 0;
+    d.whineT = 30 + Math.random() * 20;
+
+    DSZ.Audio.play('eat');
+    DSZ.Audio.play('dogWhine', d.x, d.y, 0.34);
+    DSZ.Ents.floatText(S, d.x, d.y, '+' + Math.round(gain), '#8fe0a0', 12);
+    const after = Dog.tierName(d.bond);
+    if (after !== before) DSZ.Game.toast(S, 'Rozika is now ' + after + '.', 'good');
+    return 'Fed her ' + def.name + '.  Bond ' + Math.round(d.bond) + ' · ' + after;
+  };
+
+  Dog.pet = function (S) {
+    const d = S.dog; if (!d) return null;
+    if ((d.petT || 0) > 0) return 'Rozika leans against your leg.';
+    d.petT = PET_COOLDOWN;
+    d.unfed = 0;
+    const before = Dog.tierName(d.bond || 0);
+    d.bond = Math.min(100, (d.bond || 0) + PET_GAIN);
+    d.happy = 1;
+    DSZ.Audio.play('dogWhine', d.x, d.y, 0.26);
+    DSZ.Ents.floatText(S, d.x, d.y, '+' + PET_GAIN, '#9fd8ff', 11);
+    const after = Dog.tierName(d.bond);
+    if (after !== before) DSZ.Game.toast(S, 'Rozika is now ' + after + '.', 'good');
+    return 'You pet Rozika.  Bond ' + Math.round(d.bond) + ' · ' + after;
+  };
+
   // ---------------------------------------------------------------- update
   // The dog walks toward a heel position behind the player. It is not a physics body: it uses
   // the same moveCircle as everyone else so it cannot clip through walls, and it is snapped
   // back to the player if it ever falls too far behind (which is the only failure mode that
   // matters for a companion - being left behind forever).
-  const HEEL = 0.85;      // how far behind the player it likes to sit
-  const MAX_D = 1.35;     // beyond this it walks in
   const MIN_D = 0.62;     // closer than this and it steps aside, so it never stands inside you
   const TELEPORT_D = 16;  // beyond this it is considered lost and is recalled
 
@@ -241,9 +332,22 @@
     if (!d) return;
     if (dt > 0.2) dt = 0.2;   // a hiccup must not fling it across the map
 
+    if (d.bond === undefined) d.bond = 40;
+    const tier = Dog.tier(d.bond);
+    const HEEL = tier.heel, MAX_D = tier.maxD;
+
     if (d.whineT > 0) d.whineT -= dt;
     if (d.barkT > 0) d.barkT -= dt;
     if (d.alert > 0) d.alert -= dt;
+    if (d.fedT > 0) d.fedT -= dt;
+    if (d.petT > 0) d.petT -= dt;
+    if (d.happy > 0) d.happy = Math.max(0, d.happy - dt * 0.6);
+
+    // A dog who is never fed slowly drifts back toward wary, but only after a long while and at
+    // a rate that is a background hum rather than a punishment: roughly one point every four
+    // minutes once she has gone three minutes without attention.
+    d.unfed = (d.unfed || 0) + dt;
+    if (d.unfed > 180) d.bond = Math.max(0, d.bond - 0.004 * dt);
 
     const dx = p.x - d.x, dy = p.y - d.y;
     const dist = Math.hypot(dx, dy) || 1;
@@ -293,18 +397,20 @@
     }
 
     // ---- voice. Silent most of the time; a whine now and then, and a bark when something is
-    // close. This is the one thing the dog gives the player that is mechanically useful.
+    // close. This is the one thing the dog gives the player that is mechanically useful, and how
+    // much of it you get is the visible reward for bonding: a wary dog barely warns you, a
+    // devoted one barks at anything within nine tiles.
     if (DSZ.Audio && DSZ.Audio.play && !S.sleeping) {
       if (d.barkT <= 0) {
         let near = 0;
         for (const z of S.zombies) {
           if (z.dead) continue;
-          if (Math.hypot(z.x - p.x, z.y - p.y) < 7) { near = 1; break; }
+          if (Math.hypot(z.x - p.x, z.y - p.y) < tier.barkR) { near = 1; break; }
         }
-        if (near) { d.barkT = 3.2; d.alert = 1; DSZ.Audio.play('dogBark', d.x, d.y, 0.55); }
+        if (near) { d.barkT = tier.barkCool; d.alert = 1; DSZ.Audio.play('dogBark', d.x, d.y, 0.55); }
       }
       if (d.whineT <= 0) {
-        d.whineT = 22 + Math.random() * 30;
+        d.whineT = tier.whine + Math.random() * 24;
         DSZ.Audio.play('dogWhine', d.x, d.y, 0.3);
       }
     }

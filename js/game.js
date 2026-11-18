@@ -292,6 +292,18 @@
     let best = null, bs = 1e9;
     const consider = (kind, ref, x, y, label, maxd, bias) => { const d = Math.hypot(x - p.x, y - p.y); if (d > maxd) return; const a = Math.abs(U.angDiff(p.aimAng, Math.atan2(y - p.y, x - p.x))); const s = d + (d > 0.9 ? a * 0.5 : 0) + (bias || 0); if (s < bs) { bs = s; best = { kind, ref, x, y, label }; } };
     for (const d of S.drops) consider('drop', d, d.x, d.y, 'E  Pick up ' + I[d.item.id].name + (d.item.q > 1 ? ' x' + d.item.q : ''), 1.5, -0.3);
+    // Rozika. Given a positive bias so she loses to doors, containers and loot when both are in
+    // reach: feeding her is a deliberate act, never something that happens by accident when you
+    // meant to open the fridge she is standing next to.
+    if (S.dog) {
+      const food = DSZ.Dog.canFeed(S);
+      const canPet = !((S.dog.petT || 0) > 0);
+      let lab;
+      if (food) lab = 'E  Feed Rozika (' + I[food.id].name + ')';
+      else if (canPet) lab = 'E  Pet Rozika';
+      else lab = 'Rozika  ·  bond ' + Math.round(S.dog.bond || 0) + ' ' + DSZ.Dog.tierName(S.dog.bond || 0);
+      consider('dog', S.dog, S.dog.x, S.dog.y, lab, 1.4, 0.35);
+    }
     const tx = Math.floor(p.x), ty = Math.floor(p.y);
     for (let y = ty - 2; y <= ty + 2; y++) for (let x = tx - 2; x <= tx + 2; x++) {
       const o = W.getObj(x, y); if (!o) continue; const d = D[o.t], cx = x + 0.5, cy = y + 0.5;
@@ -346,6 +358,14 @@
         break;
       }
       case 'bed': Game.trySleep(S); break;
+      // Feed if there is food and she is hungry; otherwise pet. One key, and what it does is
+      // whatever makes sense right now, so the player never has to remember two bindings.
+      case 'dog': {
+        const msg = DSZ.Dog.canFeed(S) ? DSZ.Dog.feed(S) : DSZ.Dog.pet(S);
+        if (msg) Game.toast(S, msg);
+        S.focus = findFocus(S);
+        break;
+      }
       case 'fire': {
         const o = f.ref; let burned = false;
         const wood = Inv.has(p.inv, 'log') ? 'log' : (Inv.has(p.inv, 'stick') ? 'stick' : null);
@@ -761,7 +781,7 @@
       horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights, killed: S.horde.killed || 0 },
       v: 1, seed: S.seed, hour: S.hour, day: S.day, difficulty: S.difficulty || 'normal', stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
       player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
-      dog: S.dog ? { x: S.dog.x, y: S.dog.y, ang: S.dog.ang, name: S.dog.name } : null,
+      dog: S.dog ? { x: S.dog.x, y: S.dog.y, ang: S.dog.ang, name: S.dog.name, bond: S.dog.bond, unfed: S.dog.unfed } : null,
       mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
     };
   }
@@ -828,6 +848,10 @@
     if (d.dog && isFinite(d.dog.x) && isFinite(d.dog.y)) {
       S.dog = { x: d.dog.x, y: d.dog.y, ang: d.dog.ang || 0, vx: 0, vy: 0, gait: 0, moving: false, r: 0.2,
                 barkT: 0, whineT: 8 + Math.random() * 10, wagT: 0, alert: 0, sprite: null,
+                // bond and the hunger timer survive the save; a save from before bonding existed
+                // simply has neither, and she comes back at the default 40
+                bond: (typeof d.dog.bond === 'number') ? d.dog.bond : 40,
+                fedT: 0, petT: 0, unfed: d.dog.unfed || 0, happy: 0,
                 // A save from the build where she was called Zuca must not keep the old name, so
                 // only a name that differs from both defaults survives the load.
                 name: (d.dog.name && d.dog.name !== 'Zuca') ? d.dog.name : 'Rozika' };
