@@ -752,6 +752,10 @@
   // A proper office desk: a thin laminate top on a steel frame, open underneath, with a
   // drawer pedestal under one end only. The first attempt reused the wooden drawer-chest
   // carcass from O.DESK, which read as a filing cabinet rather than a desk to sit at.
+  //
+  // The machine on it is deliberately oversized: a full-width CRT tower rather than a slim flat
+  // panel, because at this iso scale a realistic monitor is a couple of pixels of grey that reads
+  // as nothing at all. The taller box is what makes "that is a computer" land from across a room.
   B3[O.COMPUTERDESK] = () => {
     const f = [];
     // thin top with a slight overhang past the frame
@@ -763,13 +767,19 @@
     const ped = B(0.16, -0.37, 0.05, 0.40, 0.37, 0.70, [140, 136, 124], { top: [158, 154, 142] });
     for (const s of ped) if (s.role === 'px') s.d = drawers(3);
     f.push(...ped);
-    // monitor, set back from the user side, on a short neck so it does not float
-    f.push(...B(-0.06, -0.22, 0.765, 0.10, -0.06, 0.82, [120, 122, 118]));
-    const mon = B(-0.10, -0.28, 0.82, 0.14, 0.06, 1.20, [128, 128, 122], { top: [148, 148, 140] });
+    // monitor: a deep CRT case, set back from the user side, with a short neck so it does not
+    // float. Wider and taller than before, and it overhangs the desk slightly at the back,
+    // which is what a real CRT on a desk looks like.
+    f.push(...B(-0.12, -0.30, 0.765, 0.06, -0.10, 0.845, [120, 122, 118]));
+    const mon = B(-0.15, -0.38, 0.845, 0.15, 0.06, 1.34, [128, 128, 122], { top: [148, 148, 140] });
     for (const s of mon) if (s.role === 'px') s.d = screenPx;
     f.push(...mon);
-    // keyboard, sitting proud of the desktop so its top face is visible from above
-    f.push(...B(0.13, -0.22, 0.765, 0.29, 0.04, 0.815, [126, 124, 116], { top: [148, 146, 138] }));
+    // keyboard, taller and longer, sitting proud of the desktop so its top face is visible.
+    // It starts at x=0.17, clear of the monitor case at x=0.15, so the two boxes never share a
+    // face - abutting boxes at this scale produce a seam that reads as a rendering glitch.
+    f.push(...B(0.17, -0.26, 0.765, 0.35, 0.06, 0.825, [126, 124, 116], { top: [148, 146, 138] }));
+    // mouse, small enough to be a detail rather than a second keyboard
+    f.push(...B(0.22, 0.10, 0.765, 0.30, 0.18, 0.795, [130, 128, 120], { top: [150, 148, 138] }));
     return f;
   };
   B3[O.MEDCAB] = () => { const f = B(-0.14, -0.3, 0.9, 0.14, 0.3, 1.6, [226, 228, 228]); for (const s of f) if (s.role === 'px') s.d = (x, w, h) => { x.fillStyle = '#c03030'; x.fillRect(w / 2 - 1.5, h * 0.3, 3, h * 0.4); x.fillRect(w / 2 - 5, h * 0.45, 10, 3); grime(x, w, h, 0.3); }; return f; };

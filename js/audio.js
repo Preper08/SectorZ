@@ -5,6 +5,11 @@
   let ac = null, master = null, sfxBus = null, musBus = null, tvBus = null, noiseBuf = null, tvFocused = false;
   let lx = 0, ly = 0;
   let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0, tvVoiceS = null, tvVgen = 0, tvCh1S = null, tvC1gen = 0;
+  // The police terminal's own bed, separate from the TV's. It lives on the sfx bus with a fixed
+  // gain rather than going through the TV focus mix, because the terminal popup is not a
+  // broadcast: it is a machine two feet in front of you, and it should sit under the world's
+  // ambient wind rather than ducking it.
+  let pcHumS = null, pcHumGen = 0;
 
   function mkNoise() {
     const len = ac.sampleRate * 2, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
@@ -588,6 +593,112 @@
             try { m.whine.stop(); } catch (e) { /* already stopped */ }
             try { m.bus.disconnect(); } catch (e) { /* already gone */ }
           }, 700);
+        } catch (e) { /* ignore */ }
+      }
+    },
+    // ---- The police terminal in the office.
+    // Unlike the TV channels this is not a broadcast: it is a machine on a desk that you are
+    // standing at. So it gets a quiet, close, dry sound with no static bed and no music -
+    // a case fan and a monitor whine, keystrokes while the player is reading, and the rare
+    // disk seek. Everything is deliberately below the ambient wind so it never competes
+    // with the world: the point is that the room feels occupied, not that you are watching TV.
+    pcTerm(on) {
+      if (!ac) return;
+      if (on && !pcHumS) {
+        const gen = pcHumGen = (pcHumGen + 1);
+        // Its own gain, straight to the sfx bus, so the TV focus mix cannot touch it and the
+        // world's ambient ducks never silence it. 0.34 of normal keeps it clearly under the wind.
+        const bus = ac.createGain(); bus.gain.value = 0; bus.connect(sfxBus);
+
+        // case fan: filtered noise, mostly low, with a faint tonal component from the bearing.
+        // A fan is the thing you actually hear from a running desktop, so it is the backbone.
+        const fan = ac.createBufferSource(); fan.buffer = noiseBuf; fan.loop = true;
+        const fanLp = ac.createBiquadFilter(); fanLp.type = 'lowpass'; fanLp.frequency.value = 420; fanLp.Q.value = 0.7;
+        const fanG = ac.createGain(); fanG.gain.value = 0.055;
+        fan.connect(fanLp); fanLp.connect(fanG); fanG.connect(bus);
+        const fanTone = ac.createOscillator(); fanTone.type = 'sine'; fanTone.frequency.value = 118;
+        const fanToneG = ac.createGain(); fanToneG.gain.value = 0.012;
+        fanTone.connect(fanToneG); fanToneG.connect(bus);
+
+        // monitor whine: the 7.2 kHz line whistle, quieter than the TV's because you are close
+        // to it and a loud one is unbearable at desk distance.
+        const whine = ac.createOscillator(); whine.type = 'sine'; whine.frequency.value = 7200;
+        const whineG = ac.createGain(); whineG.gain.value = 0.0013;
+        whine.connect(whineG); whineG.connect(bus);
+
+        // a keypress: a soft mechanical click, much quieter than the TV terminal's clack, since
+        // this one is at arm's length rather than across a room
+        const key = (t) => {
+          const s = ac.createBufferSource(); s.buffer = noiseBuf;
+          s.playbackRate.value = 0.85 + Math.random() * 0.4;
+          const bp = ac.createBiquadFilter(); bp.type = 'bandpass';
+          bp.frequency.value = 1500 + Math.random() * 900; bp.Q.value = 1.6;
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.020, t + 0.002);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.030);
+          s.connect(bp); bp.connect(g); g.connect(bus);
+          s.start(t, Math.random() * 1.2, 0.05);
+          const o = ac.createOscillator(); o.type = 'triangle';
+          o.frequency.value = 132 + Math.random() * 40;
+          const og = ac.createGain();
+          og.gain.setValueAtTime(0.0001, t);
+          og.gain.exponentialRampToValueAtTime(0.012, t + 0.003);
+          og.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+          o.connect(og); og.connect(bus); o.start(t); o.stop(t + 0.07);
+        };
+
+        // disk seek: a short ratchet of three ticks with rising pitch, the sound of a machine
+        // doing something on its own while you read
+        const seek = (t0) => {
+          let t = t0;
+          for (let i = 0; i < 3; i++) {
+            const o = ac.createOscillator(); o.type = 'square';
+            o.frequency.value = 480 + i * 190 + Math.random() * 90;
+            const g = ac.createGain();
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.009, t + 0.002);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.028);
+            o.connect(g); g.connect(bus); o.start(t); o.stop(t + 0.04);
+            t += 0.055 + Math.random() * 0.03;
+          }
+        };
+
+        // the fan starts spinning up, not instantly at level
+        fan.start(); fanTone.start(); whine.start();
+        bus.gain.setTargetAtTime(0.34, ac.currentTime, 0.35);
+
+        // scheduler: typing comes in bursts with long pauses, because the player is reading,
+        // not writing. Roughly one burst every 4-9 s, plus a seek every 11-19 s.
+        const st = { typing: 3 + ((Math.random() * 6) | 0), nextKey: 0.6, nextSeek: 5 + Math.random() * 6 };
+        const step = () => {
+          if (!pcHumS || pcHumGen !== gen) return;
+          const now = ac.currentTime + 0.02;
+          if (now >= st.nextKey) {
+            if (st.typing > 0) {
+              key(now); st.typing--;
+              st.nextKey = now + 0.05 + Math.random() * 0.11;
+            } else {
+              st.typing = 3 + ((Math.random() * 7) | 0);
+              st.nextKey = now + 4 + Math.random() * 5;
+            }
+          }
+          if (now >= st.nextSeek) { seek(now); st.nextSeek = now + 11 + Math.random() * 8; }
+        };
+        pcHumS = { bus, fan, fanTone, whine, timer: setInterval(step, 60) };
+      } else if (!on && pcHumS) {
+        const m = pcHumS; pcHumS = null;
+        pcHumGen++;
+        clearInterval(m.timer);
+        try {
+          // the fan coasts down rather than cutting out
+          m.bus.gain.setTargetAtTime(0.0001, ac.currentTime, 0.25);
+          setTimeout(() => {
+            try { m.fan.stop(); } catch (e) { /* already stopped */ }
+            try { m.fanTone.stop(); } catch (e) { /* already stopped */ }
+            try { m.whine.stop(); } catch (e) { /* already stopped */ }
+            try { m.bus.disconnect(); } catch (e) { /* already gone */ }
+          }, 900);
         } catch (e) { /* ignore */ }
       }
     },

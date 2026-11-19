@@ -58,7 +58,7 @@
   def(O.WORKBENCH, 'Workbench', { h: 32, cont: { w: 6, h: 3, loot: 'tools', name: 'Workbench' } });
   // A writing desk with a computer on it: office furniture, not a crafting station. It hides
   // papers in its drawers like any other desk, so the office loot table applies unchanged.
-  def(O.COMPUTERDESK, 'Computer Desk', { h: 32, cont: { w: 5, h: 3, loot: 'office', name: 'Computer desk' } });
+  def(O.COMPUTERDESK, 'Computer Desk', { h: 46, cont: { w: 5, h: 3, loot: 'office', name: 'Computer desk' } });
   def(O.TRASHCAN, 'Trash can', { h: 28, solid: true, cont: { w: 3, h: 3, loot: 'trash', name: 'Trash can' } });
   def(O.PILLAR, 'Pillar', { h: 92, opaque: true, hp: 999 });
   def(O.CHECKOUT, 'Checkout', { h: 32, cont: { w: 4, h: 2, loot: 'register', name: 'Register' } });

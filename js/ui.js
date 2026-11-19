@@ -149,11 +149,18 @@
     els.pcwin.classList.remove('hidden');
     els.cursor.classList.toggle('ui', true);
     if (S) S.paused = true;
+    if (A.pcTerm) A.pcTerm(true);          // the machine is powered, so it can be heard
     A.play('click');
   };
+  // One place that silences the terminal, called from every close path: the button, Escape, the
+  // window X, dying, and the safety net below. Leaving a running fan behind a closed window would
+  // follow the player around the map.
+  function pcAudioOff() { if (A.pcTerm) A.pcTerm(false); }
+  UI.pcAudioOff = pcAudioOff;
   UI.closePC = function () {
     if (!UI.open.pc) return;
     UI.open.pc = false;
+    pcAudioOff();
     els.pcwin.classList.add('hidden');
     if (S && !UI.open.menu && !UI.open.tv) S.paused = false;
     A.play('click');
@@ -233,7 +240,7 @@
   };
   UI.showLoading = function (v, txt, p) { $('loading').classList.toggle('hidden', !v); if (txt) $('ltxt').textContent = txt; if (p !== undefined) $('lbar').style.width = (p * 100) + '%'; };
   UI.showDeath = function (s) {
-    UI.open.death = true; UI.closeWin(); UI.closeMap(); UI.closeTV(); els.death.classList.remove('hidden'); DSZ.Game.deleteSave();
+    UI.open.death = true; UI.closeWin(); UI.closeMap(); UI.closeTV(); if (UI.open.pc) UI.closePC(); else pcAudioOff(); els.death.classList.remove('hidden'); DSZ.Game.deleteSave();
     const why = { bite: 'Torn apart by the dead.', blast: 'Caught in an explosion.', crash: 'Killed in a crash.', hunger: 'You starved to death.', thirst: 'You died of thirst.', bleeding: 'You bled out.', infection: 'The infection took you.' }[s.deathCause] || 'You did not make it.';
     els.deathwhy.textContent = why;
     const hrs = ((s.day - 1) * 24 + s.hour - C.START_HOUR);
@@ -250,6 +257,7 @@
     // otherwise it keeps playing (and stacking) after the new game starts
     tvAudioOff();
     setTvFocus(false);
+    pcAudioOff();
     UI.loot = null; UI._isig = '';
     UI.open.win = false; UI.open.map = false; UI.open.menu = false; UI.open.settings = false;
     UI.open.controls = false; UI.open.tv = false; UI.open.death = false;
@@ -705,6 +713,10 @@
     // tuned (e.g. a transition bypassed closeTV), reset to 1 and silence the commentary bed.
     // Focus is restored here too, so no code path can leave the world audio stuck ducked.
     else { if (UI.tvChannel !== 1) UI.tvChannel = 1; tvAudioOff(); setTvFocus(false); }
+    // the same safety net for the office terminal: if the window is gone but the machine is still
+    // running, cut it. This is the guarantee that no code path can leave a fan humming in an
+    // empty room.
+    if (!UI.open.pc) pcAudioOff();
     els.cursor.classList.toggle('ui', UI.blockMouse());
     if (!UI.open.title) {
       // key handling
