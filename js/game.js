@@ -643,17 +643,27 @@
     }
     return made;
   }
-  // ---------------------------------------------------------------- TV arcing
+  // ---------------------------------------------------------------- CRT arcing
   // A tired CRT arcs across its own face: a couple of blue-white sparks hop out of the glass,
   // fall a short way and die. They only fire when the player is close enough to be looking at
-  // the set (about four tiles), and only when nothing is between the two - a spark seen through
+  // the thing (about four tiles), and only when nothing is between the two - a spark seen through
   // a wall would give away a room you have not entered.
   //
-  // Timing is per-set and derived from the set's tile, so two televisions in the same room do
-  // not crackle in unison. The rate rises as you get nearer, which makes walking up to a set feel
-  // like approaching something live rather than triggering a radius.
+  // Timing is per-object and derived from its tile, so two sets in the same room do not crackle
+  // in unison. The rate rises as you get nearer, which makes walking up to one feel like
+  // approaching something live rather than triggering a radius.
+  //
+  // Two kinds share this: the television and the office computer. They differ only in where the
+  // glass is - the monitor sits higher on a desk and its face is much closer to the tile centre -
+  // so the geometry is a small table rather than two copies of the same loop.
+  const ARC_KINDS = {
+    [O.TV]:          { face: 0.42, z: 0.62, zJitter: 0.12, maxD: 4.2 },
+    // The monitor's glass spans z 0.845-1.34 (about 30-47 px above the floor), so sparks have to
+    // leave from the middle of it. At the TV's 0.62 they would spray out of the desk drawer.
+    [O.COMPUTERDESK]:{ face: 0.20, z: 1.10, zJitter: 0.16, maxD: 4.0 }
+  };
   let tvSparkT = 0;
-  function tvSparkTick(S, dt) {
+  function arcTick(S, dt) {
     const p = S.player;
     if (!p || p.dead) return;
     tvSparkT -= dt;
@@ -663,21 +673,23 @@
     let fired = 0;
     for (let y = ty - 4; y <= ty + 4 && fired < 2; y++) for (let x = tx - 4; x <= tx + 4; x++) {
       const o = W.getObj(x, y);
-      if (!o || o.t !== O.TV) continue;
+      if (!o) continue;
+      const K = ARC_KINDS[o.t];
+      if (!K) continue;
       const d = Math.hypot(x + 0.5 - p.x, y + 0.5 - p.y);
-      if (d > 4.2) continue;                           // out of arm's reach, no arcing
+      if (d > K.maxD) continue;                        // out of arm's reach, no arcing
       if (!W.los(p.x, p.y, x + 0.5, y + 0.5)) continue; // a wall between us: no free preview
       // A burst every ~0.7 s right up close, thinning to one every few seconds at the edge of
       // the radius. The scan runs every 0.12 s, so this is the chance per scan, not per frame:
       // frequent enough to notice you are standing next to something live, sparse enough that it
       // never turns into a firework.
-      const near = 1 - d / 4.2;
+      const near = 1 - d / K.maxD;
       if (Math.random() > 0.03 + near * 0.19) continue;
       // sparks leave the glass, so spawn from the screen's own height and push them outward from
       // the front face rather than from the middle of the cabinet
       const ang = ((o.f | 0) & 3) * Math.PI / 2;
       const fx = Math.cos(ang), fy = Math.sin(ang);    // the +x face, i.e. where the screen is
-      const bx = x + 0.5 + fx * 0.42, by = y + 0.5 + fy * 0.42;
+      const bx = x + 0.5 + fx * K.face, by = y + 0.5 + fy * K.face;
       const n = 2 + ((Math.random() * 2) | 0);
       for (let i = 0; i < n; i++) {
         const spread = (Math.random() - 0.5) * 0.9;
@@ -686,7 +698,7 @@
         E.particle(S, {
           type: 'tvSpark',
           x: bx + (Math.random() - 0.5) * 0.16, y: by + (Math.random() - 0.5) * 0.16,
-          z: 0.62 + Math.random() * 0.12,
+          z: K.z + Math.random() * K.zJitter,
           vx: Math.cos(sa) * sp, vy: Math.sin(sa) * sp, vz: 0.5 + Math.random() * 0.8,
           life: 0.18 + Math.random() * 0.22, grav: 7
         });
@@ -706,7 +718,7 @@
     const night = 1 - DSZ.Render.daylight(S.hour); A.setAmbient(night, w.rain);
     A.setListener(S.player.x, S.player.y);
     updateHorde(S, dt, night);
-    tvSparkTick(S, dt);
+    arcTick(S, dt);
     // rain splashes
     if (w.rain > 0.1 && Math.random() < dt * w.rain * 40) { const a = Math.random() * 6.28, d = Math.random() * 10; E.particle(S, { type: 'splash', x: S.player.x + Math.cos(a) * d, y: S.player.y + Math.sin(a) * d, z: 0, vx: 0, vy: 0, vz: 0, life: 0.35 }); }
     // dynamic zombie spawns around the player

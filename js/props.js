@@ -822,6 +822,29 @@
     }
     return P;
   };
+  // ---- Screen of the office computer, as a screen-space quad.
+  // Same technique as the TV's: the monitor's glass is the +x face of B(-0.15,-0.38,0.845, 0.15,0.06,1.34),
+  // projected with the exact transform G3.render baked the sprite with. The z values are in the
+  // box's own units, multiplied by PROP_Z the same way B() does, so the quad lands on the glass.
+  // Returns null when the face points away, because the baked art does not show it either.
+  const PC_SCREEN = { x: 0.15, y0: -0.38, y1: 0.06, z0: 0.845 * PROP_Z, z1: 1.34 * PROP_Z };
+  const pcQuad = [[0, 0], [0, 0], [0, 0], [0, 0]];
+  Props.pcScreenQuad = function (o, tx, ty) {
+    const ang = (o.f | 0) & 3, ca = Math.cos(ang * Math.PI / 2), sa = Math.sin(ang * Math.PI / 2);
+    if (ca * VX + sa * VY <= 0.001) return null;              // screen faces away from the viewer
+    const ZU = G3.ZU, ax = (tx - ty) * 32, ay = (tx + ty + 1) * 16;
+    const P = pcQuad, S = PC_SCREEN;
+    P[0][0] = S.x; P[0][1] = S.y1; P[0][2] = S.z1;
+    P[1][0] = S.x; P[1][1] = S.y0; P[1][2] = S.z1;
+    P[2][0] = S.x; P[2][1] = S.y0; P[2][2] = S.z0;
+    P[3][0] = S.x; P[3][1] = S.y1; P[3][2] = S.z0;
+    for (let i = 0; i < 4; i++) {
+      const p = P[i], wx = p[0] * ca - p[1] * sa, wy = p[0] * sa + p[1] * ca;
+      p[0] = ax + (wx - wy) * 32;
+      p[1] = ay + (wx + wy) * 16 - p[2] * ZU;
+    }
+    return P;
+  };
   B3[O.BOOKSHELF] = (o) => { const f = B(-0.18, -0.46, 0, 0.18, 0.46, 1.6, [96, 68, 44]); for (const s of f) if (s.role === 'px') s.d = goods(o.v * 11 + 5, 5); return f; };
   B3[O.WORKBENCH] = () => { const f = B(-0.3, -0.48, 0, 0.3, 0.48, 0.82, [118, 90, 60], { top: [150, 120, 84] }); f.push(...B(-0.1, -0.3, 0.82, 0.05, -0.1, 0.9, [190, 40, 40]), ...B(0.0, 0.1, 0.82, 0.14, 0.3, 0.86, [100, 100, 106])); return f; };
   B3[O.CHECKOUT] = () => { const f = B(-0.28, -0.46, 0, 0.28, 0.46, 0.9, [90, 94, 100], { top: [60, 62, 66] }); f.push(...B(-0.1, 0.0, 0.9, 0.1, 0.2, 1.06, [30, 32, 36])); return f; };

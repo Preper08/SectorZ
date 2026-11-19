@@ -513,8 +513,8 @@
     // The screen light is queued here but drawn after the lightmap (see drawTvGlows). The
     // lightmap is composited with 'multiply' over the whole world, which would eat a glow painted
     // during the normal object pass and leave the set dark at exactly the hour it should be
-    // brightest.
-    if (o.t === O.TV && a > 0.5) pushTvGlow(o, tx, ty, a);
+    // brightest. The office computer's monitor is a running CRT too, so it goes in the same queue.
+    if ((o.t === O.TV || o.t === O.COMPUTERDESK) && a > 0.5) pushTvGlow(o, tx, ty, a);
   }
   // ---------------------------------------------------------------- world TV glow
   // The set's picture is baked into a cached sprite, so it cannot animate by itself. Instead the
@@ -537,7 +537,9 @@
     const dark = 1 - dl * 0.72;
     for (let i = 0; i < tvGlowN; i++) {
       const it = tvGlowQueue[i];
-      const q = DSZ.Props.tvScreenQuad(it.o, it.tx, it.ty);
+      // each CRT knows where its own glass is; the TV and the office monitor sit at different
+      // heights and face distances, so the quad comes from the prop module rather than a constant
+      const q = it.o.t === O.COMPUTERDESK ? DSZ.Props.pcScreenQuad(it.o, it.tx, it.ty) : DSZ.Props.tvScreenQuad(it.o, it.tx, it.ty);
       if (!q) continue;                                   // screen turned away from the camera
       // Walls in front of the set must hide its light, exactly as they hide the set itself. Walls
       // are drawn in depth order, so any wall on a tile deeper than the TV (tx+ty larger) and
@@ -584,7 +586,10 @@
       for (let k = 1; k < 4; k++) ctx.lineTo(q[k][0], q[k][1]);
       ctx.closePath();
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = it.a * dark * (0.16 + breathe * 0.15 + tear * 0.18);
+      // A desk monitor is a much smaller light source than a television, and it is usually
+      // further from a wall, so it gets a dimmer glow. Without this it reads as a small fire.
+      const sz = it.o.t === O.COMPUTERDESK ? 0.72 : 1;
+      ctx.globalAlpha = it.a * dark * sz * (0.16 + breathe * 0.15 + tear * 0.18);
       // Solid fills rather than per-frame createLinearGradient: at this size (the screen is a
       // handful of pixels tall in the world view) the vertical shading is invisible, and it is
       // the one allocation that made this cost real milliseconds instead of microseconds.
