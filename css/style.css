@@ -93,6 +93,9 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 #buildbar .btabs { display: flex; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 #buildbar .btabs button, .tabs button { background: none; border: none; color: var(--dim); font: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 6px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 #buildbar .btabs button.on, .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
+/* The TV popup's title is a label, not a tab - there is only one, and clicking it does nothing.
+   Neutralising the cursor stops it from advertising an interaction that does not exist. */
+#tvttl { cursor: default; }
 #buildbar .bgrid { display: flex; flex-wrap: wrap; gap: 5px; }
 .bitem { width: 118px; padding: 6px 8px; background: rgba(255,255,255,0.04); border: 1px solid var(--line); cursor: pointer; }
 .bitem:hover { background: var(--panel-hi); border-color: var(--line-hi); }

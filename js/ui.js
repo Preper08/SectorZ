@@ -21,7 +21,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'tvttl']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.eqcol = $('eqcol');
@@ -92,7 +92,7 @@
     setTvFocus(true);                                  // broadcast steps forward, world fades back
     if (A.tvStatic) A.tvStatic(true);                  // channel 1 is on air: the set's own buzz
     buildTVChannels();
-    els.tvch.textContent = tvChannelLabel();
+    syncTvLabels();
     els.tvwin.classList.remove('hidden');
     els.cursor.classList.toggle('ui', true);
     if (S) S.paused = true; // freeze player movement and the world while watching (same as the pause menu)
@@ -119,6 +119,17 @@
     if (UI.tvChannel === 4) return 'CH 4 · TERMINAL';
     return 'CH 1 · LIVE FEED';
   }
+  // The window's own title. It used to be a fixed string in the markup, so opening any channel
+  // still said "Emergency Broadcast" across the top - the one label on screen that never changed
+  // when you retuned. It follows the channel now.
+  function tvChannelTitle() {
+    return (DSZ.Props.TV_CHANNEL_NAMES && DSZ.Props.TV_CHANNEL_NAMES[(UI.tvChannel || 1) - 1])
+      || ('Channel ' + (UI.tvChannel || 1));
+  }
+  function syncTvLabels() {
+    if (els.tvch) els.tvch.textContent = tvChannelLabel();
+    if (els.tvttl) els.tvttl.textContent = tvChannelTitle();
+  }
   function setTvChannel(n) {
     if (!UI.open.tv) return;
     const total = DSZ.Props.TV_CHANNELS || 3;
@@ -126,7 +137,7 @@
     if (ch === UI.tvChannel) return;
     UI.tvChannel = ch;
     UI.tvSwitch = 0.28;                                // brief flicker on retune, like a real set
-    els.tvch.textContent = tvChannelLabel();
+    syncTvLabels();
     for (const b of document.querySelectorAll('#tvchans button')) b.classList.toggle('on', b.textContent === 'CH ' + ch);
     // each channel carries its own audio beds; silence everything, then start the new ones
     tvAudioOff();
@@ -708,11 +719,23 @@
     S = state; if (!S) return;
     const p = S.player;
     if (UI.open.tv) renderTV(dt);
-    if (UI.open.pc) renderPC(dt);
     // safety net: no channel may outlive the popup. If the window is gone but a channel is still
     // tuned (e.g. a transition bypassed closeTV), reset to 1 and silence the commentary bed.
     // Focus is restored here too, so no code path can leave the world audio stuck ducked.
-    else { if (UI.tvChannel !== 1) UI.tvChannel = 1; tvAudioOff(); setTvFocus(false); }
+    // The labels are rewritten as well: the channel is forced back to 1 here, so leaving the
+    // footer and the window title untouched would leave them reading the last channel watched
+    // (CH 4 · TERMINAL) while the set is actually on 1 - visible the next time the popup opens
+    // before the first retune.
+    //
+    // This else must stay attached to the TV if. When the police computer added its own
+    // renderPC call between the two, the else silently rebound to that call, so the channel was
+    // forced back to 1 on every frame the computer was closed - i.e. always. That is why the set
+    // never held any channel but the first one.
+    else {
+      if (UI.tvChannel !== 1) { UI.tvChannel = 1; syncTvLabels(); }
+      tvAudioOff(); setTvFocus(false);
+    }
+    if (UI.open.pc) renderPC(dt);
     // the same safety net for the office terminal: if the window is gone but the machine is still
     // running, cut it. This is the guarantee that no code path can leave a fan humming in an
     // empty room.
