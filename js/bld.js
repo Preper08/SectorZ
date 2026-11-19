@@ -355,16 +355,22 @@
   // closest possible replacement. Used to rescue a player position saved inside geometry.
   // When a building is given, only its interior is considered, so a player saved in a bad spot
   // inside a house is moved within that house instead of through the wall and out of it.
+  //
+  // A rescue must also land somewhere the player can leave. A saved position inside a pocket that
+  // furniture sealed off is technically standable, so without this the same bug reappeared on
+  // load: the game "fixed" the position by choosing the very pocket the player was stuck in.
   Bld.nearbyStandable = function (cx, cy, maxR, b) {
     const tx = Math.floor(cx), ty = Math.floor(cy);
     const inside = (x, y) => !b || (x > b.x && x < b.x + b.w - 1 && y > b.y && y < b.y + b.h - 1);
-    if (inside(tx, ty) && Bld.standable(tx, ty)) return [tx + 0.5, ty + 0.5];
+    const reach = b ? doorRegion(b) : null;
+    const ok = (x, y) => Bld.standable(x, y) && (!reach || reach.has(W.idx(x, y)));
+    if (inside(tx, ty) && ok(tx, ty)) return [tx + 0.5, ty + 0.5];
     for (let r = 1; r <= (maxR || 6); r++) {
       let best = null, bd = Infinity;
       for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
         if (!inside(tx + dx, ty + dy)) continue;
-        if (!Bld.standable(tx + dx, ty + dy)) continue;
+        if (!ok(tx + dx, ty + dy)) continue;
         const d = dx * dx + dy * dy;
         if (d < bd) { bd = d; best = [tx + dx + 0.5, ty + dy + 0.5]; }
       }
@@ -374,12 +380,28 @@
   };
   Bld.playerSpawn = function (b, rng) {
     const first = Bld.randomInterior(b, rng);
-    if (first && Bld.standable(Math.floor(first[0]), Math.floor(first[1]))) return first;
     // Fallback: walk the interior in a fixed order and take the roomiest tile. Prefer a tile
     // with all four directions open, then any standable tile, then give up and keep the old pick.
+    //
+    // Only tiles the player can actually walk to from the front door are eligible. A house is
+    // split into rooms and furnished by two independent passes, and nothing reconciles them: a
+    // wardrobe can seal the only gap between two rooms, leaving the bedroom reachable from the
+    // hallway but the hallway itself cut off from the entrance. About 4% of worlds started the
+    // player in exactly such a pocket - standable, two directions open, and completely walled off
+    // from the door. The room is never trapped by the walls alone, only by furniture standing on
+    // the one tile that connected it, so the check has to be a flood fill over the room the door
+    // opens into rather than another local look at the tile itself.
+    //
+    // The flood is built before the first pick is judged, so it is computed once either way. The
+    // random pick itself is still taken first and unchanged, so every rng() draw stays exactly
+    // where it was and the rest of the world is untouched.
+    const reach = doorRegion(b);
+    if (first && Bld.standable(Math.floor(first[0]), Math.floor(first[1]))
+        && reach.has(W.idx(Math.floor(first[0]), Math.floor(first[1])))) return first;
     let bestFour = null, bestAny = null;
     for (let y = b.y + 1; y < b.y + b.h - 1; y++) {
       for (let x = b.x + 1; x < b.x + b.w - 1; x++) {
+        if (!reach.has(W.idx(x, y))) continue;         // door region only: it must be escapable
         if (W.isSolid(x, y) || W.getObj(x, y)) continue;
         const cx = x + 0.5, cy = y + 0.5;
         if (W.hitCircle(cx, cy, PLAYER_R)) continue;
@@ -388,6 +410,43 @@
         else if (open >= 2 && !bestAny) bestAny = [cx, cy];
       }
     }
-    return bestFour || bestAny || first || [b.x + 2.5, b.y + 2.5];
+    if (bestFour || bestAny) return bestFour || bestAny;
+    // Nothing in the door region passed the two-direction test. The door still opens into a real
+    // room (checked across 300 worlds), so fall back to its roomiest tile even if it is a nook -
+    // an awkward start you can still walk out of beats a comfortable one you cannot.
+    let fallback = null;
+    for (const i of reach) {
+      const x = i % W.w, y = (i - x) / W.w;
+      if (W.isSolid(x, y) || W.getObj(x, y)) continue;
+      const cx = x + 0.5, cy = y + 0.5;
+      if (W.hitCircle(cx, cy, PLAYER_R)) continue;
+      const open = openDirs(cx, cy);
+      if (!fallback || open > fallback[2]) fallback = [cx, cy, open];
+    }
+    return fallback ? [fallback[0], fallback[1]] : (first || [b.x + 2.5, b.y + 2.5]);
   };
+  // Every tile the player can walk to from a building's front door, as a set of W.idx values.
+  // Doors count as passable no matter which way they are swung, because the player can open them;
+  // solids and furniture block. Only the interior rectangle is searched, so the flood cannot leak
+  // out into the street around the outside of the walls.
+  function doorRegion(b) {
+    const out = new Set();
+    if (!b || !b.frontDoor) return out;
+    const x0 = b.x, y0 = b.y, x1 = b.x + b.w - 1, y1 = b.y + b.h - 1;
+    const stack = [b.frontDoor[0], b.frontDoor[1]];
+    while (stack.length) {
+      const y = stack.pop(), x = stack.pop();
+      if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+      const i = W.idx(x, y);
+      if (out.has(i)) continue;
+      const o = W.getObj(x, y);
+      if (!(o && D[o.t].door)) {
+        if (W.isSolid(x, y)) continue;
+        if (W.hitCircle(x + 0.5, y + 0.5, PLAYER_R)) continue;
+      }
+      out.add(i);
+      stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+    }
+    return out;
+  }
 })();
