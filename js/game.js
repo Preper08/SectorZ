@@ -467,6 +467,27 @@
     // always resolve any overlap (a door closed on the player, a car shoved them into geometry)
     // so they can never be permanently trapped; cheap no-op when they are in the clear
     const u = W.unstick(p.x, p.y, 0.27); p.x = u[0]; p.y = u[1];
+    // Last-resort escape. unstick() only fires when the player physically overlaps a solid, but
+    // they can be surrounded without touching anything: four walls built on the neighbouring
+    // tiles, or a room the furniture closed off. Then every direction is blocked, the player is
+    // not overlapping anything, and nothing above helps. Detect it and step them to the nearest
+    // real opening.
+    //
+    // It runs on a timer rather than every frame: building a wall is instant, so the check only
+    // needs to notice within a fraction of a second, and a 0.25 s cadence keeps eight extra
+    // collision probes off the per-frame path.
+    p.sealT = (p.sealT || 0) - dt;
+    if (p.sealT <= 0) {
+      p.sealT = 0.25;
+      if (DSZ.Bld.boxedIn(p.x, p.y, 0.27)) {
+        const spot = DSZ.Bld.escapeSpot(p.x, p.y, 14);
+        if (spot) {
+          p.x = spot[0]; p.y = spot[1]; p.vx = 0; p.vy = 0;
+          Game.toast(S, 'You were walled in — pulled free.', 'good');
+          A.play('build', p.x, p.y, 0.8);
+        }
+      }
+    }
     if (p.running && p.moving) p.stamina = Math.max(0, p.stamina - 13 * dt); else p.stamina = Math.min(100, p.stamina + (p.moving ? 6 : 14) * dt);
     if (p.moving) { p.stepT -= dt * sp / 2.4; if (p.stepT <= 0) { p.stepT = 1; const shoe = P.equip.feet ? I[P.equip.feet.id] : null; const base = shoe && shoe.quiet !== undefined ? shoe.quiet : 4; const nz = p.running ? 9 : (p.sneak ? 1.2 : (p.crouch ? Math.min(2.2, base * 0.55) : base)); A.play(p.running ? 'stepRun' : 'step', p.x, p.y, p.sneak ? 0.3 : (p.crouch ? 0.4 : 0.6), 20); E.noise(S, p.x, p.y, nz); } }
     p.ph += sp * dt * 5.3;

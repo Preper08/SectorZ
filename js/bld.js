@@ -449,4 +449,58 @@
     }
     return out;
   }
+  // Is the player boxed in where they stand? Not "is this tile standable" - that only asks
+  // whether the tile itself is free - but "can I go anywhere at all from here". A player can
+  // seal themselves in by walling all four sides of their own tile: tileFree only checks that the
+  // tile being built on is empty and not under the player, so four walls around yourself are all
+  // legal. The same shape appears when the generator's furniture closes a room, or when a
+  // building collapses into rubble around you. In every one of those cases the symptom is
+  // identical: four blocked directions and no way to open one.
+  //
+  // Returns true when no direction gives any movement, which is the only condition worth
+  // rescuing from - a cramped corner with one open side is playable and should not teleport.
+  Bld.boxedIn = function (px, py, r) {
+    r = r || PLAYER_R;
+    if (W.hitCircle(px, py, r)) return false;        // overlapping something: unstick() handles that
+    // Ask the collision routine itself instead of probing a fixed step. A probe has to guess a
+    // distance, and any guess is wrong somewhere: too small and a wall 0.23 tiles away is not
+    // reached, too large and a narrow doorway looks sealed. Walking the player forward in the
+    // same small increments the game moves them (speed * dt is roughly 0.04-0.08 per frame) and
+    // seeing whether they actually get anywhere is the honest question - and the answer is what
+    // the player would experience holding that key.
+    const step = 0.05, tries = 10;
+    for (const d of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      let x = px, y = py;
+      for (let i = 0; i < tries; i++) {
+        const m = W.moveCircle(x, y, d[0] * step, d[1] * step, r);
+        const dx = m.x - x, dy = m.y - y;
+        if (dx * dx + dy * dy < 1e-9) break;          // this direction is spent
+        x = m.x; y = m.y;
+      }
+      if (Math.hypot(x - px, y - py) > 0.25) return false;   // a real way out
+    }
+    return true;
+  };
+
+  // Nearest spot the player can actually stand and move from, searched by widening rings over
+  // the whole grid rather than one building: this is the last-resort rescue, used only when the
+  // player is already fully sealed, so leaving the room is the entire point.
+  Bld.escapeSpot = function (px, py, maxR) {
+    const tx = Math.floor(px), ty = Math.floor(py);
+    for (let r = 1; r <= (maxR || 14); r++) {
+      let best = null, bd = Infinity;
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = tx + dx, y = ty + dy;
+        if (!W.inb(x, y) || W.isSolid(x, y) || W.getObj(x, y)) continue;
+        const cx = x + 0.5, cy = y + 0.5;
+        if (W.hitCircle(cx, cy, PLAYER_R)) continue;
+        if (Bld.boxedIn(cx, cy, PLAYER_R)) continue;   // must not drop them into another sealed nook
+        const d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = [cx, cy]; }
+      }
+      if (best) return best;
+    }
+    return null;
+  };
 })();
