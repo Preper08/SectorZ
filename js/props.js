@@ -464,6 +464,41 @@
 
   Props.pcResetMap = function () { pcMapCache = null; };
 
+  // ---- Police badge, drawn in the terminal's header.
+  // A shield is the one shape everyone reads as "police" at a glance, and at this size (about
+  // 37 px tall on a 1080-wide canvas) an emblem inside it would turn to mush once the canvas is
+  // resampled down to its CSS width. So it is a gold rim, a navy field and a single star: three
+  // solid fills, no text, no gradient. Shapes are built from the centre and a height, so the
+  // badge scales with the header instead of needing a second set of numbers.
+  function pcShieldPath(x, cx, cy, s) {
+    const w = s * 0.80, hh = s, top = cy - hh / 2, bot = cy + hh / 2;
+    const l = cx - w / 2, r = cx + w / 2;
+    x.beginPath();
+    x.moveTo(l, top + hh * 0.14);
+    x.quadraticCurveTo(cx, top - hh * 0.03, r, top + hh * 0.14);   // gently domed shoulders
+    x.lineTo(r, top + hh * 0.46);
+    x.quadraticCurveTo(r, top + hh * 0.80, cx, bot);               // sides sweep to the point
+    x.quadraticCurveTo(l, top + hh * 0.80, l, top + hh * 0.46);
+    x.closePath();
+  }
+  function pcStar(x, cx, cy, r, rot) {
+    x.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = rot + i * Math.PI / 5, rr = (i & 1) ? r * 0.42 : r;
+      const px = cx + Math.cos(a) * rr, py = cy + Math.sin(a) * rr;
+      if (i === 0) x.moveTo(px, py); else x.lineTo(px, py);
+    }
+    x.closePath();
+  }
+  function pcBadge(x, cx, cy, s) {
+    pcShieldPath(x, cx, cy, s);
+    x.fillStyle = '#e8b04a'; x.fill();                    // gold rim
+    pcShieldPath(x, cx, cy, s * 0.80);
+    x.fillStyle = '#16283c'; x.fill();                    // navy field
+    pcStar(x, cx, cy - s * 0.03, s * 0.21, -Math.PI / 2);
+    x.fillStyle = '#e8b04a'; x.fill();                    // point up
+  }
+
   // The terminal is read sitting at a desk, so it has to stay legible at the popup's real
   // on-screen size, not just at canvas resolution. The canvas is drawn at 1080x660 and scaled
   // down by CSS, and every size below is a fraction of that height - so the whole screen
@@ -497,14 +532,22 @@
     x.fillStyle = '#0d141a'; x.fillRect(0, 0, w, headH);
     x.fillStyle = 'rgba(74,122,208,0.55)'; x.fillRect(0, headH - 2, w, 2);
     x.textAlign = 'left'; x.textBaseline = 'middle';
+    // Badge first, then the name. The badge is sized from the header height and the text starts
+    // after it, so neither can overlap the other at any popup size.
+    const padX = Math.round(w * 0.028);
+    const badgeS = headH * 0.62;
+    pcBadge(x, padX + badgeS * 0.40, headH * 0.5, badgeS);
+    // The gap after the badge scales with the header, not the canvas width: at the smallest popup
+    // a width-relative gap collapses to under 5 px and the star nearly touches the P.
+    const brandX = padX + badgeS * 0.82 + Math.max(6, Math.round(headH * 0.26));
     const fsBrand = h * 0.038;
     x.font = font(fsBrand, true);
-    const brandW = x.measureText('NORLEY VALE POLICE').width;
+    const brandW = x.measureText('POLICE').width;
     x.fillStyle = '#a8c8ee';
-    x.fillText('NORLEY VALE POLICE', Math.round(w * 0.028), headH * 0.5);
+    x.fillText('POLICE', brandX, headH * 0.5);
     // the subtitle is placed after the measured brand width, so a larger font cannot collide
     x.font = font(h * 0.025); x.fillStyle = DIM;
-    x.fillText('TERMINAL 03', Math.round(w * 0.028) + brandW + Math.round(w * 0.022), headH * 0.5);
+    x.fillText('TERMINAL 03', brandX + brandW + Math.round(w * 0.022), headH * 0.5);
     x.textAlign = 'right';
     x.font = font(h * 0.032, true); x.fillStyle = AMBER;
     x.fillText(clock, w - Math.round(w * 0.028), headH * 0.5);
@@ -562,7 +605,7 @@
     } else if (tab === 2) {
       // ---------------- CASE FILE
       x.font = font(h * 0.034, true); x.fillStyle = TEXT;
-      x.fillText('CASE 14-087  ·  THE NORLEY VALE INCIDENT', pad, top);
+      x.fillText('CASE 14-087  ·  THE NORAK VALE INCIDENT', pad, top);
       const lines = [
         ['OPENED', '21:40, the night the roadblock fell.', DIM],
         ['LEAD', 'Leon de la Vega. Prints on the warehouse door, and a witness', TEXT],
@@ -662,7 +705,7 @@
     x.fillStyle = GREEN; x.fillText('● ONLINE', pad, fmid);
     const onlineW = x.measureText('● ONLINE').width;
     x.fillStyle = DIM;
-    x.fillText('NVPB INTERNAL — AUTHORISED PERSONNEL ONLY', pad + onlineW + Math.round(w * 0.028), fmid);
+    x.fillText('POLICE INTERNAL — AUTHORISED PERSONNEL ONLY', pad + onlineW + Math.round(w * 0.028), fmid);
     x.textAlign = 'right';
     x.fillText('SECTOR Z', w - pad, fmid);
     x.textAlign = 'left';
