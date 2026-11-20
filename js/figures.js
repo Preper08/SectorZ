@@ -5,6 +5,11 @@
   const DSZ = window.DSZ, U = DSZ.U;
   const Fig = DSZ.Fig = { NANG: 16 };
   const VX = 0.612, VY = 0.612, VZ = 0.5, ZU = 39.2, SC = 45.25;
+// Shared by pose() and render.js: how far the body rises at the top of a window vault, in world
+// units. One constant because the figure's joints are lifted inside the pose and the sprite
+// itself is lifted in the renderer, and the two have to agree or the legs detach from the body.
+DSZ.VAULT_LIFT = 0.30;
+const VAULT_LIFT = DSZ.VAULT_LIFT;
 
   const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
   const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
@@ -33,7 +38,24 @@
     let pz = 0.93, lean = 0.03, A = 0, lift = 0.12;
     if (legs === 'walk') { A = 0.24; } else if (legs === 'run') { A = 0.4; lift = 0.2; lean = 0.2; } else if (legs === 'zwalk') { A = 0.17; lean = 0.13; lift = 0.07; } else if (legs === 'zrun') { A = 0.38; lean = 0.3; lift = 0.18; }
     const moving = legs !== 'idle' && legs !== 'crawl' && legs !== 'dead';
-    // crouch: drop the pelvis and lean the torso forward (feet stay planted on the ground)
+    // ---- vault: going over a window sill.
+    // The sill on the wall art sits about 0.71 world units above the floor (glass starts 28 px up
+    // a 92 px wall, ZU = 39.2 px per unit), and the character is roughly 1.63 units tall. So this
+    // is not a jump - it is a hands-on-the-sill swing over something waist high, which is also
+    // what the tiles allow: collision is per tile, there is no half height to stand on, so any
+    // real ballistic arc would fight the world geometry. Instead the whole body is lifted and the
+    // legs are tucked, and the renderer carries the lift.
+    //
+    // af runs 0..1 across the move. The body rises and falls on a single sine hump, the knees
+    // come up and forward, the torso folds over the sill, and one hand is planted on it.
+    let vaultLift = 0;
+    if (legs === 'vault') {
+      const t = U.clamp(af / 8, 0, 1);
+      const arc = Math.sin(t * Math.PI);                  // 0 at both ends, 1 at the sill
+      vaultLift = arc * VAULT_LIFT;
+      pz += vaultLift;
+      lean = 0.03 + arc * 0.42;                            // fold over the sill
+    }
     const crouch = (P.crouch && legs !== 'dead' && legs !== 'crawl') ? 1 : 0;
     if (crouch) { pz -= 0.37; lean += 0.36; }
     if (moving) pz -= Math.abs(Math.sin(ph)) * 0.025 * (run ? 2 : 1);
@@ -50,6 +72,18 @@
       fL = [sL, -0.1, Math.max(0, Math.cos(ph + Math.PI)) * lift * (legs === 'zwalk' && (P.limp ? 0.3 : 1))]; fR = [sR, 0.1, Math.max(0, Math.cos(ph)) * lift];
       if (P.limp && legs === 'zwalk') fL[0] *= 0.4;
     } else if (legs === 'idle') { fL = [0.03, -0.12, 0]; fR = [-0.03, 0.12, 0]; }
+    // vault: both legs fold up and forward over the sill. The feet stay high through the middle
+    // of the move and reach the floor again at the ends, so the body reads as clearing an edge
+    // rather than stepping up onto something.
+    if (legs === 'vault') {
+      const t = U.clamp(af / 8, 0, 1), arc = Math.sin(t * Math.PI);
+      // Feet keep some height for the whole move so the legs stay tucked under the body instead
+      // of hanging straight down - hanging legs read as "standing on air", not as clearing an
+      // edge. Both swing forward, the trailing leg higher, like stepping over a fence rail.
+      const base = 0.05 + 0.30 * arc;
+      fL = [0.20 + 0.22 * arc, -0.12, base];
+      fR = [0.30 + 0.30 * arc, 0.12, base + 0.10 * arc];
+    }
     // crouch: feet move slightly forward and keep their ground contact, so the knees bend
     if (crouch) { fL = [fL[0] * 0.55 + 0.17, fL[1] - 0.03, Math.max(fL[2], 0.02)]; fR = [fR[0] * 0.55 + 0.17, fR[1] + 0.03, Math.max(fR[2], 0.02)]; }
     let kL = ik(J.hipL, fL, 0.47, 0.47, [1, 0, 0.1]), kR = ik(J.hipR, fR, 0.47, 0.47, [1, 0, 0.1]);
@@ -70,6 +104,17 @@
     else if (arms === 'zreach') { const w = Math.sin(ph) * 0.05; hR = [0.58, 0.17, pz + 0.5 + w]; hL = [0.52, -0.17, pz + 0.43 - w]; hintR = [0, 0.4, -0.7]; hintL = [0, -0.4, -0.7]; }
     else if (arms === 'zatk') { const t = af / 3, s = Math.sin(t * Math.PI); hR = [0.5 + 0.2 * s, 0.14, pz + 0.55 - 0.3 * s]; hL = [0.5 + 0.2 * s, -0.14, pz + 0.5 - 0.3 * s]; hintR = [0, 0.4, -0.7]; hintL = [0, -0.4, -0.7]; }
     else if (arms === 'down') { hL = [0, -0.27, pz + 0.12]; hR = [0, 0.27, pz + 0.12]; }
+    // vault: the right hand plants on the sill ahead of the body, the left swings back for
+    // balance. Both follow the same arc, so the hands are already down when the hips come up.
+    else if (arms === 'vault') {
+      const t = U.clamp(af / 8, 0, 1), arc = Math.sin(t * Math.PI);
+      // The planting hand reaches forward and DOWN onto the sill; the other swings back and up
+      // for balance. At the peak the plant hand is at hip height ahead of the body, which is
+      // where a sill at 0.71 units actually is relative to a pelvis at 0.93 + lift.
+      hR = [0.42 + 0.16 * arc, 0.22, pz - 0.30 * arc];
+      hL = [-0.20 - 0.22 * arc, -0.34, pz + 0.26 + 0.06 * arc];
+      hintR = [0.6, 0.5, -0.3]; hintL = [-0.6, -0.5, -0.1];
+    }
     else { hL = [0, -0.27, pz + 0.12]; hR = [0, 0.27, pz + 0.12]; }
     let eL = ik(J.shL, hL, sh, fa, hintL), eR = ik(J.shR, hR, sh, fa, hintR);
     J.elL = eL.knee; J.handL = eL.end; J.elR = eR.knee; J.handR = eR.end;
@@ -393,7 +438,7 @@
 
   const poseCache = new Map();
   function cachedPose(P) {
-    const key = (P.arms || 'walk') + '|' + (P.af || 0) + '|' + (P.legs || 'idle') + '|' + (P.lf || 0) + '|' + !!P.limp + '|' + !!P.face + '|' + (P.hx || 0) + '|' + !!P.crouch;
+        const key = (P.arms || 'walk') + '|' + (P.af || 0) + '|' + (P.legs || 'idle') + '|' + (P.lf || 0) + '|' + !!P.limp + '|' + !!P.face + '|' + (P.hx || 0) + '|' + !!P.crouch;
     let J = poseCache.get(key);
     if (!J) {
       J = pose(P); poseCache.set(key, J);
@@ -512,9 +557,13 @@
   Fig.get = function (spec, ang, P) {
     const n = Fig.NANG, ai = ((Math.round(ang / (Math.PI * 2) * n) % n) + n) % n;
     const arms = P.arms || 'walk', af = P.af | 0, legs = P.legs || 'idle', lf = P.lf | 0, limp = !!P.limp, face = !!P.face, hx = !!P.hx, crouch = !!P.crouch;
+    // vault progress is part of the pose, so it has to be part of the cache identity too. It is
+    // quantised to eight steps: that is enough for a 0.45 s move to read as smooth at this size,
+    // and it keeps the sprite cache from growing by one entry per frame.
+    const vq = legs === 'vault' ? Math.round(U.clamp((P.af || 0) / 8, 0, 1) * 8) : -1;
     let last = lastSprites.get(spec);
-    if (last && last.id === spec.id && last.n === n && last.ai === ai && last.arms === arms && last.af === af && last.legs === legs && last.lf === lf && last.limp === limp && last.face === face && last.hx === hx && last.crouch === crouch) return last.sprite;
-    const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '') + (P.crouch ? 'c' : '');
+    if (last && last.id === spec.id && last.n === n && last.ai === ai && last.arms === arms && last.af === af && last.legs === legs && last.lf === lf && last.limp === limp && last.face === face && last.hx === hx && last.crouch === crouch && last.vq === vq) return last.sprite;
+    const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '') + (P.crouch ? 'c' : '') + (vq >= 0 ? 'v' + vq : '');
     const entry = cache.get(key);
     let s;
     if (entry) { cache.delete(key); cache.set(key, entry); s = entry.sprite; }
@@ -529,7 +578,7 @@
       }
     }
     if (!last) { last = {}; lastSprites.set(spec, last); }
-    Object.assign(last, { id: spec.id, n, ai, arms, af, legs, lf, limp, face, hx, crouch, sprite: s });
+    Object.assign(last, { id: spec.id, n, ai, arms, af, legs, lf, limp, face, hx, crouch, vq, sprite: s });
     return s;
   };
   Fig.cacheSize = () => cache.size;

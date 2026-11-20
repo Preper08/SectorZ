@@ -764,15 +764,22 @@
     if (!spec) { spec = DSZ.Fig.playerSpec(look); playerSpecs.set(look, spec); }
     const s = DSZ.Fig.get(spec, p.ang, p.pose); p.sprite = s;
     const i = iso(p.x, p.y);
-    ctx.save(); ctx.translate(i[0], i[1]); ctx.scale(CH_SCALE, CH_SCALE); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
+    // A vault lifts the whole body, but the pose alone cannot move the sprite: it only moves
+    // joints inside it. The camera height conversion is ZU px per world unit, and the figure is
+    // drawn at CH_SCALE, so the two multiply. The shadow stays on the ground (it is cast from
+    // p.x/p.y in the pass above), which is what sells the height.
+    const lift = p.pose && p.pose.legs === 'vault'
+      ? Math.sin(U.clamp((p.pose.af || 0) / 8, 0, 1) * Math.PI) * DSZ.VAULT_LIFT * ZU * CH_SCALE
+      : 0;
+    ctx.save(); ctx.translate(i[0], i[1] - lift); ctx.scale(CH_SCALE, CH_SCALE); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
     // held item (hand anchor scaled with the sprite)
     const it = p.heldDef;
     if (it) {
-      const hx = i[0] + s.hand[0] * CH_SCALE, hy = i[1] + s.hand[1] * CH_SCALE;
+      const hx = i[0] + s.hand[0] * CH_SCALE, hy = i[1] - lift + s.hand[1] * CH_SCALE;
       drawHeld(it, p, hx, hy, S);
     }
-    if (p.flash > 0) { ctx.globalAlpha = p.flash * 0.35; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
-    if (p.hurt > 0) { ctx.globalAlpha = Math.min(0.5, p.hurt); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#f00'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
+    if (p.flash > 0) { ctx.globalAlpha = p.flash * 0.35; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - lift - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
+    if (p.hurt > 0) { ctx.globalAlpha = Math.min(0.5, p.hurt); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#f00'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - lift - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
   }
   // weapon definition table: each entry holds the displayed length (world units),
   // stroke thickness and a draw function receiving the weapon-space helpers.

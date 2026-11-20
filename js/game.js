@@ -488,14 +488,70 @@
         }
       }
     }
+    // ---- vaulting a broken window
+    // A window stops being solid the moment it breaks (world.js clears solid for broken windows),
+    // so crossing one is a normal walk through an empty frame. This notices that the step just
+    // taken crossed a window tile, and plays a short hands-on-sill move over it.
+    //
+    // Detection is positional, not input-based: the tile the player is on now is compared with
+    // the one they were on a moment ago, and if either is a broken window and they are actually
+    // moving, a vault starts. That covers both directions, both axes, and entering from a doorway
+    // diagonally, with no special cases per approach.
+    p.vaultT = Math.max(0, (p.vaultT || 0) - dt);
+    p.vaultCd = Math.max(0, (p.vaultCd || 0) - dt);
+    if (p.vaultT <= 0 && p.vaultCd <= 0 && p.moving && !p.dead && !p.driving) {
+      // Look for a broken window the player is actually stepping over, by checking the tiles
+      // around them each time they cross a tile boundary. Comparing only "the tile I am on" with
+      // "the tile I was on" misses the common case: the player moves diagonally, and the corner
+      // of the window tile is clipped without ever being the tile they stand on. Scanning a
+      // 1-tile ring around both the old and new position catches the window on either side of
+      // the step, which is what "crossed it" really means.
+      const tx = Math.floor(p.x), ty = Math.floor(p.y);
+      if (p.lastTile && (p.lastTile[0] !== tx || p.lastTile[1] !== ty)) {
+        let win = null;
+        for (const [ox, oy] of [[tx, ty], p.lastTile]) {
+          for (let ay = oy - 1; ay <= oy + 1 && !win; ay++) {
+            for (let ax = ox - 1; ax <= ox + 1; ax++) {
+              const o = W.getObj(ax, ay);
+              if (o && o.broken && D[o.t].window) { win = [ax, ay]; break; }
+            }
+          }
+          if (win) break;
+        }
+        // Only count it when the player is genuinely passing the window, not walking past it
+        // parallel: the distance from the step to the window tile has to be under a tile, so a
+        // window two tiles to the side does not fire.
+        if (win && Math.hypot(p.x - (win[0] + 0.5), p.y - (win[1] + 0.5)) < 1.15) {
+          p.vaultT = 0.45; p.vaultCd = 0.6; p.vaultX = win[0]; p.vaultY = win[1];
+          A.play('glass', p.x, p.y, 0.45, 12);
+          E.noise(S, p.x, p.y, 6);
+        }
+      }
+    }
+    if (!p.lastTile) p.lastTile = [0, 0];
+    p.lastTile[0] = Math.floor(p.x); p.lastTile[1] = Math.floor(p.y);
     if (p.running && p.moving) p.stamina = Math.max(0, p.stamina - 13 * dt); else p.stamina = Math.min(100, p.stamina + (p.moving ? 6 : 14) * dt);
     if (p.moving) { p.stepT -= dt * sp / 2.4; if (p.stepT <= 0) { p.stepT = 1; const shoe = P.equip.feet ? I[P.equip.feet.id] : null; const base = shoe && shoe.quiet !== undefined ? shoe.quiet : 4; const nz = p.running ? 9 : (p.sneak ? 1.2 : (p.crouch ? Math.min(2.2, base * 0.55) : base)); A.play(p.running ? 'stepRun' : 'step', p.x, p.y, p.sneak ? 0.3 : (p.crouch ? 0.4 : 0.6), 20); E.noise(S, p.x, p.y, nz); } }
     p.ph += sp * dt * 5.3;
     // ---- pose
     const gun = p.heldDef && p.heldDef.type === 'gun', mel = p.heldDef && p.heldDef.type === 'melee';
-    p.pose.legs = p.moving ? (p.running ? 'run' : 'walk') : 'idle'; p.pose.lf = Math.floor(p.ph) & 7; p.pose.crouch = p.crouch;
-    if (p.atkT > 0) { p.pose.arms = 'swing'; p.pose.af = Math.min(4, Math.floor((1 - p.atkT / p.atkTotal) * 5)); }
-    else if (gun) { p.pose.arms = 'aim'; p.pose.af = 0; } else if (P.equip.light && p.lightOn && !mel) { p.pose.arms = 'light'; } else if (mel && p.aiming) { p.pose.arms = 'walk'; } else p.pose.arms = 'walk';
+    // The vault owns the pose while it runs: eight steps across 0.45 s, and the body goes over
+    // the sill regardless of what the legs were doing before. Legs and arms both switch, so the
+    // figure does not end up vaulting with a walking arm swing.
+    if (p.vaultT > 0) {
+      // Progress is driven from the timer, not from a per-frame step count: at 60 fps there are
+      // 27 frames in a 0.45 s move, but a slow frame or a hitch can skip several, and then the
+      // pose would jump. Deriving the step from the remaining time keeps the move honest on any
+      // frame rate, and the quantisation in Fig.get folds duplicates back into one sprite.
+      const t = 1 - p.vaultT / 0.45;
+      p.pose.legs = 'vault'; p.pose.arms = 'vault';
+      p.pose.af = Math.max(0, Math.min(8, Math.round(t * 8)));
+      p.pose.lf = 0; p.pose.crouch = false;
+    } else {
+      p.pose.legs = p.moving ? (p.running ? 'run' : 'walk') : 'idle'; p.pose.lf = Math.floor(p.ph) & 7; p.pose.crouch = p.crouch;
+      if (p.atkT > 0) { p.pose.arms = 'swing'; p.pose.af = Math.min(4, Math.floor((1 - p.atkT / p.atkTotal) * 5)); }
+      else if (gun) { p.pose.arms = 'aim'; p.pose.af = 0; } else if (P.equip.light && p.lightOn && !mel) { p.pose.arms = 'light'; } else if (mel && p.aiming) { p.pose.arms = 'walk'; } else { p.pose.arms = 'walk'; p.pose.af = 0; }
+    }
     // ---- hotbar select
     if (!ui.blockKeys()) for (let i = 0; i < 6; i++) if (In.pressed('Digit' + (i + 1))) { P.sel = P.sel === i ? -1 : i; A.play('click'); S.build.active = false; }
     if (In.mouse.wheel && !ui.blockMouse() && !In.down('ControlLeft')) S.cam.tz = U.clamp(S.cam.tz - In.mouse.wheel * 0.08, 0.7, 1.5);
