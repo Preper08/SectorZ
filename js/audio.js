@@ -607,43 +607,61 @@
       if (on && !pcHumS) {
         const gen = pcHumGen = (pcHumGen + 1);
         // Its own gain, straight to the sfx bus, so the TV focus mix cannot touch it and the
-        // world's ambient ducks never silence it. 0.34 of normal keeps it clearly under the wind.
+        // world's ambient ducks never silence it.
+        //
+        // The level stays under the wind, as the mix requires - but level was never why this was
+        // inaudible. The original fan was a lowpass at 420 Hz against the wind's lowpass at
+        // 360 Hz: the two sounds occupied the same band, and the wind was twice as loud there, so
+        // the fan was masked no matter how much of it there was. Moving it up in frequency is the
+        // fix, not turning it up: the wind is a soft hiss that dies above ~400 Hz, so anything the
+        // machine puts there is clearly audible even at a low level. A real desktop fan is
+        // broadband, so lifting the cutoff is also the more honest sound.
         const bus = ac.createGain(); bus.gain.value = 0; bus.connect(sfxBus);
 
-        // case fan: filtered noise, mostly low, with a faint tonal component from the bearing.
-        // A fan is the thing you actually hear from a running desktop, so it is the backbone.
+        // case fan: filtered noise with a bright edge, plus a faint tonal component from the
+        // bearing. The lowpass sits at 1500 Hz now, well clear of the wind, and a bandpass at
+        // 780 Hz gives it the "air moving through a small box" colour that cuts through.
         const fan = ac.createBufferSource(); fan.buffer = noiseBuf; fan.loop = true;
-        const fanLp = ac.createBiquadFilter(); fanLp.type = 'lowpass'; fanLp.frequency.value = 420; fanLp.Q.value = 0.7;
-        const fanG = ac.createGain(); fanG.gain.value = 0.055;
+        const fanLp = ac.createBiquadFilter(); fanLp.type = 'lowpass'; fanLp.frequency.value = 1500; fanLp.Q.value = 0.7;
+        const fanG = ac.createGain(); fanG.gain.value = 0.042;
         fan.connect(fanLp); fanLp.connect(fanG); fanG.connect(bus);
-        const fanTone = ac.createOscillator(); fanTone.type = 'sine'; fanTone.frequency.value = 118;
-        const fanToneG = ac.createGain(); fanToneG.gain.value = 0.012;
+        // the presence band: this is the part the ear picks out of the room
+        const fanBp = ac.createBiquadFilter(); fanBp.type = 'bandpass'; fanBp.frequency.value = 780; fanBp.Q.value = 1.1;
+        const fanBpG = ac.createGain(); fanBpG.gain.value = 0.030;
+        fan.connect(fanBp); fanBp.connect(fanBpG); fanBpG.connect(bus);
+        // bearing tone: 118 Hz sat inside the wind's passband, so it did nothing. A second
+        // harmonic at 236 Hz keeps the mechanical character while sitting just above the hiss.
+        const fanTone = ac.createOscillator(); fanTone.type = 'sine'; fanTone.frequency.value = 236;
+        const fanToneG = ac.createGain(); fanToneG.gain.value = 0.010;
         fanTone.connect(fanToneG); fanToneG.connect(bus);
 
-        // monitor whine: the 7.2 kHz line whistle, quieter than the TV's because you are close
-        // to it and a loud one is unbearable at desk distance.
-        const whine = ac.createOscillator(); whine.type = 'sine'; whine.frequency.value = 7200;
-        const whineG = ac.createGain(); whineG.gain.value = 0.0013;
+        // monitor whine: the line whistle, quieter than the TV's because you are close to it and
+        // a loud one is unbearable at desk distance. 7.2 kHz was inaudible on most laptop and
+        // onboard speakers, which roll off hard above 5 kHz, so it sits at 5.2 kHz where it is
+        // still recognisably a CRT/PSU whine but actually reaches the ear.
+        const whine = ac.createOscillator(); whine.type = 'sine'; whine.frequency.value = 5200;
+        const whineG = ac.createGain(); whineG.gain.value = 0.0035;
         whine.connect(whineG); whineG.connect(bus);
 
         // a keypress: a soft mechanical click, much quieter than the TV terminal's clack, since
-        // this one is at arm's length rather than across a room
+        // this one is at arm's length rather than across a room. The band sits at 2.2-3.2 kHz,
+        // above the fan and the wind, which is what makes a keypress read as a keypress.
         const key = (t) => {
           const s = ac.createBufferSource(); s.buffer = noiseBuf;
           s.playbackRate.value = 0.85 + Math.random() * 0.4;
           const bp = ac.createBiquadFilter(); bp.type = 'bandpass';
-          bp.frequency.value = 1500 + Math.random() * 900; bp.Q.value = 1.6;
+          bp.frequency.value = 2200 + Math.random() * 1000; bp.Q.value = 1.6;
           const g = ac.createGain();
           g.gain.setValueAtTime(0.0001, t);
-          g.gain.exponentialRampToValueAtTime(0.020, t + 0.002);
+          g.gain.exponentialRampToValueAtTime(0.055, t + 0.002);
           g.gain.exponentialRampToValueAtTime(0.0001, t + 0.030);
           s.connect(bp); bp.connect(g); g.connect(bus);
           s.start(t, Math.random() * 1.2, 0.05);
           const o = ac.createOscillator(); o.type = 'triangle';
-          o.frequency.value = 132 + Math.random() * 40;
+          o.frequency.value = 190 + Math.random() * 60;
           const og = ac.createGain();
           og.gain.setValueAtTime(0.0001, t);
-          og.gain.exponentialRampToValueAtTime(0.012, t + 0.003);
+          og.gain.exponentialRampToValueAtTime(0.030, t + 0.003);
           og.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
           o.connect(og); og.connect(bus); o.start(t); o.stop(t + 0.07);
         };
@@ -654,10 +672,10 @@
           let t = t0;
           for (let i = 0; i < 3; i++) {
             const o = ac.createOscillator(); o.type = 'square';
-            o.frequency.value = 480 + i * 190 + Math.random() * 90;
+            o.frequency.value = 700 + i * 260 + Math.random() * 120;
             const g = ac.createGain();
             g.gain.setValueAtTime(0.0001, t);
-            g.gain.exponentialRampToValueAtTime(0.009, t + 0.002);
+            g.gain.exponentialRampToValueAtTime(0.026, t + 0.002);
             g.gain.exponentialRampToValueAtTime(0.0001, t + 0.028);
             o.connect(g); g.connect(bus); o.start(t); o.stop(t + 0.04);
             t += 0.055 + Math.random() * 0.03;
@@ -666,11 +684,39 @@
 
         // the fan starts spinning up, not instantly at level
         fan.start(); fanTone.start(); whine.start();
-        bus.gain.setTargetAtTime(0.34, ac.currentTime, 0.35);
+        bus.gain.setTargetAtTime(0.42, ac.currentTime, 0.35);
+
+        // Power-on signature: a short rising blip and a relay click the moment the terminal
+        // opens. The bed itself fades in over a third of a second and the first keystroke lands
+        // at 0.22 s, which left a beat of near-silence right when the player pressed E - the
+        // single most likely moment for them to decide the sound is missing. This gives the
+        // press an immediate, unmistakable answer.
+        {
+          const t0 = ac.currentTime + 0.01;
+          const o = ac.createOscillator(); o.type = 'triangle';
+          o.frequency.setValueAtTime(300, t0);
+          o.frequency.exponentialRampToValueAtTime(880, t0 + 0.12);
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.045, t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.20);
+          o.connect(g); g.connect(bus); o.start(t0); o.stop(t0 + 0.24);
+          // relay click: a dry, broadband tick under the blip
+          const c = ac.createBufferSource(); c.buffer = noiseBuf;
+          const cf = ac.createBiquadFilter(); cf.type = 'bandpass'; cf.frequency.value = 2600; cf.Q.value = 2.2;
+          const cg = ac.createGain();
+          cg.gain.setValueAtTime(0.0001, t0);
+          cg.gain.exponentialRampToValueAtTime(0.075, t0 + 0.003);
+          cg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.055);
+          c.connect(cf); cf.connect(cg); cg.connect(bus);
+          c.start(t0, Math.random() * 0.6, 0.09);
+        }
 
         // scheduler: typing comes in bursts with long pauses, because the player is reading,
-        // not writing. Roughly one burst every 4-9 s, plus a seek every 11-19 s.
-        const st = { typing: 3 + ((Math.random() * 6) | 0), nextKey: 0.6, nextSeek: 5 + Math.random() * 6 };
+        // not writing. The first burst lands almost immediately, though - the terminal used to
+        // sit silent for its first key, which is most of what "I cannot hear it" meant when the
+        // player only looks at one tab for a few seconds.
+        const st = { typing: 3 + ((Math.random() * 6) | 0), nextKey: 0.22, nextSeek: 2.5 + Math.random() * 3 };
         const step = () => {
           if (!pcHumS || pcHumGen !== gen) return;
           const now = ac.currentTime + 0.02;
