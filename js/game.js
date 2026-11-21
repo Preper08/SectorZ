@@ -142,25 +142,29 @@
     Game.toast(S, 'Picked up ' + I[it.id].name + (it.q > 1 ? ' x' + it.q : ''));
     return true;
   };
-  // God mode (admin): give the player a full loadout. Only tops up what is missing,
-  // so it is safe to call on every god-mode enable or game start.
+  // God mode (admin): the full police kit plus every weapon and its ammunition - and nothing
+  // else. Loot, food, medical supplies and building materials are deliberately left out: god
+  // mode never consumes items anyway, so carrying them only cluttered the pack.
   Game.godKit = function (S) {
     const p = S.player, P = p.inv;
-    // Admin outfit: cap, flannel shirt, ballistic vest, cargo pants, boots and the hiking pack.
-    // Wear it before filling the kit so the vest, legs and body pocket grids are available
-    // for the supplies. Only swap a slot when it is not already wearing the requested item,
-    // so enabling god mode twice does not shuffle the same clothes in and out of the inventory.
+    // Start clean so enabling god mode mid-run also clears whatever the player was carrying.
+    for (const g of Inv.grids(P)) g.items.length = 0;
+    for (let i = 0; i < P.hot.length; i++) P.hot[i] = null;
+    for (const k in P.equip) P.equip[k] = null;
+    Inv.refreshAll(P, Game.dropFn(S));
+    // Wear the uniform first: the pack, trousers, shirt and vest provide the storage grids.
     const wear = (slot, id) => { if (!P.equip[slot] || P.equip[slot].id !== id) Inv.equip(P, Inv.make(id), Game.dropFn(S)); };
-    wear('bag', 'bigpack'); wear('head', 'cap'); wear('body', 'flannel');
-    wear('vest', 'vest'); wear('legs', 'cargopants'); wear('feet', 'boots');
-    // giveOrDrop keeps the loadout intact even when the pack is full: the remainder lands at
-    // the player's feet instead of disappearing because ensure() ignored the leftover.
+    wear('bag', 'policepack'); wear('head', 'helmet'); wear('body', 'policeshirt');
+    wear('vest', 'vest'); wear('legs', 'policepants'); wear('feet', 'policeboots');
+    // giveOrDrop keeps the kit intact even when the pack is full: the remainder lands at the
+    // player's feet instead of disappearing because ensure() ignored the leftover.
     const ensure = (id, q, extra) => { const have = Inv.count(P, id); if (have < q) Game.giveOrDrop(S, Inv.make(id, q - have, extra)); };
-    ensure('pistol', 1, { mag: 12 }); ensure('shotgun', 1, { mag: 6 }); ensure('rifle', 1, { mag: 5 });
-    ensure('machete', 1);
-    // Move the main weapons into empty hotbar slots before filling the rest of the kit. They
-    // leave the pack, so the supplies get those cells instead of being pushed to the ground.
-    const kit = ['pistol', 'shotgun', 'rifle', 'machete'];
+    const guns = ['pistol', 'smg', 'shotgun', 'rifle'];
+    for (const id of guns) ensure(id, 1, { mag: I[id].mag || 0 });
+    for (const id of ['bat', 'crowbar', 'knife', 'machete', 'axe', 'pipe']) ensure(id, 1);
+    ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40);
+    // The six handiest weapons go in the hotbar; the rest stay in the pack.
+    const kit = guns.concat(['axe', 'machete']);
     for (let i = 0; i < P.hot.length; i++) {
       if (P.hot[i]) continue;
       const id = kit.find(k => Inv.count(P, k) > 0 && !P.hot.some(x => x && x.id === k));
@@ -168,16 +172,9 @@
       const it = Inv.all(P).find(x => x.id === id);
       if (it) { Inv.removeItem(P, it); P.hot[i] = it; }
     }
-    ensure('crowbar', 1); ensure('axe', 1);
-    ensure('ammo9', 40); ensure('shell', 20); ensure('ammo762', 20);
-    ensure('medkit', 2); ensure('bandage', 5); ensure('antibiotics', 3); ensure('painkillers', 3); ensure('splint', 2);
-    ensure('mre', 4); ensure('beans', 4); ensure('water', 4); ensure('soda', 4);
-    ensure('hammer', 1); ensure('nails', 30); ensure('wood', 6); ensure('scrap', 12); ensure('tape', 3);
-    ensure('gascan', 1, { fuel: 100 }); ensure('battery', 3); ensure('flashlight', 1, { bat: 100 }); ensure('map', 1); ensure('lighter', 1);
-    if (P.equip.light && P.equip.light.bat !== undefined) P.equip.light.bat = 100;
     // The worn set changed, so the figure has to be told.
     Game.refreshEquipVisuals(S);
-    Game.toast(S, 'God mode: inventory filled - items are infinite.');
+    Game.toast(S, 'God mode: police kit + all weapons. Items are infinite.');
   };
 
   // ---------------------------------------------------------------- equipment visuals
