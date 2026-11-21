@@ -588,7 +588,7 @@
     if (!r) { els.craftdetail.innerHTML = ''; return; }
     const s = Inv.recipeState(P, r, st), od = I[r.out[0]];
     let html = '<h4>Recipe</h4><h3>' + od.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + '</h3><div class="d">' + (r.desc || od.desc || '') + '</div><h4>Requires</h4>';
-    for (const [id, q] of r.in) { if (q <= 0) continue; const have = Inv.count(P, id); html += '<div class="ing"><img src="' + img(id) + '" draggable="false"><span>' + I[id].name + '</span><b class="' + (have >= q ? 'ok' : 'no') + '">' + have + ' / ' + q + '</b></div>'; }
+    for (const [id, q] of r.in) { if (q <= 0) continue; const have = Inv.countStored(P, id); html += '<div class="ing"><img src="' + img(id) + '" draggable="false"><span>' + I[id].name + '</span><b class="' + (have >= q ? 'ok' : 'no') + '">' + have + ' / ' + q + '</b></div>'; }
     if (r.needs) html += '<div class="ing"><img src="' + img(r.needs) + '" draggable="false"><span>' + I[r.needs].name + ' (tool)</span><b class="' + (Inv.has(P, r.needs) ? 'ok' : 'no') + '">' + (Inv.has(P, r.needs) ? 'have' : 'missing') + '</b></div>';
     if (r.station) html += '<div class="ing"><span style="padding-left:6px">' + (r.station === 'bench' ? 'Workbench nearby' : 'Fire nearby') + '</span><b class="' + (st[r.station] ? 'ok' : 'no') + '">' + (st[r.station] ? 'yes' : 'no') + '</b></div>';
     html += '<button class="btn" id="docraft" style="margin-top:10px;width:100%"' + (s.ok ? '' : ' disabled') + '>Craft</button>';
@@ -605,7 +605,7 @@
     for (const r of list) {
       const s = Inv.recipeState(P, r, st), d = document.createElement('div'); d.className = 'rcp' + (r === craftSel ? ' sel' : '') + (s.ok ? '' : ' no');
       d._recipe = r;
-      d.innerHTML = '<img src="' + img(r.out[0]) + '" draggable="false">' + (r.out[1] > 1 ? '<span class="q">' + r.out[1] + '</span>' : '') + (s.ok ? '<i class="ok"></i>' : '');
+      d.innerHTML = '<img src="' + img(r.icon || r.out[0]) + '" draggable="false">' + (r.out[1] > 1 ? '<span class="q">' + r.out[1] + '</span>' : '') + (s.ok ? '<i class="ok"></i>' : '');
       d.onclick = () => { selectRecipe(r); A.play('click', null, null, 0.3); }; d.onmouseenter = () => { els.tip.innerHTML = '<b>' + I[r.out[0]].name + '</b><div class="d">' + (r.desc || I[r.out[0]].desc || '') + '</div>'; els.tip.classList.remove('hidden'); const rc = d.getBoundingClientRect(); placeTip(rc.right + 8, rc.top); }; d.onmouseleave = hideTip;
       d.addEventListener('mousedown', () => hideTip());
       els.craftlist.appendChild(d);

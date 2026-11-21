@@ -263,6 +263,17 @@
     { id: 'r_rope', tab: 'Materials', out: ['rope', 1], in: [['cloth', 3]] }
   ];
 
+  // Spare clothing can be torn into rags. One explicit recipe per garment, so the player
+  // always chooses which piece is destroyed; the list shows the garment icon and the detail
+  // pane shows the yield. Armour and footwear stay out: a kevlar vest is not cloth, and boots
+  // are not a rag source. Only carried copies count (Inv.countStored), never worn gear.
+  const TEAR = {
+    tshirt: 1, cap: 1, shorts: 1,
+    flannel: 2, sweater: 2, hoodie: 2, jacket: 2, raincoat: 2, leather: 2, padded: 3, wintercoat: 3,
+    jeans: 2, trousers: 2, tracksuit: 2, cargopants: 2
+  };
+  for (const id in TEAR) R.push({ id: 'r_tear_' + id, tab: 'Salvage', icon: id, out: ['rags', TEAR[id]], in: [[id, 1]], desc: 'Tear the ' + I[id].name.toLowerCase() + ' into rags.' });
+
   // ----------------------------------------------------------------- base-building catalogue
   const B = DSZ.BUILD = [
     { id: 'bwall_w', obj: O.BWALL_W, name: 'Wood Wall', tab: 'Walls', cost: [['wood', 3], ['nails', 4]], desc: 'Basic barricade.' },

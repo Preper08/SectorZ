@@ -100,6 +100,18 @@
     for (const k in P.equip) { const it = P.equip[k]; if (it && it.id === id) n += it.q; }
     return n;
   };
+  // Only what is carried, not what is worn. Crafting an ingredient that is currently equipped
+  // would pass the recipe check and then consume nothing, because take() never touches the
+  // equipment slots. Recipes that accept clothing use this.
+  Inv.countStored = function (P, id) {
+    let n = 0;
+    for (const slot of Inv.STORE) {
+      const g = Inv.gridOf(P, slot); if (!g) continue;
+      for (const it of g.items) if (it.id === id) n += it.q;
+    }
+    for (const it of P.hot) if (it && it.id === id) n += it.q;
+    return n;
+  };
   Inv.has = (P, id) => Inv.count(P, id) > 0;
   Inv.take = function (P, id, n) {
     let need = n;
@@ -280,7 +292,7 @@
   };
   Inv.recipeState = function (P, r, st) {
     const missing = []; let ok = true;
-    for (const [id, q] of r.in) { if (q <= 0) continue; const have = Inv.count(P, id); if (have < q) { ok = false; missing.push([id, q - have]); } }
+    for (const [id, q] of r.in) { if (q <= 0) continue; const have = Inv.countStored(P, id); if (have < q) { ok = false; missing.push([id, q - have]); } }
     if (r.station && !st[r.station]) { ok = false; missing.push([r.station === 'bench' ? '#Workbench' : '#Fire', 1]); }
     if (r.needs && !Inv.has(P, r.needs)) { ok = false; missing.push([r.needs, 1]); }
     return { ok, missing };
