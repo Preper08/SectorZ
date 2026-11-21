@@ -68,23 +68,33 @@
   Game.toast = function (S, text, kind) { S = S || Game.S; if (!S) return; S.toasts.push({ text, kind: kind || '', t: 4.5 }); if (S.toasts.length > 6) S.toasts.shift(); };
   Game.dropItem = function (S, x, y, item) { S.drops.push({ x: x + (Math.random() - 0.5) * 0.6, y: y + (Math.random() - 0.5) * 0.6, item }); };
   Game.dropFn = S => it => Game.dropItem(S, S.player.x, S.player.y, it);
-  // Put the starting baseball bat on the floor near the player spawn. Skipped when the
-  // player already owns one or one is already lying in the world (old saves / reloads).
+  // Put the starting baseball bat on a tile the player can actually walk to. A flood fill from
+  // the spawn over walkable tiles, nearest first. The old ring scan only checked that the tile
+  // itself was free, so the bat could land in a nook that walls or furniture had cut off from
+  // the room; the tile was legal but unreachable.
   Game.placeStarterBat = function (S) {
     const p = S.player;
     if (Inv.has(p.inv, 'bat')) return;
     if (S.drops.some(d => d.item && d.item.id === 'bat')) return;
     const bx = Math.floor(p.x), by = Math.floor(p.y), inHouse = W.insideBuilding(p.x, p.y);
+    const key = (x, y) => x + ',' + y;
+    const seen = new Set([key(bx, by)]);
+    const q = [[bx, by, 0]];
     let spot = null;
-    for (const r of [2, 3, 1, 4]) {
-      for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-        const tx = bx + dx, ty = by + dy;
-        if (!W.inb(tx, ty) || W.isSolid(tx, ty)) continue;
-        if (inHouse && !W.insideBuilding(tx + 0.5, ty + 0.5)) continue;
-        spot = [tx + 0.5, ty + 0.5];
+    for (let i = 0; i < q.length; i++) {
+      const [x, y, d] = q[i];
+      if (d > 4) break;
+      if (d > 0 && W.inb(x, y) && !W.isSolid(x, y) && (!inHouse || W.insideBuilding(x + 0.5, y + 0.5))) {
+        spot = [x + 0.5, y + 0.5];
+        break;
       }
-      if (spot) break;
+      if (d === 4) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (!W.inb(nx, ny) || W.isSolid(nx, ny)) continue;
+        const k = key(nx, ny); if (seen.has(k)) continue;
+        seen.add(k); q.push([nx, ny, d + 1]);
+      }
     }
     if (!spot) spot = [p.x, p.y];
     Game.dropItem(S, spot[0], spot[1], Inv.make('bat', 1, { dur: 55 }));
