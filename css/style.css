@@ -58,6 +58,23 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 .dnote { font-size: 10px; letter-spacing: 0.06em; color: var(--dim); min-height: 0; }
 .dnote b { color: var(--text); font-weight: 700; }
 
+/* Vehicle status, shown only while driving. It sits directly above the vitals, the same
+   corner as the self-and-companion panels, and Rozika's panel stacks above it. */
+#carhud { position: absolute; left: 18px; bottom: 162px; width: 200px; padding: 7px 10px 8px; display: flex; flex-direction: column; gap: 5px; }
+#hud.win-open #carhud { visibility: hidden; }
+.crow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.cname { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text); }
+.cspeed { display: flex; align-items: baseline; gap: 3px; }
+.cspeed b { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.cspeed span { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.12em; }
+.cstat { display: grid; grid-template-columns: 42px 1fr 26px; gap: 6px; align-items: center; }
+.cstat > span { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.12em; }
+.cstat b { font-size: 11px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cbar { height: 6px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+.cbar i { position: absolute; inset: 0 auto 0 0; width: 100%; background: #6fae6a; transition: width 0.2s linear, background 0.2s linear; }
+.cbar i.mid { background: #c98d3a; } .cbar i.low { background: #c8484a; }
+#carfuel.ok { background: #4f95c7; }
+
 #topright { position: absolute; right: 18px; top: 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 #clock { padding: 5px 12px; display: flex; gap: 12px; align-items: baseline; }
 #clock b { font-size: 22px; font-weight: 700; letter-spacing: 0.06em; }

@@ -29,6 +29,13 @@
     <div class="dbar"><i id="dogbond"></i></div>
     <div class="dnote" id="dognote"></div>
   </div>
+  <!-- Vehicle status, shown only while driving. Hull and fuel are the car's own numbers;
+       the speedometer reads the car's actual forward speed in km/h. -->
+  <div id="carhud" class="panel hidden">
+    <div class="crow"><span class="cname" id="carname">Vehicle</span><span class="cspeed"><b id="carkmh">0</b><span>km/h</span></span></div>
+    <div class="cstat"><span>Health</span><div class="cbar"><i id="carhp"></i></div><b id="carhpv">0</b></div>
+    <div class="cstat"><span>Fuel</span><div class="cbar"><i id="carfuel"></i></div><b id="carfuelv">0</b></div>
+  </div>
   <div id="topright">
     <div id="clock" class="panel"><b id="clk">17:12</b><span id="dayl">DAY 1</span><span id="wx"></span><span id="nightw" class="warn hidden"></span></div>
     <div id="diffTag" class="panel">DIFFICULTY <b id="dlab">Normal</b></div>

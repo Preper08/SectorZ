@@ -35,6 +35,10 @@
   CarArt.K = function (kind) { return KINDS[kind] || KINDS.sedan; };
   CarArt.reach = function (kind) { const K = KINDS[kind] || KINDS.sedan; return K.colOff + K.col; };
   CarArt.halfW = function (kind) { return (KINDS[kind] || KINDS.sedan).W / 2; };
+  // Human-readable names for the driving HUD. Unknown kinds fall back rather than
+  // leaking a raw id into the interface.
+  const NAMES = { sedan: 'Sedan', hatch: 'Hatchback', taxi: 'Taxi', police: 'Police Cruiser', van: 'Van', pickup: 'Pickup' };
+  CarArt.name = function (kind) { return NAMES[kind] || 'Vehicle'; };
   CarArt.kinds = KINDS;
 
   function body(kind, col, state) {

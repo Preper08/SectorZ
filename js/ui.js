@@ -21,7 +21,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'tvttl']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'tvttl']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.eqcol = $('eqcol');
@@ -337,12 +337,19 @@
     if (els.hud.classList.contains('hidden')) return;
     const vr = v.getBoundingClientRect(), hr = hb.getBoundingClientRect();
     if (!hr.width || !vr.width) return;                     // not laid out yet
-    // Rozika sits directly above the vitals. Her offset is derived from the measured height of
-    // that panel rather than hard-coded, because the status chips wrap and change it. Set before
-    // the clash test below so the branch there can add to it rather than replace it.
-    const dh = els.doghud;
-    let baseV = 18;
-    if (dh) dh.style.bottom = (baseV + Math.round(vr.height) + 8) + 'px';
+    // The car panel and Rozika both stack above the vitals. Offsets are measured rather than
+    // hard-coded because the status chips and the car name can wrap. The car panel only exists
+    // while driving, so it takes the slot directly above the vitals and Rozika moves up.
+    const dh = els.doghud, ch = els.carhud;
+    const placeStack = bottom => {
+      let next = bottom + Math.round(vr.height) + 8;
+      if (ch) {
+        ch.style.bottom = next + 'px';
+        if (!ch.classList.contains('hidden')) next += Math.round(ch.getBoundingClientRect().height) + 8;
+      }
+      if (dh) dh.style.bottom = next + 'px';
+    };
+    placeStack(18);
     const GAP = 10;
     const need = vr.right + GAP - hr.left;                  // px of horizontal clash
     if (need <= 0) return;                                  // already side by side
@@ -352,8 +359,8 @@
     if (shift < need) {
       const nb = Math.round(window.innerHeight - hr.top + GAP);
       v.style.bottom = nb + 'px';
-      // the vitals lifted, so she has to lift with them or she would end up on top of the bars
-      if (dh) dh.style.bottom = (nb + Math.round(vr.height) + 8) + 'px';
+      // the vitals lifted, so the panels above them have to lift with them or they would overlap
+      placeStack(nb);
     }
   }
   // Largest cell size that still keeps the equipment column, the widest storage grid and
@@ -744,6 +751,35 @@
     els.dogbond.className = 't' + ti;
     els.dognote.innerHTML = note;
   }
+  // Vehicle panel. Visible only while driving. The speedometer updates every frame so the number
+  // tracks the car, while hull and fuel only touch the DOM when a rounded value actually moves.
+  // Speed is world units per second, and one unit is one metre (the same scale the survival
+  // distance stat uses), so km/h is simply m/s * 3.6.
+  let carSig = '', carShown = false;
+  function renderCarHud(S) {
+    const el = els.carhud; if (!el) return;
+    const c = S && S.player && S.player.driving;
+    if (!c) {
+      if (carShown) { el.classList.add('hidden'); carShown = false; carSig = ''; fitHud(); }
+      return;
+    }
+    if (!carShown) { el.classList.remove('hidden'); carShown = true; carSig = ''; fitHud(); }
+    const kmh = Math.round(Math.abs(c.speed || 0) * 3.6);
+    if (els.carkmh.textContent !== String(kmh)) els.carkmh.textContent = kmh;
+    const hp = Math.max(0, Math.round(c.hp)), maxhp = Math.max(1, Math.round(c.maxhp || 140));
+    const fuel = Math.max(0, Math.round(c.fuel)), maxfuel = Math.max(1, Math.round(c.maxfuel || 60));
+    const sig = c.kind + '|' + hp + '|' + fuel;
+    if (sig === carSig) return;
+    carSig = sig;
+    els.carname.textContent = DSZ.CarArt.name(c.kind);
+    const hf = hp / maxhp, ff = fuel / maxfuel;
+    els.carhp.style.width = (hf * 100) + '%';
+    els.carhp.className = hf > 0.55 ? 'ok' : hf > 0.25 ? 'mid' : 'low';
+    els.carhpv.textContent = hp;
+    els.carfuel.style.width = (ff * 100) + '%';
+    els.carfuel.className = ff > 0.25 ? 'ok' : 'low';
+    els.carfuelv.textContent = fuel;
+  }
   UI.update = function (state, dt) {
     S = state; if (!S) return;
     const p = S.player;
@@ -796,6 +832,7 @@
     if (UI.open.title) return;
     // vitals
     for (const node of vitalNodes) { const k = node.key, v = Math.round(p[k]); if (vrows[k] !== v) { vrows[k] = v; node.bar.style.width = Math.max(0, v) + '%'; node.value.textContent = v; node.row.classList.toggle('low', v < 22 && k !== 'stamina'); } }
+    renderCarHud(S);
     renderHot(false);
     if (slow) {
       let st = ''; if (DSZ.settings.godmode) st += '<span class="warn">GOD MODE</span>'; if (p.sneak) st += '<span class="quiet">Sneaking</span>'; if (p.bleed > 0) st += '<span>Bleeding</span>'; if (p.infection > 30) st += '<span>Infected</span>'; else if (p.infection > 0) st += '<span class="warn">Feverish</span>'; if (p.broken) st += '<span>Broken leg</span>'; if (p.food < 25) st += '<span class="warn">Hungry</span>'; if (p.water < 25) st += '<span class="warn">Thirsty</span>'; if (p.energy < 20) st += '<span class="warn">Tired</span>'; if (p.reload > 0) st += '<span class="warn">Reloading</span>';
