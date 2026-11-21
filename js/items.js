@@ -152,6 +152,9 @@
   it('milpants', 'Military Combat Pants', 'clothes', { w: 2, h: 3, slot: 'legs', def: 8, cols: 4, rows: 2, col: '#6b7048', desc: 'Matching camo trousers. Reinforced knees, eight pockets.' });
   it('milboots', 'Military Combat Boots', 'clothes', { w: 2, h: 2, slot: 'feet', def: 7, warm: 6, quiet: 4.5, col: '#7a6246', desc: 'Coyote-brown duty boots. Tougher than police boots, but louder.' });
   it('milvest', 'Military Plate Carrier', 'clothes', { w: 2, h: 2, slot: 'vest', def: 42, warm: 3, cols: 4, rows: 3, col: '#4b5136', desc: 'Military ballistic carrier. More protection than a police vest.' });
+  // God-mode-only military pack: its own 9x6 pocket grid sits between the police pack (45) and
+  // the hiking pack (70), without changing either. Absent from LOOT like the rest of the set.
+  it('milpack', 'Military Tactical Backpack', 'bag', { w: 2, h: 3, slot: 'bag', cols: 9, rows: 6, col: '#4a5036', desc: '++ storage · MOLLE, external pockets and a large main compartment.' });
   it('backpack', 'Backpack', 'bag', { w: 2, h: 3, slot: 'bag', cols: 8, rows: 5, col: '#5c6a46', desc: '+ storage' });
   it('bigpack', 'Hiking Pack', 'bag', { w: 3, h: 3, slot: 'bag', cols: 10, rows: 7, col: '#8a4a30', desc: '++ storage' });
   // Tactical police pack: same 2x3 footprint as the ordinary backpack, a little more room, but
