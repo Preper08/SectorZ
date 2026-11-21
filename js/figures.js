@@ -198,7 +198,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   // clothing underneath.
   function drawBag(J, spec, cap, pr) {
     if (!spec.bag) return;
-    const big = spec.bagId === 'bigpack', small = spec.bagId === 'fannypack';
+    const big = spec.bagId === 'bigpack', small = spec.bagId === 'fannypack', tac = spec.bagId === 'policepack';
     const bk = [J.pel[0] - (small ? 0.1 : 0.22), 0, small ? (J.pel[2] + 0.14) : (J.pel[2] + J.neck[2]) / 2 + 0.02];
     // Keep the pack on the correct side of the torso at every heading: behind it when the
     // character faces the camera, in front when the back is turned. The natural depth already
@@ -210,14 +210,29 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // fanny pack: small pouch on the lower back / hip
       cap([bk[0], -0.08, bk[2] - 0.05], [bk[0], 0.08, bk[2] + 0.05], 0.085, spec.bag, { bag: true, d: back });
     } else {
-      // main body: bigpack is taller and thicker, backpack is one rounded block
-      cap([bk[0], -0.11, bk[2] - (big ? 0.17 : 0.13)], [bk[0], 0.11, bk[2] + (big ? 0.17 : 0.13)], big ? 0.14 : 0.12, spec.bag, { bag: true, d: back });
-      if (big) cap([bk[0] - 0.07, -0.08, bk[2] + 0.2], [bk[0] - 0.07, 0.08, bk[2] + 0.28], 0.06, spec.bag, { d: back }); // rolled top / lid
+      if (tac) {
+        // Tactical police pack: square duty block, top flap, MOLLE webbing, side pouches and
+        // a radio antenna. Same depth rule as the plain backpack, so it never paints over the
+        // chest and keeps its shape in every walk/vault pose.
+        const dk = spec.bag.map(v => v * 0.7), lt = spec.bag.map(v => Math.min(255, v * 2.6 + 30));
+        cap([bk[0], -0.12, bk[2] - 0.16], [bk[0], 0.12, bk[2] + 0.18], 0.13, spec.bag, { bag: true, d: back });
+        cap([bk[0] - 0.02, -0.11, bk[2] + 0.13], [bk[0] - 0.02, 0.11, bk[2] + 0.18], 0.095, dk, { d: back });
+        for (const y of [-0.08, 0, 0.08]) cap([bk[0] - 0.11, y, bk[2] + 0.06], [bk[0] - 0.11, y, bk[2] + 0.2], 0.02, lt, { d: back + 0.02 });
+        for (const z of [-0.02, 0.12]) cap([bk[0] - 0.12, -0.1, bk[2] + z], [bk[0] - 0.12, 0.1, bk[2] + z], 0.014, lt, { d: back + 0.03 });
+        cap([bk[0] - 0.13, -0.02, bk[2] + 0.11], [bk[0] - 0.13, 0.02, bk[2] + 0.11], 0.022, [226, 188, 86], { d: back + 0.04 }); // gold name tape
+        cap([bk[0], -0.14, bk[2] + 0.02], [bk[0], -0.14, bk[2] + 0.15], 0.055, dk, { d: back }); // side pouches
+        cap([bk[0], 0.14, bk[2] + 0.02], [bk[0], 0.14, bk[2] + 0.15], 0.055, dk, { d: back });
+        cap([bk[0] - 0.03, 0.1, bk[2] + 0.12], [bk[0] - 0.03, 0.1, bk[2] + 0.34], 0.012, lt, { d: back }); // antenna
+      } else {
+        // bigpack is taller and thicker, backpack is one rounded block
+        cap([bk[0], -0.11, bk[2] - (big ? 0.17 : 0.13)], [bk[0], 0.11, bk[2] + (big ? 0.17 : 0.13)], big ? 0.14 : 0.12, spec.bag, { bag: true, d: back });
+        if (big) cap([bk[0] - 0.07, -0.08, bk[2] + 0.2], [bk[0] - 0.07, 0.08, bk[2] + 0.28], 0.06, spec.bag, { d: back }); // rolled top / lid
+      }
       // shoulder straps over both shoulders (visible from the front)
       const stc = spec.bag.map(v => v * 0.6);
       cap(J.shL, [J.pel[0] - 0.02, J.shL[1], J.pel[2] + 0.02], 0.032, stc);
       cap(J.shR, [J.pel[0] - 0.02, J.shR[1], J.pel[2] + 0.02], 0.032, stc);
-      if (!big) cap([bk[0] + 0.06, -0.06, bk[2] + 0.1], [bk[0] + 0.06, 0.06, bk[2] - 0.06], 0.03, stc, { d: back }); // side pocket seam
+      if (!big && !tac) cap([bk[0] + 0.06, -0.06, bk[2] + 0.1], [bk[0] + 0.06, 0.06, bk[2] - 0.06], 0.03, stc, { d: back }); // side pocket seam
     }
   }
 

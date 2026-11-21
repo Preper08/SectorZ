@@ -145,6 +145,9 @@
   it('policeboots', 'Police Boots', 'clothes', { w: 2, h: 2, slot: 'feet', def: 6, warm: 6, quiet: 3.5, col: '#141a2b', desc: 'Black duty boots. Tough, but not as quiet as trainers.' });
   it('backpack', 'Backpack', 'bag', { w: 2, h: 3, slot: 'bag', cols: 8, rows: 5, col: '#5c6a46', desc: '+ storage' });
   it('bigpack', 'Hiking Pack', 'bag', { w: 3, h: 3, slot: 'bag', cols: 10, rows: 7, col: '#8a4a30', desc: '++ storage' });
+  // Tactical police pack: same 2x3 footprint as the ordinary backpack, a little more room, but
+  // well short of the hiking pack. The extra capacity is paid for by rarity, not by being best.
+  it('policepack', 'Tactical Police Backpack', 'bag', { w: 2, h: 3, slot: 'bag', cols: 9, rows: 5, col: '#141c30', desc: '+ storage · MOLLE webbing' });
   it('fannypack', 'Fanny Pack', 'bag', { slot: 'bag', cols: 5, rows: 2, col: '#4a4a52' });
 
   // ----------------------------------------------------------------- loot tables
@@ -167,10 +170,10 @@
     electronics: { n: [1, 3], t: [['battery', 10], ['flashlight', 5], ['radio', 3], ['wire', 5], ['tape', 3], ['fusebox', 3]] },
     gas: { n: [1, 3], t: [['gascan', 3], ['soda', 6], ['chips', 6], ['candy', 6], ['water', 5], ['map', 3], ['battery', 3], ['lighter', 3], ['keys', 0.6]] },
     guns: { n: [1, 3], t: [['pistol', 3], ['shotgun', 1.8], ['rifle', 1.2], ['ammo9', 6], ['shell', 4], ['ammo762', 3], ['knife', 3], ['machete', 2], ['vest', 0.8], ['policeshirt', 0.3], ['policepants', 0.3]] },
-    police: { n: [1, 3], t: [['pistol', 4], ['ammo9', 8], ['vest', 1.5], ['flashlight', 3], ['bandage', 3], ['keys', 1.5], ['radio', 1], ['helmet', 1], ['policeshirt', 0.8], ['policepants', 0.8], ['policeboots', 0.8], ['smg', 0.4]] },
-    armory: { n: [2, 4], t: [['pistol', 3], ['shotgun', 3], ['rifle', 2], ['smg', 1.4], ['ammo9', 8], ['shell', 6], ['ammo762', 5], ['vest', 2.5], ['helmet', 2.5], ['policeshirt', 0.6], ['policepants', 0.6], ['policeboots', 0.6], ['medkit', 1]] },
+    police: { n: [1, 3], t: [['pistol', 4], ['ammo9', 8], ['vest', 1.5], ['flashlight', 3], ['bandage', 3], ['keys', 1.5], ['radio', 1], ['helmet', 1], ['policeshirt', 0.8], ['policepants', 0.8], ['policeboots', 0.8], ['policepack', 0.6], ['smg', 0.4]] },
+    armory: { n: [2, 4], t: [['pistol', 3], ['shotgun', 3], ['rifle', 2], ['smg', 1.4], ['ammo9', 8], ['shell', 6], ['ammo762', 5], ['vest', 2.5], ['helmet', 2.5], ['policeshirt', 0.6], ['policepants', 0.6], ['policeboots', 0.6], ['policepack', 0.4], ['medkit', 1]] },
     cell: { n: [0, 1], t: [['rags', 4], ['cloth', 3], ['candy', 2]] },
-    locker: { n: [0, 2], t: [['jacket', 3], ['flannel', 3], ['leather', 1.5], ['boots', 2], ['flashlight', 3], ['cap', 3], ['battery', 3], ['bandage', 2], ['crowbar', 2], ['mre', 0.8], ['water', 3]] },
+    locker: { n: [0, 2], t: [['jacket', 3], ['flannel', 3], ['leather', 1.5], ['boots', 2], ['flashlight', 3], ['cap', 3], ['battery', 3], ['bandage', 2], ['crowbar', 2], ['mre', 0.8], ['water', 3], ['policepack', 0.2]] },
     office: { n: [0, 2], t: [['tape', 3], ['battery', 3], ['candy', 3], ['soda', 3], ['painkillers', 2], ['keys', 1.2], ['map', 1.5], ['water', 2]] },
     industrial: { n: [1, 3], t: [['scrap', 8], ['metalplate', 3], ['wire', 4], ['nails', 4], ['gascan', 3], ['pipe', 3], ['tape', 3], ['wood', 4], ['sheetmetal', 3], ['chemicals', 2], ['cement', 2], ['tire', 2]] },
     tools: { n: [1, 3], t: [['hammer', 5], ['nails', 7], ['crowbar', 3], ['wire', 4], ['pipe', 3], ['axe', 1.2], ['battery', 3], ['scrap', 4], ['tape', 3]] },
@@ -195,8 +198,8 @@
     zombieFood: { n: [1, 1], t: [['beans', 4], ['water', 4], ['candy', 4], ['chips', 4], ['bread', 3], ['soda', 4]] },
     zombieTools: { n: [1, 1], t: [['nails', 4], ['scrap', 4], ['tape', 3], ['wire', 3], ['crowbar', 1.5], ['hammer', 1.5], ['rags', 3]] },
     zombieClothes: { n: [1, 1], t: [['cloth', 4], ['rags', 4], ['cap', 2], ['sneakers', 2], ['jeans', 1.5]] },
-    car: { n: [0, 2], t: [['rags', 3], ['gascan', 2], ['tape', 2], ['battery', 2], ['flashlight', 1.2], ['soda', 2], ['crowbar', 1.2], ['tire', 1.5], ['map', 2], ['keys', 0.7], ['policeboots', 0.25]] },
-    cartrunk: { n: [0, 3], t: [['scrap', 3], ['tire', 2], ['gascan', 2.5], ['wire', 2], ['rags', 3], ['tape', 2], ['water', 2], ['beans', 2], ['backpack', 0.8], ['crowbar', 1.5], ['policeboots', 0.4]] }
+    car: { n: [0, 2], t: [['rags', 3], ['gascan', 2], ['tape', 2], ['battery', 2], ['flashlight', 1.2], ['soda', 2], ['crowbar', 1.2], ['tire', 1.5], ['map', 2], ['keys', 0.7], ['policeboots', 0.25], ['policepack', 0.15]] },
+    cartrunk: { n: [0, 3], t: [['scrap', 3], ['tire', 2], ['gascan', 2.5], ['wire', 2], ['rags', 3], ['tape', 2], ['water', 2], ['beans', 2], ['backpack', 0.8], ['crowbar', 1.5], ['policeboots', 0.4], ['policepack', 0.35]] }
   };
   // Which corpse table a zombie type rolls. game.js uses this when a body is searched.
   DSZ.ZOMBIE_LOOT = { walker: 'zombie', runner: 'zombieRunner', brute: 'zombieBrute', crawler: 'zombieCrawler' };
