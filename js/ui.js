@@ -47,7 +47,7 @@
     UI.syncDiff = syncDiff;
     document.querySelectorAll('button').forEach(b => b.addEventListener('mouseenter', () => { if (A.ready) A.play('click', null, null, 0.25); }));
     // hotbar
-    for (let i = 0; i < 6; i++) { const d = document.createElement('div'); d.className = 'hslot'; d.dataset.slot = i; d.innerHTML = '<span class="k">' + (i + 1) + '</span>'; d.addEventListener('mousedown', e => hotDown(e, i)); d.addEventListener('contextmenu', e => { e.preventDefault(); const it = S.player.inv.hot[i]; if (it) { DSZ.Game.useItem(S, it); } }); d.addEventListener('mouseenter', () => { const it = S.player.inv.hot[i]; if (it) showTip(it, d); }); d.addEventListener('mouseleave', hideTip); els.hotbar.appendChild(d); }
+    for (let i = 0; i < 6; i++) { const d = document.createElement('div'); d.className = 'hslot'; d.dataset.slot = i; d.innerHTML = '<span class="k">' + (i + 1) + '</span>'; d.addEventListener('mousedown', e => hotDown(e, i)); d.addEventListener('contextmenu', e => { e.preventDefault(); const it = S.player.inv.hot[i]; if (!it) return; if (UI.open.win) storeFromHot(it); else DSZ.Game.useItem(S, it); }); d.addEventListener('mouseenter', () => { const it = S.player.inv.hot[i]; if (it) showTip(it, d); }); d.addEventListener('mouseleave', hideTip); els.hotbar.appendChild(d); }
     // mouse for drag
     window.addEventListener('mousemove', e => { els.cursor.style.left = e.clientX + 'px'; els.cursor.style.top = e.clientY + 'px'; dragMove(e); if (!els.tip.classList.contains('hidden')) posTip(e); });
     window.addEventListener('mouseup', dragUp);
@@ -402,7 +402,7 @@
       if (it) { const im = document.createElement('img'); im.src = img(it.id); im.draggable = false; im.addEventListener('mousedown', e => { if (e.button === 0) startDrag(e, it, { type: 'equip', slot: k }); }); im.addEventListener('contextmenu', e => { e.preventDefault(); quick(it, 'equip'); }); s.addEventListener('mouseenter', () => { hovered = it; showTip(it, s); }); s.addEventListener('mouseleave', hideTip); s.appendChild(im); }
       els.equip.appendChild(s);
     }
-    const hint = document.createElement('div'); hint.style.cssText = 'font-size:12px;color:var(--dim);margin-top:4px;width:276px'; hint.textContent = 'Drag items between grids. Right-click to use / equip / move. R rotates while dragging. Weapons go on the hotbar.'; els.equip.appendChild(hint);
+    const hint = document.createElement('div'); hint.style.cssText = 'font-size:12px;color:var(--dim);margin-top:4px;width:276px'; hint.textContent = 'Drag items between grids or from the hotbar. Right-click to use / equip / move; with the inventory open, right-click a hotbar item to store it. R rotates while dragging. Weapons go on the hotbar.'; els.equip.appendChild(hint);
   }
   function renderCondition() {
     const p = S.player, hrs = ((S.day - 1) * 24 + S.hour - C.START_HOUR);
@@ -492,6 +492,23 @@
   }
 
   // ------------------------------------------------------------------ drag & drop
+  // Right-clicking a hotbar item while the inventory is open stores it instead of using it:
+  // using a weapon from the hotbar does nothing, and using a bandage in the middle of moving
+  // gear wastes it. When a container is open the item goes into that container, otherwise
+  // into the backpack. A full destination puts it back on the hotbar and says so.
+  function storeFromHot(it) {
+    const P = S.player.inv, idx = P.hot.indexOf(it);
+    if (idx < 0) return false;
+    const wasSel = P.sel === idx;
+    P.hot[idx] = null; if (wasSel) P.sel = -1;
+    let left = it;
+    if (UI.loot) left = Inv.addTo(UI.loot.grid, it) === 0 ? null : it;
+    if (left) left = Inv.give(P, it);
+    if (left) { P.hot[idx] = left; if (wasSel) P.sel = idx; DSZ.Game.toast(S, 'No room in storage.'); A.play('thud', S.player.x, S.player.y, 0.4); }
+    else { A.play('click'); DSZ.Game.toast(S, 'Stored ' + I[it.id].name); }
+    UI.refresh();
+    return !left;
+  }
   function hotDown(e, i) {
     if (e.button !== 0) return; const P = S.player.inv, it = P.hot[i];
     if (!UI.open.win || !it) { P.sel = P.sel === i ? -1 : i; A.play('click'); S.build.active = false; renderHot(true); return; }
