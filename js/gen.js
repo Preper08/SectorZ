@@ -192,7 +192,9 @@
       mark(x, by + 19, 0.08, 4, '#d8d8d0', 0.6);
       // the first bay of a police lot is a drivable police car, parked in front of the station
       if (kind === 'police' && x === bx + 2) { Gen.addCar(x + 2, by + 21.5, Math.PI / 2, 'ok', 'police'); continue; }
-      if (rng() < 0.6) Gen.addCar(x + 2, by + 21.5, Math.PI / 2, kind === 'police' ? 'police' : 'van');
+      // addCar(x, y, ang, state, kind): the state comes before the kind, so the old call put
+      // 'police' in the state slot and left the kind random. A non-ok state is a wreck.
+      if (rng() < 0.6) Gen.addCar(x + 2, by + 21.5, Math.PI / 2, 'wreck', kind === 'police' ? 'police' : 'van');
     }
     for (let i = 0; i < 6; i++) tree(bx + R(26), by + R(2) + 24);
     lampAt(bx + 4, by + 18, true, [200, 220, 255]); lampAt(bx + 22, by + 18, true, [200, 220, 255]);
