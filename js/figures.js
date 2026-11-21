@@ -339,6 +339,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   // shorts keep the shins bare; trousers/cargo cover them to the ankle; cargo adds
   // visible side pockets. entries receive (J, cap, pr, skin, col)
   const LEGS_FIGS = {
+    // bare: no trouser item equipped, so the whole leg is skin. Without this entry the
+    // fallback below is shorts, which painted a blue-grey garment on an undressed player.
+    bare: (J, cap, pr, skin, col, legR) => {
+      cap(J.hipL, J.kneeL, legR, skin); cap(J.kneeL, J.footL, 0.07, skin);
+      cap(J.hipR, J.kneeR, legR, skin); cap(J.kneeR, J.footR, 0.07, skin);
+    },
     // shorts: light beige/khaki, thigh-length with a rolled cuff; shins and feet stay bare skin
     shorts: (J, cap, pr, skin, col, legR) => {
       const hemL = lerp3(J.hipL, J.kneeL, 0.62), hemR = lerp3(J.hipR, J.kneeR, 0.62);
@@ -598,7 +604,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   const SHIRTS = [[150, 40, 40], [48, 80, 130], [70, 110, 70], [190, 180, 160], [60, 60, 66], [180, 130, 50], [110, 60, 110], [220, 220, 214], [40, 90, 100], [130, 90, 60]];
   const PANTS = [[44, 56, 84], [48, 48, 52], [92, 82, 62], [60, 70, 50], [30, 30, 34], [100, 100, 108]];
   Fig.playerSpec = function (eq) {
-    return { id: 'P' + (eq.bodyId || 0) + (eq.vestId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0) + (eq.legsId || 0), skin: SKIN[1], hair: HAIR[1], shirt: eq.bodyCol || [78, 98, 120], pants: eq.legsCol || [54, 60, 78], sleeve: eq.bodyCol ? null : [78, 98, 120], shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, legsId: eq.legsId || null, legsCol: eq.legsCol || null, vestId: eq.vestId || null, vestCol: eq.vestCol || null, eye: 'rgba(14,10,10,0.9)' };
+    // No clothing must read as bare skin, not as a default outfit. The old fallbacks were a
+    // blue-grey shirt and trousers, and drawLegs meanwhile fell back to shorts, so a stripped
+    // character looked dressed in blue. Slots that are empty now use the skin colour, and the
+    // legs use the bare entry; sleeves follow the shirt, which is also skin when the torso is bare.
+    const skin = SKIN[1], pants = eq.legsCol || skin;
+    return { id: 'P' + (eq.bodyId || 0) + (eq.vestId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0) + (eq.legsId || 0), skin, hair: HAIR[1], shirt: eq.bodyCol || skin, pants, sleeve: null, shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, legsId: eq.legsId || 'bare', legsCol: eq.legsCol || null, vestId: eq.vestId || null, vestCol: eq.vestCol || null, eye: 'rgba(14,10,10,0.9)' };
   };
   Fig.zombieSpec = function (seed, type) {
     const r = U.mulberry32(seed * 7919 + 13);
