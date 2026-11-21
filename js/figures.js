@@ -190,23 +190,32 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     cap(J.shR, J.elR, rb + 0.008, sleeve); cap(J.elR, J.handR, rb, spec.glove || skin);
   }
 
-  // bag: distinct shapes per bag type, drawn behind the torso with visible straps
-  function drawBag(J, spec, cap) {
+  // bag: distinct shapes per bag type. The pack sits on the back, so it has to sort on the far
+  // side of the torso from the camera; only the shoulder straps belong on the near side.
+  // Without the explicit depth the large packs were painted over the chest and hid the body
+  // clothing underneath.
+  function drawBag(J, spec, cap, pr) {
     if (!spec.bag) return;
     const big = spec.bagId === 'bigpack', small = spec.bagId === 'fannypack';
     const bk = [J.pel[0] - (small ? 0.1 : 0.22), 0, small ? (J.pel[2] + 0.14) : (J.pel[2] + J.neck[2]) / 2 + 0.02];
+    // Keep the pack on the correct side of the torso at every heading: behind it when the
+    // character faces the camera, in front when the back is turned. The natural depth already
+    // picks the side, but the pack is wide enough to overlap the torso, so a small bias makes
+    // the order unambiguous instead of letting the two capsules fight for the same pixels.
+    const bagD = pr(bk).d, torsoD = (pr(J.pel).d + pr(J.neck).d) / 2;
+    const back = bagD < torsoD ? bagD - 0.45 : bagD + 0.45;
     if (small) {
       // fanny pack: small pouch on the lower back / hip
-      cap([bk[0], -0.08, bk[2] - 0.05], [bk[0], 0.08, bk[2] + 0.05], 0.085, spec.bag, { bag: true });
+      cap([bk[0], -0.08, bk[2] - 0.05], [bk[0], 0.08, bk[2] + 0.05], 0.085, spec.bag, { bag: true, d: back });
     } else {
       // main body: bigpack is taller and thicker, backpack is one rounded block
-      cap([bk[0], -0.11, bk[2] - (big ? 0.17 : 0.13)], [bk[0], 0.11, bk[2] + (big ? 0.17 : 0.13)], big ? 0.14 : 0.12, spec.bag, { bag: true });
-      if (big) cap([bk[0] - 0.07, -0.08, bk[2] + 0.2], [bk[0] - 0.07, 0.08, bk[2] + 0.28], 0.06, spec.bag); // rolled top / lid
+      cap([bk[0], -0.11, bk[2] - (big ? 0.17 : 0.13)], [bk[0], 0.11, bk[2] + (big ? 0.17 : 0.13)], big ? 0.14 : 0.12, spec.bag, { bag: true, d: back });
+      if (big) cap([bk[0] - 0.07, -0.08, bk[2] + 0.2], [bk[0] - 0.07, 0.08, bk[2] + 0.28], 0.06, spec.bag, { d: back }); // rolled top / lid
       // shoulder straps over both shoulders (visible from the front)
       const stc = spec.bag.map(v => v * 0.6);
       cap(J.shL, [J.pel[0] - 0.02, J.shL[1], J.pel[2] + 0.02], 0.032, stc);
       cap(J.shR, [J.pel[0] - 0.02, J.shR[1], J.pel[2] + 0.02], 0.032, stc);
-      if (!big) cap([bk[0] + 0.06, -0.06, bk[2] + 0.1], [bk[0] + 0.06, 0.06, bk[2] - 0.06], 0.03, stc); // side pocket seam
+      if (!big) cap([bk[0] + 0.06, -0.06, bk[2] + 0.1], [bk[0] + 0.06, 0.06, bk[2] - 0.06], 0.03, stc, { d: back }); // side pocket seam
     }
   }
 
@@ -459,7 +468,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     drawArms(J, spec, cap, rb, skin, shirt);
     drawVest(J, spec, cap);
     cap(J.neck, J.head, 0.05, skin);
-    drawBag(J, spec, cap);
+    drawBag(J, spec, cap, pr);
     parts.sort((a, b) => a.d - b.d);
     // head drawn in depth order too
     const hp = pr(J.head), hr = 0.125 * SC;

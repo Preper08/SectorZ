@@ -112,14 +112,14 @@
     ensure('mre', 4); ensure('beans', 4); ensure('water', 4); ensure('soda', 4);
     ensure('hammer', 1); ensure('nails', 30); ensure('wood', 6); ensure('scrap', 12); ensure('tape', 3);
     ensure('gascan', 1, { fuel: 100 }); ensure('battery', 3); ensure('flashlight', 1, { bat: 100 }); ensure('map', 1); ensure('lighter', 1);
-    // admin loadout wears the full combat outfit: kevlar vest, cargo pants, boots
-    if (!P.equip.vest) Inv.equip(P, Inv.make('vest'), Game.dropFn(S));
-    if (!P.equip.legs || P.equip.legs.id !== 'cargopants') Inv.equip(P, Inv.make('cargopants'), Game.dropFn(S));
-    if (!P.equip.feet || P.equip.feet.id !== 'boots') Inv.equip(P, Inv.make('boots'), Game.dropFn(S));
+    // Admin outfit: cap, flannel shirt, kevlar vest, cargo pants, boots and the hiking pack.
+    // Only swap a slot when it is not already wearing the requested item, so enabling god mode
+    // twice does not shuffle the same clothes in and out of the inventory.
+    const wear = (slot, id) => { if (!P.equip[slot] || P.equip[slot].id !== id) Inv.equip(P, Inv.make(id), Game.dropFn(S)); };
+    wear('head', 'cap'); wear('body', 'flannel'); wear('vest', 'vest');
+    wear('legs', 'cargopants'); wear('feet', 'boots'); wear('bag', 'bigpack');
     if (P.equip.light && P.equip.light.bat !== undefined) P.equip.light.bat = 100;
-    // The clothing above changed the worn set, so the figure has to be told. Without this the
-    // player keeps whatever look was built at game start, and admin starts in a t-shirt and
-    // shorts while wearing a vest, cargo pants and boots.
+    // The worn set changed, so the figure has to be told.
     Game.refreshEquipVisuals(S);
     // put the main weapons into empty hotbar slots (1-4)
     const kit = ['pistol', 'shotgun', 'rifle', 'machete'];
