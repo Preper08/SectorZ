@@ -606,7 +606,7 @@
     }
     // ---- hotbar select
     if (!ui.blockKeys()) for (let i = 0; i < 6; i++) if (In.pressed('Digit' + (i + 1))) { P.sel = P.sel === i ? -1 : i; A.play('click'); S.build.active = false; }
-    if (In.mouse.wheel && !ui.blockMouse() && !In.down('ControlLeft')) S.cam.tz = U.clamp(S.cam.tz - In.mouse.wheel * 0.08, 0.7, 1.5);
+    if (In.mouse.wheel && !ui.blockMouse() && !In.down('ControlLeft')) S.cam.tz = U.clamp(S.cam.tz - In.mouse.wheel * 0.1, 0.55, 2.2);
     if (!ui.blockKeys()) {
       if (In.pressed('KeyF')) Game.toggleLight(S);
       if (In.pressed('KeyR') && !S.build.active) Game.reload(S);
