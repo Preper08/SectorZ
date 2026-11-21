@@ -142,9 +142,9 @@
     Game.toast(S, 'Picked up ' + I[it.id].name + (it.q > 1 ? ' x' + it.q : ''));
     return true;
   };
-  // God mode (admin): the full police kit plus every weapon and its ammunition - and nothing
-  // else. Loot, food, medical supplies and building materials are deliberately left out: god
-  // mode never consumes items anyway, so carrying them only cluttered the pack.
+  // God mode (admin): the full police kit worn, the military kit carried in the pack, plus every
+  // weapon and its ammunition. Loot, food, medical supplies and building materials are left out:
+  // god mode never consumes items anyway, so carrying them only cluttered the pack.
   Game.godKit = function (S) {
     const p = S.player, P = p.inv;
     // Start clean so enabling god mode mid-run also clears whatever the player was carrying.
@@ -162,8 +162,9 @@
     const guns = ['pistol', 'smg', 'shotgun', 'rifle'];
     for (const id of guns) ensure(id, 1, { mag: I[id].mag || 0 });
     for (const id of ['bat', 'crowbar', 'knife', 'machete', 'axe', 'pipe']) ensure(id, 1);
-    ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40);
-    // The six handiest weapons go in the hotbar; the rest stay in the pack.
+    // Move the six handiest weapons to the hotbar before packing anything else. Besides being
+    // ready to use, that frees the big contiguous cells a rifle needs, so nothing lands on the
+    // ground once the military kit is added.
     const kit = guns.concat(['axe', 'machete']);
     for (let i = 0; i < P.hot.length; i++) {
       if (P.hot[i]) continue;
@@ -172,6 +173,10 @@
       const it = Inv.all(P).find(x => x.id === id);
       if (it) { Inv.removeItem(P, it); P.hot[i] = it; }
     }
+    // The military set is carried, not worn: the player stays in uniform but can switch instantly.
+    // These ids are absent from loot tables, so god mode is their only source for now.
+    for (const id of ['milhelmet', 'miltop', 'milpants', 'milboots', 'milvest', 'milpack']) ensure(id, 1);
+    ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40);
     // The worn set changed, so the figure has to be told.
     Game.refreshEquipVisuals(S);
     Game.toast(S, 'God mode: police kit + all weapons. Items are infinite.');
