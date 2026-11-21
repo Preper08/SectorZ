@@ -493,6 +493,26 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         // dark sole line under the whole foot
         cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.042, shoes, { sole: true, d: front + 0.01 });
       });
+    },
+    // police duty boots: taller black shaft with a folded cuff, speed-lace bars and a heavy sole.
+    // Same depth handling as ordinary boots, so they still wrap the leg in every pose and every
+    // leg garment without showing skin through the shaft.
+    policeboots: (J, cap, pr, skin, shoes, shin) => {
+      [[J.kneeL, J.footL, shin && shin.L], [J.kneeR, J.footR, shin && shin.R]].forEach(([kne, ft, sd]) => {
+        const front = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
+        const dk = shoes.map(v => v * 0.62), lt = shoes.map(v => Math.min(255, v * 1.6 + 16));
+        const t0 = lerp3(kne, ft, 0.02), t1 = ft;
+        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.082, shoes, { d: front }); // shaft
+        const c0 = lerp3(kne, ft, 0.06);
+        cap([c0[0], c0[1], c0[2] + 0.012], [c0[0], c0[1], c0[2] - 0.04], 0.09, dk, { d: front + 0.012 }); // cuff
+        for (const t of [0.26, 0.17, 0.08]) { // speed laces
+          const p = lerp3(kne, ft, t);
+          cap([p[0], p[1] - 0.035, p[2] + 0.014], [p[0], p[1] + 0.035, p[2] + 0.014], 0.009, lt, { d: front + 0.02 });
+        }
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.06, shoes, { d: front }); // toe box
+        cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.05, dk, { d: front }); // heel
+        cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.044, dk, { sole: true, d: front + 0.01 });
+      });
     }
   };
 
