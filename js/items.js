@@ -43,7 +43,7 @@
   it('bottle', 'Empty Bottle', 'misc', { col: '#9ac0d0', desc: 'Fill at a rain collector.' });
   it('juice', 'Juice Box', 'drink', { water: 24, food: 8, col: '#e0883c' });
   // ---- medical
-  it('bandage', 'Bandage', 'med', { bleed: true, heal: 6, col: '#e8e4d8', desc: 'Stops bleeding.', snd: 'bandage' });
+  it('bandage', 'Bandage', 'med', { bleed: true, heal: 6, stack: 8, col: '#e8e4d8', desc: 'Stops bleeding.', snd: 'bandage' });
   it('rags', 'Rags', 'mat', { stack: 8, col: '#a08c70', desc: 'Crafting material.' });
   it('painkillers', 'Painkillers', 'med', { heal: 0, pain: 40, col: '#e8e8f0' });
   it('medkit', 'First Aid Kit', 'med', { w: 2, h: 2, heal: 60, bleed: true, col: '#d83a3a', desc: 'Restores health.', snd: 'bandage' });
