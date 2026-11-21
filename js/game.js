@@ -99,6 +99,39 @@
     Inv.removeItem(P, it);
     P.hot[slot] = it; P.sel = slot;
   };
+  // Starter gear every new player gets. A ground pickup may replace it, so a survivor who
+  // starts in the free t-shirt, shorts and fanny pack can put on real clothes when they find
+  // them instead of dragging them out of the bag first.
+  const STARTER_GEAR = { body: 'tshirt', legs: 'shorts', bag: 'fannypack' };
+  // The equipment slot a ground pickup would go on right now, or null when the slot already
+  // holds something the player picked. Clothes and bags only, so a flashlight is untouched.
+  Game.autoEquipSlot = function (P, it) {
+    const d = I[it.id];
+    const slot = d.type === 'clothes' ? d.slot : d.type === 'bag' ? 'bag' : null;
+    if (!slot) return null;
+    const cur = P.equip[slot];
+    if (!cur) return slot;
+    return cur.id !== it.id && cur.id === STARTER_GEAR[slot] ? slot : null;
+  };
+  // Ground pickup: wear what was found when that slot is still bare (or starter gear), else
+  // put it in the inventory. Equipping first means a full inventory never blocks a pair of
+  // boots the survivor can simply put on.
+  Game.pickUpDrop = function (S, d) {
+    const p = S.player, it = d.item;
+    if (Game.autoEquipSlot(p.inv, it) && Inv.equip(p.inv, it, Game.dropFn(S))) {
+      const i = S.drops.indexOf(d); if (i >= 0) S.drops.splice(i, 1);
+      Game.refreshEquipVisuals(S); A.play('pickup');
+      Game.toast(S, 'Equipped ' + I[it.id].name);
+      return true;
+    }
+    const left = Inv.give(p.inv, it);
+    if (left) { Game.toast(S, 'Not enough space'); return false; }
+    const i = S.drops.indexOf(d); if (i >= 0) S.drops.splice(i, 1);
+    A.play('pickup');
+    if (it.id === 'bat') Game.equipPicked(S, it);
+    Game.toast(S, 'Picked up ' + I[it.id].name + (it.q > 1 ? ' x' + it.q : ''));
+    return true;
+  };
   // God mode (admin): give the player a full loadout. Only tops up what is missing,
   // so it is safe to call on every god-mode enable or game start.
   Game.godKit = function (S) {
@@ -295,7 +328,7 @@
     const p = S.player; if (p.driving) return { kind: 'car', ref: p.driving, x: p.driving.x, y: p.driving.y, label: 'E  Exit vehicle' + (p.driving.fuel < p.driving.maxfuel - 5 && Inv.has(p.inv, 'gascan') ? '    G  Refuel' : '') };
     let best = null, bs = 1e9;
     const consider = (kind, ref, x, y, label, maxd, bias) => { const d = Math.hypot(x - p.x, y - p.y); if (d > maxd) return; const a = Math.abs(U.angDiff(p.aimAng, Math.atan2(y - p.y, x - p.x))); const s = d + (d > 0.9 ? a * 0.5 : 0) + (bias || 0); if (s < bs) { bs = s; best = { kind, ref, x, y, label }; } };
-    for (const d of S.drops) consider('drop', d, d.x, d.y, 'E  Pick up ' + I[d.item.id].name + (d.item.q > 1 ? ' x' + d.item.q : ''), 1.5, -0.3);
+    for (const d of S.drops) consider('drop', d, d.x, d.y, 'E  ' + (Game.autoEquipSlot(p.inv, d.item) ? 'Equip ' : 'Pick up ') + I[d.item.id].name + (d.item.q > 1 ? ' x' + d.item.q : ''), 1.5, -0.3);
     // Rozika. Given a positive bias so she loses to doors, containers and loot when both are in
     // reach: feeding her is a deliberate act, never something that happens by accident when you
     // meant to open the fridge she is standing next to.
@@ -334,12 +367,7 @@
     const f = S.focus, p = S.player; if (!f) return;
     switch (f.kind) {
       case 'drop': {
-        const it = f.ref.item, left = Inv.give(p.inv, it);
-        if (!left) {
-          S.drops.splice(S.drops.indexOf(f.ref), 1); A.play('pickup');
-          if (it.id === 'bat') Game.equipPicked(S, it); // ready to swing right away
-          Game.toast(S, 'Picked up ' + I[it.id].name + (it.q > 1 ? ' x' + it.q : ''));
-        } else { Game.toast(S, 'Not enough space'); }
+        Game.pickUpDrop(S, f.ref);
         break;
       }
       case 'door': {
