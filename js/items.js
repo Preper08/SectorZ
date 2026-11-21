@@ -104,8 +104,12 @@
   it('jacket', 'Jacket', 'clothes', { w: 2, h: 2, slot: 'body', def: 8, warm: 10, cols: 3, rows: 2, col: '#4a5a6a', desc: 'Roomy side pockets.' });
   it('padded', 'Padded Jacket', 'clothes', { w: 2, h: 3, slot: 'body', def: 16, warm: 5, cols: 3, rows: 2, col: '#38414e', desc: 'Best body armour, but bulky and cold.' });
   it('wintercoat', 'Winter Coat', 'clothes', { w: 3, h: 2, slot: 'body', def: 5, warm: 26, cols: 4, rows: 2, col: '#a5602c', desc: 'Warmest coat. Huge pockets.' });
-  // vest slot: worn over the BODY clothing, drawn as an overlay layer; more pockets than any body item
-  it('vest', 'Kevlar Vest', 'clothes', { w: 2, h: 2, slot: 'vest', def: 38, warm: 4, cols: 4, rows: 3, col: '#3a4046', desc: 'Reduces bite damage. Many pouches.' });
+  // police uniform shirt: same torso footprint as other shirts, but a third chest pocket for the
+  // radio. Tougher than a jacket, well below a leather or padded coat; navy like the riot helmet.
+  it('policeshirt', 'Police Shirt', 'clothes', { w: 2, h: 2, slot: 'body', def: 9, warm: 9, cols: 3, rows: 1, col: '#203154', desc: 'Navy duty shirt. Badge, radio pocket and shoulder tabs.' });
+  // vest slot: worn over the BODY clothing, drawn as an overlay layer; more pockets than any body item.
+  // Display name only - the id 'vest' is also the equipment slot, so saves stay compatible.
+  it('vest', 'Ballistic Vest', 'clothes', { w: 2, h: 2, slot: 'vest', def: 38, warm: 4, cols: 4, rows: 3, col: '#2c3852', desc: 'Reduces bite damage. Many pouches.' });
   it('helmet', 'Riot Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#203154' });
   it('cap', 'Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#4a6a8a' });
   // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags).
@@ -129,6 +133,9 @@
   it('trousers', 'Trousers', 'clothes', { w: 2, h: 2, slot: 'legs', def: 3, cols: 4, rows: 1, col: '#8a8f96', desc: 'Four pockets. Woven cloth, full length.' });
   it('jeans', 'Jeans', 'clothes', { w: 2, h: 2, slot: 'legs', def: 5, cols: 5, rows: 1, col: '#3a5a8c', desc: 'Sturdy denim. The classic five pockets.' });
   it('cargopants', 'Cargo Pants', 'clothes', { w: 2, h: 2, slot: 'legs', def: 6, cols: 3, rows: 2, col: '#5a6248', desc: 'Six pockets, four of them cargo. Heavy canvas.' });
+  // Police trousers match the protection ceiling of cargo pants but carry more duty pockets,
+  // at the cost of a taller 2x3 footprint in the bag.
+  it('policepants', 'Police Pants', 'clothes', { w: 2, h: 3, slot: 'legs', def: 6, cols: 4, rows: 2, col: '#1c2a4a', desc: 'Navy duty trousers. Reinforced knees and eight pockets.' });
   // feet (FEET slot): sneakers are quieter than boots; running shoes add a small speed bonus
   it('sneakers', 'Sneakers', 'clothes', { w: 1, h: 1, slot: 'feet', def: 1, warm: 2, quiet: 2.5, col: '#8a8a8a', desc: 'Quiet steps.' });
   it('runners', 'Running Shoes', 'clothes', { w: 1, h: 1, slot: 'feet', def: 0, warm: 1, quiet: 3, speed: 0.08, col: '#c8c8d0', desc: 'Light. Faster running.' });
@@ -143,7 +150,7 @@
     kitchen: { n: [1, 3], t: [['beans', 8], ['soup', 7], ['bread', 5], ['chips', 4], ['cereal', 5], ['water', 5], ['soda', 5], ['knife', 4], ['matches', 3], ['lighter', 1.5], ['rags', 3], ['bottle', 3], ['juice', 3]] },
     fridge: { n: [0, 3], t: [['meat', 5], ['soda', 8], ['juice', 6], ['apple', 6], ['water', 6], ['candy', 4]] },
     bedroom: { n: [0, 2], t: [['rags', 5], ['cloth', 4], ['painkillers', 3], ['candy', 2], ['flashlight', 1.2], ['battery', 3], ['cap', 2], ['sneakers', 1.5], ['bandage', 2], ['radio', 1]] },
-    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['flannel', 5], ['sweater', 3], ['leather', 1.8], ['raincoat', 1.6], ['cap', 4], ['boots', 3], ['sneakers', 3], ['jeans', 5], ['trousers', 3], ['tracksuit', 2], ['cargopants', 1.5], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
+    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['flannel', 5], ['sweater', 3], ['leather', 1.8], ['raincoat', 1.6], ['cap', 4], ['boots', 3], ['sneakers', 3], ['jeans', 5], ['trousers', 3], ['tracksuit', 2], ['cargopants', 1.5], ['policeshirt', 0.25], ['policepants', 0.25], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
     living: { n: [0, 2], t: [['battery', 4], ['rags', 3], ['candy', 3], ['chips', 3], ['soda', 3], ['radio', 1], ['lighter', 2], ['tape', 1]] },
     books: { n: [0, 1], t: [['rags', 3], ['map', 2], ['matches', 3], ['candy', 1]] },
     medical: { n: [0, 3], t: [['bandage', 9], ['painkillers', 6], ['antibiotics', 2.5], ['splint', 1.5], ['medkit', 1.2], ['rags', 3]] },
@@ -153,12 +160,12 @@
     grocery: { n: [1, 3], t: [['beans', 10], ['soup', 8], ['bread', 5], ['chips', 7], ['cereal', 6], ['water', 8], ['soda', 8], ['juice', 6], ['apple', 4], ['candy', 6], ['mre', 0.6]] },
     store: { n: [1, 3], t: [['beans', 4], ['water', 4], ['soda', 4], ['chips', 4], ['battery', 4], ['flashlight', 2], ['lighter', 2], ['tape', 3], ['rags', 3], ['backpack', 1.2], ['map', 1.5]] },
     hardware: { n: [1, 3], t: [['nails', 8], ['hammer', 3.5], ['crowbar', 3], ['wood', 5], ['scrap', 5], ['tape', 5], ['wire', 5], ['axe', 1.2], ['pipe', 3], ['battery', 3], ['flashlight', 2.5], ['gascan', 2], ['sheetmetal', 2.5], ['rope', 3], ['cement', 1.5], ['metalplate', 1.5]] },
-    clothing: { n: [1, 3], t: [['jacket', 6], ['hoodie', 6], ['flannel', 5], ['sweater', 5], ['leather', 3], ['raincoat', 3], ['padded', 1.5], ['wintercoat', 1.5], ['cap', 5], ['boots', 5], ['sneakers', 4], ['runners', 2.5], ['jeans', 5], ['trousers', 4], ['tracksuit', 3], ['cargopants', 2], ['cloth', 6], ['fannypack', 3], ['backpack', 3], ['bigpack', 0.8]] },
+    clothing: { n: [1, 3], t: [['jacket', 6], ['hoodie', 6], ['flannel', 5], ['sweater', 5], ['leather', 3], ['raincoat', 3], ['padded', 1.5], ['wintercoat', 1.5], ['cap', 5], ['boots', 5], ['sneakers', 4], ['runners', 2.5], ['jeans', 5], ['trousers', 4], ['tracksuit', 3], ['cargopants', 2], ['policeshirt', 0.3], ['policepants', 0.3], ['cloth', 6], ['fannypack', 3], ['backpack', 3], ['bigpack', 0.8]] },
     electronics: { n: [1, 3], t: [['battery', 10], ['flashlight', 5], ['radio', 3], ['wire', 5], ['tape', 3], ['fusebox', 3]] },
     gas: { n: [1, 3], t: [['gascan', 3], ['soda', 6], ['chips', 6], ['candy', 6], ['water', 5], ['map', 3], ['battery', 3], ['lighter', 3], ['keys', 0.6]] },
-    guns: { n: [1, 3], t: [['pistol', 3], ['shotgun', 1.8], ['rifle', 1.2], ['ammo9', 6], ['shell', 4], ['ammo762', 3], ['knife', 3], ['machete', 2], ['vest', 0.8]] },
-    police: { n: [1, 3], t: [['pistol', 4], ['ammo9', 8], ['vest', 1.5], ['flashlight', 3], ['bandage', 3], ['keys', 1.5], ['radio', 1], ['helmet', 1], ['smg', 0.4]] },
-    armory: { n: [2, 4], t: [['pistol', 3], ['shotgun', 3], ['rifle', 2], ['smg', 1.4], ['ammo9', 8], ['shell', 6], ['ammo762', 5], ['vest', 2.5], ['helmet', 2.5], ['medkit', 1]] },
+    guns: { n: [1, 3], t: [['pistol', 3], ['shotgun', 1.8], ['rifle', 1.2], ['ammo9', 6], ['shell', 4], ['ammo762', 3], ['knife', 3], ['machete', 2], ['vest', 0.8], ['policeshirt', 0.3], ['policepants', 0.3]] },
+    police: { n: [1, 3], t: [['pistol', 4], ['ammo9', 8], ['vest', 1.5], ['flashlight', 3], ['bandage', 3], ['keys', 1.5], ['radio', 1], ['helmet', 1], ['policeshirt', 0.8], ['policepants', 0.8], ['smg', 0.4]] },
+    armory: { n: [2, 4], t: [['pistol', 3], ['shotgun', 3], ['rifle', 2], ['smg', 1.4], ['ammo9', 8], ['shell', 6], ['ammo762', 5], ['vest', 2.5], ['helmet', 2.5], ['policeshirt', 0.6], ['policepants', 0.6], ['medkit', 1]] },
     cell: { n: [0, 1], t: [['rags', 4], ['cloth', 3], ['candy', 2]] },
     locker: { n: [0, 2], t: [['jacket', 3], ['flannel', 3], ['leather', 1.5], ['boots', 2], ['flashlight', 3], ['cap', 3], ['battery', 3], ['bandage', 2], ['crowbar', 2], ['mre', 0.8], ['water', 3]] },
     office: { n: [0, 2], t: [['tape', 3], ['battery', 3], ['candy', 3], ['soda', 3], ['painkillers', 2], ['keys', 1.2], ['map', 1.5], ['water', 2]] },
@@ -265,7 +272,7 @@
 
   // Spare clothing can be torn into rags. One explicit recipe per garment, so the player
   // always chooses which piece is destroyed; the list shows the garment icon and the detail
-  // pane shows the yield. Armour and footwear stay out: a kevlar vest is not cloth, and boots
+  // pane shows the yield. Armour and footwear stay out: a ballistic vest is not cloth, and boots
   // are not a rag source. Only carried copies count (Inv.countStored), never worn gear.
   const TEAR = {
     tshirt: 1, cap: 1, shorts: 1,

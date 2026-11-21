@@ -303,6 +303,18 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       cap([xf, -0.07, J.pel[2] + 0.1], [xf, -0.07, J.neck[2] - 0.1], 0.013, dk); // button line
       cap([J.pel[0] + 0.02, -0.15, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.15, J.pel[2] + 0.02], 0.155, shirt); // long hem
       cap([J.pel[0] + 0.02, -0.14, J.pel[2] - 0.09], [J.pel[0] + 0.02, 0.14, J.pel[2] - 0.09], 0.135, shirt); // hem skirt
+    },
+    // police duty shirt: sharp collar, shoulder tabs, gold badge and a radio pocket.
+    // Navy like the riot helmet and the ballistic vest, so the whole set reads as one uniform.
+    policeshirt: (J, cap, shirt) => {
+      const dk = shirt.map(v => v * 0.55), gold = [226, 188, 86];
+      cap([J.neck[0] - 0.02, -0.075, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.075, J.neck[2] - 0.02], 0.06, shirt); // collar
+      const xf = J.pel[0] + 0.16;
+      cap([xf, 0, J.pel[2] + 0.08], [xf, 0, J.neck[2] - 0.08], 0.013, dk); // button placket
+      cap([xf, -0.075, J.neck[2] - 0.19], [xf, -0.075, J.neck[2] - 0.1], 0.032, gold); // badge
+      cap([xf, 0.085, J.pel[2] + 0.19], [xf, 0.085, J.pel[2] + 0.29], 0.016, dk); // radio pocket
+      cap([J.shL[0] + 0.02, -0.14, J.shL[2] + 0.02], [J.shL[0] + 0.02, -0.05, J.shL[2] + 0.02], 0.026, dk); // shoulder tabs
+      cap([J.shR[0] + 0.02, 0.14, J.shR[2] + 0.02], [J.shR[0] + 0.02, 0.05, J.shR[2] + 0.02], 0.026, dk);
     }
   };
 
@@ -415,6 +427,23 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const pL = lerp3(J.hipL, J.kneeL, 0.45), pR = lerp3(J.hipR, J.kneeR, 0.45);
       cap([pL[0] + 0.02, pL[1] - 0.06, pL[2]], [pL[0] + 0.02, pL[1] - 0.06, pL[2] - 0.14], 0.045, dk);
       cap([pR[0] + 0.02, pR[1] + 0.06, pR[2]], [pR[0] + 0.02, pR[1] + 0.06, pR[2] - 0.14], 0.045, dk);
+    },
+    // police duty trousers: navy, pressed creases, reinforced knees, cargo thigh pockets
+    policepants: (J, cap, pr, skin, col, legR) => {
+      cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.078, col);
+      cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.078, col);
+      const dk = col.map(v => v * 0.72), lt = col.map(v => Math.min(255, v * 1.3 + 18));
+      // creases sit just in front of the leg but below the boot shaft
+      cap(J.hipL, J.kneeL, 0.012, lt, { d: (pr(J.hipL).d + pr(J.kneeL).d) / 2 + 0.012 });
+      cap(J.kneeL, J.footL, 0.012, lt, { d: (pr(J.kneeL).d + pr(J.footL).d) / 2 + 0.012 });
+      cap(J.hipR, J.kneeR, 0.012, lt, { d: (pr(J.hipR).d + pr(J.kneeR).d) / 2 + 0.012 });
+      cap(J.kneeR, J.footR, 0.012, lt, { d: (pr(J.kneeR).d + pr(J.footR).d) / 2 + 0.012 });
+      const kL = lerp3(J.kneeL, J.footL, 0.16), kR = lerp3(J.kneeR, J.footR, 0.16);
+      cap([kL[0] + 0.02, kL[1], kL[2]], [kL[0] + 0.02, kL[1], kL[2] - 0.14], 0.085, dk); // knee panels
+      cap([kR[0] + 0.02, kR[1], kR[2]], [kR[0] + 0.02, kR[1], kR[2] - 0.14], 0.085, dk);
+      const pL = lerp3(J.hipL, J.kneeL, 0.45), pR = lerp3(J.hipR, J.kneeR, 0.45);
+      cap([pL[0] + 0.025, pL[1] - 0.06, pL[2]], [pL[0] + 0.025, pL[1] - 0.06, pL[2] - 0.16], 0.05, dk); // duty pockets
+      cap([pR[0] + 0.025, pR[1] + 0.06, pR[2]], [pR[0] + 0.025, pR[1] + 0.06, pR[2] - 0.16], 0.05, dk);
     }
   };
   // footwear: shaft / laces / foot / heel / sole per item; barefoot is the default
