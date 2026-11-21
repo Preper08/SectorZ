@@ -320,11 +320,27 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   // headwear drawn inside drawHead(): dome + extras per item, all relative to the head
   // joint (hp) and head radius (hr). entries receive (x, spec, hp, ht, hr, rgb, pr, J)
   const HEADWEAR_FIGS = {
-    // helmet: full dome covering the head down to the ears + rim + chin strap
+    // riot control helmet: navy dome over the ears, clear visor over the face and a chin bar.
+    // pr() returns the projected depth in .d, so the visor only draws when the face is toward
+    // the camera; otherwise it would shine through the back of the dome.
     helmet: (x, spec, hp, ht, hr, rgb, pr, J) => {
-      x.fillStyle = rgb(spec.hat, 0.85); x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.06, Math.PI * 0.95, Math.PI * 2.06); x.lineTo(ht.x + hr * 1.06, hp.y + hr * 0.42); x.closePath(); x.fill();
-      x.strokeStyle = rgb(spec.hat, 0.55); x.lineWidth = 2.2; x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.02, Math.PI * 0.98, Math.PI * 2.02); x.stroke();
-      x.strokeStyle = 'rgba(30,30,30,0.55)'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(hp.x - hr * 0.75, hp.y + hr * 0.45); x.lineTo(hp.x - hr * 0.55, hp.y + hr * 0.95); x.stroke();
+      x.fillStyle = rgb(spec.hat, 0.92); x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.06, Math.PI * 0.95, Math.PI * 2.06); x.lineTo(ht.x + hr * 1.06, hp.y + hr * 0.42); x.closePath(); x.fill();
+      x.strokeStyle = rgb(spec.hat, 1.3); x.lineWidth = 2.2; x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.02, Math.PI * 0.98, Math.PI * 2.02); x.stroke();
+      const fv = pr([1, 0, 0]).d;
+      if (fv > 0.02) {
+        const P = (dx, dy, dz) => pr([J.head[0] + dx, J.head[1] + dy, J.head[2] + dz]);
+        const tl = P(0.1, -0.09, 0.05), tr = P(0.1, 0.09, 0.05), br = P(0.095, 0.085, -0.035), bl = P(0.095, -0.085, -0.035);
+        x.globalAlpha = Math.min(1, fv * 2.2);
+        x.beginPath(); x.moveTo(tl.x, tl.y); x.lineTo(tr.x, tr.y); x.lineTo(br.x, br.y); x.lineTo(bl.x, bl.y); x.closePath();
+        x.fillStyle = 'rgba(22, 36, 58, 0.66)'; x.fill();
+        x.strokeStyle = 'rgba(158, 196, 226, 0.8)'; x.lineWidth = 1.6; x.stroke();
+        x.strokeStyle = 'rgba(224, 242, 255, 0.55)'; x.lineWidth = 1.2;
+        x.beginPath(); x.moveTo(tl.x + (tr.x - tl.x) * 0.2, tl.y + (tr.y - tl.y) * 0.2); x.lineTo(bl.x + (br.x - bl.x) * 0.42, bl.y + (br.y - bl.y) * 0.42); x.stroke();
+        x.strokeStyle = rgb(spec.hat, 1.15); x.lineWidth = 2.6;
+        x.beginPath(); x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.stroke();
+        x.globalAlpha = 1;
+      }
+      x.strokeStyle = 'rgba(20,26,38,0.65)'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(hp.x - hr * 0.75, hp.y + hr * 0.45); x.lineTo(hp.x - hr * 0.55, hp.y + hr * 0.95); x.stroke();
     },
     // cap: flat dome + front brim + top button
     cap: (x, spec, hp, ht, hr, rgb, pr, J) => {

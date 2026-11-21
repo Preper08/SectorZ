@@ -106,7 +106,7 @@
   it('wintercoat', 'Winter Coat', 'clothes', { w: 3, h: 2, slot: 'body', def: 5, warm: 26, cols: 4, rows: 2, col: '#a5602c', desc: 'Warmest coat. Huge pockets.' });
   // vest slot: worn over the BODY clothing, drawn as an overlay layer; more pockets than any body item
   it('vest', 'Kevlar Vest', 'clothes', { w: 2, h: 2, slot: 'vest', def: 38, warm: 4, cols: 4, rows: 3, col: '#3a4046', desc: 'Reduces bite damage. Many pouches.' });
-  it('helmet', 'Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#4c5436' });
+  it('helmet', 'Riot Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#203154' });
   it('cap', 'Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#4a6a8a' });
   // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags).
   // The ladder follows how much cloth and how many seams an item has, from nothing but a
