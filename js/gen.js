@@ -388,6 +388,10 @@
     // every extra attempt consumes draws, which reshuffles every building generated afterwards.
     // At this point the cost is zero for the rest of the world.
     shrinkPoliceCell();
+    // Repair interactive pieces that generation sealed in or left permanently shadowed. This runs
+    // last, after zombie spawns and cars exist, so moving furniture cannot change the population
+    // or shift the RNG stream.
+    Bld.repairProps(Gen.zombieSpawns);
     return Gen;
   };
 

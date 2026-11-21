@@ -31,6 +31,17 @@
     for (const d of b.doors) if (Math.abs(d[0] - x) <= 1 && Math.abs(d[1] - y) <= 1) return true;
     return false;
   }
+  // Only the tiles directly in front of or behind a door are passage tiles. A piece diagonal to
+  // a doorway still leaves the door usable, and repair needs those diagonal tiles when a room is
+  // narrow. Placement keeps the wider clearance; repair uses this tighter test.
+  function blocksDoor(b, x, y) {
+    for (const d of b.doors) if (Math.abs(d[0] - x) + Math.abs(d[1] - y) === 1) return true;
+    return false;
+  }
+  // ---------------------------------------------------------------- prop placement
+  // Placement deliberately keeps its original random draws. Rejecting a tile here would change
+  // how many draws later pieces (and later buildings) consume, which reshuffles the whole town,
+  // so pieces that end up unreachable are repaired after generation instead (see repairProps).
   function put(b, r, rng, type, opts) {
     const c = ringTiles(b, r).filter(t => t[3] === 1 || (opts && opts.corner));
     if (!c.length) return null;
@@ -48,6 +59,148 @@
     W.setObj(t[0], t[1], o); b.props.push(o);
     return o;
   }
+
+  // ---------------------------------------------------------------- interaction repair
+  // Interaction needs a walkable tile beside a piece: findFocus reaches 1.7 tiles from the
+  // centre, so a diagonal neighbour counts too. Furniture is placed wall-first and then filled
+  // in, and in a two-tile-deep room that can seal the middle pieces in - the tile in front of
+  // one piece is the next piece's tile. A closer neighbour can also steal the prompt for good.
+  // Placement keeps its original draws, so instead of rejecting a piece we repair afterwards:
+  // an interactive piece with no usable approach is moved to a free tile in the same room, or
+  // removed if the room has no usable spot left.
+  const ORTHO = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const AROUND = [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  // the side a wall sits on, matching ringTiles: 0 west, 1 north, 2 east, 3 south
+  const WALL_SIDE = [[-1, 0], [0, -1], [1, 0], [0, 1]];
+  function isInteractive(t) {
+    const d = D[t];
+    return !!(d && (d.cont || d.bed || d.station === 'fire' || d.station === 'furnace' || t === O.TV || t === O.SINK || t === O.BRAIN));
+  }
+  function freeAt(x, y) { return W.inb(x, y) && !W.getObj(x, y) && !W.isSolid(x, y); }
+  function tileKey(x, y) { return x + ',' + y; }
+  function approachIn(reach, x, y) {
+    for (const d of AROUND) if (reach.has(tileKey(x + d[0], y + d[1]))) return true;
+    return false;
+  }
+  // Free tiles a walking player can reach inside a building. Doors count as passable even when
+  // closed, since the player can open them. Movement is orthogonal because a body cannot squeeze
+  // through the zero-width gap between two diagonally touching solid tiles.
+  function reachableSet(b) {
+    const seen = new Set(), reach = new Set(), q = [];
+    const inb = (x, y) => x >= b.x && x <= b.x + b.w - 1 && y >= b.y && y <= b.y + b.h - 1;
+    const passable = (x, y) => { if (!inb(x, y)) return false; const o = W.getObj(x, y); return o ? (!!D[o.t].door || !D[o.t].solid) : !W.isSolid(x, y); };
+    const push = (x, y) => {
+      const k = tileKey(x, y); if (seen.has(k)) return; seen.add(k);
+      const o = W.getObj(x, y);
+      if (!o || !D[o.t].door) reach.add(k);
+      q.push([x, y]);
+    };
+    for (const d of b.doors) for (const n of ORTHO) { const x = d[0] + n[0], y = d[1] + n[1]; if (passable(x, y)) push(x, y); }
+    while (q.length) {
+      const [x, y] = q.pop();
+      for (const n of ORTHO) { const nx = x + n[0], ny = y + n[1]; if (passable(nx, ny)) push(nx, ny); }
+    }
+    return reach;
+  }
+  function roomOf(b, x, y) {
+    for (const r of b.rooms) if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1) return r;
+    return null;
+  }
+  // The wall side a piece would lean against at (x, y), or -1 when it stands free.
+  function wallSideAt(x, y, prefer) {
+    if (prefer >= 0) { const d = WALL_SIDE[prefer]; if (wallAt(x + d[0], y + d[1])) return prefer; }
+    for (let f = 0; f < 4; f++) { const d = WALL_SIDE[f]; if (wallAt(x + d[0], y + d[1])) return f; }
+    return -1;
+  }
+  // Moving one piece must not take the last reachable neighbour from a piece that had one.
+  function preserves(b, before, after, skip) {
+    for (const o of b.props) {
+      if (o === skip || !D[o.t].solid || !isInteractive(o.t)) continue;
+      if (approachIn(before, o.x, o.y) && !approachIn(after, o.x, o.y)) return false;
+    }
+    return true;
+  }
+  // Reachability alone is not enough: a closer container or door can steal the interaction
+  // prompt for good. The player is not glued to tile centres though - standing near the edge of
+  // a tile changes the distances and often makes the intended piece win again. Sample a few
+  // legal positions in each reachable tile and check that the piece can actually win the prompt
+  // from at least one of them, using findFocus's distance/angle scoring. Transient competitors
+  // (drops, zombies, cars) are ignored; they move.
+  const SAMPLE = [0.1, 0.35, 0.65, 0.9];
+  function focusWins(reach, qx, qy, self) {
+    const cx = qx + 0.5, cy = qy + 0.5, range = self.t === O.SINK ? 1.5 : 1.7;
+    for (let ty = qy - 2; ty <= qy + 2; ty++) for (let tx = qx - 2; tx <= qx + 2; tx++) {
+      if (!reach.has(tileKey(tx, ty))) continue;
+      for (const oy of SAMPLE) for (const ox of SAMPLE) {
+        const px = tx + ox, py = ty + oy;
+        if (W.hitCircle(px, py, 0.27)) continue;
+        const dq = Math.hypot(cx - px, cy - py);
+        if (dq > range) continue;
+        const aim = Math.atan2(cy - py, cx - px);
+        let wins = true;
+        for (let y = Math.floor(py) - 2; y <= Math.floor(py) + 2 && wins; y++) for (let x = Math.floor(px) - 2; x <= Math.floor(px) + 2; x++) {
+          const o = W.getObj(x, y);
+          if (!o || o === self) continue;
+          const d = D[o.t], ox2 = x + 0.5, oy2 = y + 0.5;
+          const dr = Math.hypot(ox2 - px, oy2 - py);
+          const door = d.door, r = door ? 1.9 : (o.t === O.SINK ? 1.5 : (d.bed || d.cont || o.t === O.TV || o.t === O.BRAIN ? 1.7 : (d.station === 'fire' || d.station === 'furnace' ? 1.8 : o.pump ? 1.6 : 0)));
+          if (!r || dr > r) continue;
+          const a = Math.abs(U.angDiff(aim, Math.atan2(oy2 - py, ox2 - px)));
+          if (dr + (dr > 0.9 ? a * 0.5 : 0) + (door ? 0.2 : (o.t === O.TV || o.t === O.COMPUTERDESK ? -0.1 : 0)) < dq) { wins = false; break; }
+        }
+        if (wins) return true;
+      }
+    }
+    return false;
+  }
+  function relocate(b, o, banned) {
+    const room = roomOf(b, o.x, o.y) || { x0: b.x + 1, y0: b.y + 1, x1: b.x + b.w - 2, y1: b.y + b.h - 2 };
+    const oldF = o.f, oldX = o.x, oldY = o.y;
+    const wallMounted = wallSideAt(oldX, oldY, oldF) === oldF;
+    W.setObj(oldX, oldY, null);                        // the old tile is free while we search
+    const before = reachableSet(b);
+    const wall = [], free = [];
+    for (let y = room.y0; y <= room.y1; y++) for (let x = room.x0; x <= room.x1; x++) {
+      if ((x === oldX && y === oldY) || !freeAt(x, y) || blocksDoor(b, x, y)) continue;
+      if (banned && banned.has(tileKey(x, y))) continue;
+      const side = wallSideAt(x, y, wallMounted ? oldF : -1);
+      (side >= 0 ? wall : free).push([x, y, side]);
+    }
+    // Prefer the wall the piece used to lean on, then any other wall, then open floor.
+    const order = [];
+    if (wallMounted) for (const c of wall) if (c[2] === oldF) order.push(c);
+    if (wallMounted) for (const c of wall) if (c[2] !== oldF) order.push(c);
+    for (const c of free) order.push(c);
+    for (const c of wall) if (!order.includes(c)) order.push(c);
+    for (const c of order) {
+      o.f = c[2] >= 0 ? c[2] : oldF;
+      W.setObj(c[0], c[1], o);
+      const after = reachableSet(b);
+      if (approachIn(after, c[0], c[1]) && focusWins(after, c[0], c[1], o) && preserves(b, before, after, o)) return true;
+      W.setObj(c[0], c[1], null);
+    }
+    // Nowhere usable: the piece has to go, or it would be a container that can never be opened.
+    const i = b.props.indexOf(o); if (i >= 0) b.props.splice(i, 1);
+    return false;
+  }
+  // Move or remove every interactive piece that cannot actually be used from any reachable tile.
+  Bld.repairProps = function (spawns) {
+    const banned = new Set();
+    if (spawns) for (const z of spawns) banned.add(tileKey(Math.floor(z[0]), Math.floor(z[1])));
+    for (const b of W.blds) {
+      if (!b) continue;
+      for (let pass = 0; pass < 8; pass++) {
+        let changed = 0;
+        for (const o of b.props.slice()) {
+          if (!D[o.t].solid || !isInteractive(o.t)) continue;
+          const reach = reachableSet(b);
+          if (approachIn(reach, o.x, o.y) && focusWins(reach, o.x, o.y, o)) continue;
+          relocate(b, o, banned); changed++;
+        }
+        if (!changed) break;
+      }
+    }
+  };
 
   function split(b, r, rng, depth, minSize, out) {
     const w = r.x1 - r.x0 + 1, h = r.y1 - r.y0 + 1;
