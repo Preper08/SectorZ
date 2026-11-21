@@ -957,7 +957,11 @@
     const hl = (x1, y1, x2, y2, w) => { ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1 - 0.8); ctx.lineTo(x2, y2 - 0.8); ctx.stroke(); };
     const fx = (dx - dy) * 32, fy = (dx + dy) * 16; // unit step along the weapon axis in screen space
     const fl = Math.hypot(fx, fy) || 1, px = fx / fl, py = fy / fl; // unit direction along the weapon
-    const nx = -py, ny = px; // unit normal (to the right of the weapon axis on screen)
+    let nx = -py, ny = px; // unit normal (to the right of the weapon axis on screen)
+    // A gun is held with the grip below the slide. The screen-space perpendicular flips to the
+    // top side when the weapon points left, which made the grip look like it was rotating around
+    // the gun as the player turned. Pick the perpendicular that points down the screen instead.
+    if (it.type === 'gun' && ny < 0) { nx = -nx; ny = -ny; }
     // point at distance t (px) along the axis from the hand, offset n px to the side
     const P0 = (t, n) => [hx + px * t + nx * (n || 0), hy + py * t + ny * (n || 0)];
     const segT = (t0, t1, n0, n1, w, c) => { const A2 = P0(t0, n0), B2 = P0(t1, n1); seg(A2[0], A2[1], B2[0], B2[1], w, c); };
