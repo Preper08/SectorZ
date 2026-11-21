@@ -4,7 +4,7 @@
   const DSZ = window.DSZ;
   let ac = null, master = null, sfxBus = null, musBus = null, tvBus = null, noiseBuf = null, tvFocused = false;
   let lx = 0, ly = 0;
-  let engine = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0, tvVoiceS = null, tvVgen = 0, tvCh1S = null, tvC1gen = 0;
+  let engine = null, siren = null, wind = null, droneNodes = null, rainNode = null, tvMus = null, tvGen = 0, tvTermS = null, tvTgen = 0, tvVoiceS = null, tvVgen = 0, tvCh1S = null, tvC1gen = 0;
   // The police terminal's own bed, separate from the TV's. It lives on the sfx bus with a fixed
   // gain rather than going through the TV focus mix, because the terminal popup is not a
   // broadcast: it is a machine two feet in front of you, and it should sit under the world's
@@ -282,6 +282,31 @@
         engine.f.frequency.setTargetAtTime(260 + rpm * 700, t, 0.05);
         engine.g.gain.setTargetAtTime((0.13 + rpm * 0.12) * (vol === undefined ? 1 : vol), t, 0.08);
       }
+    },
+    // Police siren: a filtered saw whose pitch sweeps up and down, like the wail of a real
+    // two-tone bar. It is a persistent bed so it can follow the player for as long as the siren
+    // is on, and it lives on the sfx bus (the player is sitting in the car, so no distance mix).
+    siren(on) {
+      if (!ac) return;
+      if (on && !siren) {
+        const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 760;
+        const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1900; f.Q.value = 1.4;
+        const g = ac.createGain(); g.gain.value = 0;
+        const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.72;
+        const lg = ac.createGain(); lg.gain.value = 240;
+        lfo.connect(lg); lg.connect(o.frequency);
+        o.connect(f); f.connect(g); g.connect(sfxBus); o.start(); lfo.start();
+        siren = { o, lfo, g };
+      }
+      if (!siren) return;
+      const t = ac.currentTime;
+      if (!on) {
+        siren.g.gain.setTargetAtTime(0, t, 0.08);
+        const s = siren; siren = null;
+        setTimeout(() => { try { s.o.stop(); s.lfo.stop(); } catch (e) { /* */ } }, 400);
+        return;
+      }
+      siren.g.gain.setTargetAtTime(0.085, t, 0.12);
     },
     // ---- Channel 1: the set itself, not the broadcast.
     // Channel 1 shows a dying emergency broadcast, so what the player actually hears is the

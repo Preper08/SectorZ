@@ -1145,9 +1145,17 @@
       castLight(l.x, l.y, l.r, l.col, l.a * f * (l.kind === 'fire' ? 1.1 : 1), null, null, l.r > 6 ? 56 : 40, 1.0, sh, l);
     }
     for (const g of S.glowLights) { const t = g.t / g.max; castLight(g.x, g.y, g.r * (1 + (1 - t) * 0.2), g.col, g.a * t, null, null, 36, 1, true); }
-    // cars: headlights + brake/interior
+    // cars: siren bar + headlights + brake/interior
     for (const c of S.cars) {
-      if (!c.lightsOn || Math.abs(c.x - px) > 40 || Math.abs(c.y - py) > 40) continue;
+      if (Math.abs(c.x - px) > 40 || Math.abs(c.y - py) > 40) continue;
+      if (c.sirenOn) {
+        // the roof bar crossfades red/blue instead of blinking on and off, at the same rate
+        // the audio wail sweeps
+        const ph = Math.sin(T * 8);
+        if (ph > 0) castLight(c.x, c.y, 11, [255, 34, 34], 1.15 * ph, null, null, 36, 1, false);
+        else castLight(c.x, c.y, 11, [46, 96, 255], -1.15 * ph, null, null, 36, 1, false);
+      }
+      if (!c.lightsOn) continue;
       const ca = Math.cos(c.ang), sa = Math.sin(c.ang), front = DSZ.CarArt.reach(c.kind), fx = c.x + ca * front, fy = c.y + sa * front;
       castLight(fx, fy, 15, [255, 244, 210], 1.05, c.ang - 0.42, c.ang + 0.42, 44, 1, true);
       castLight(fx, fy, 6, [255, 240, 200], 0.55, c.ang - 0.95, c.ang + 0.95, 30, 1, true);

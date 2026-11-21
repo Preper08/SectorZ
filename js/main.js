@@ -68,7 +68,7 @@
   Main.startNew = () => { DSZ.settings.godmode = false; DSZ.saveSettings(); begin(null); };
   Main.cont = () => { const d = Game.readSave(); if (d) begin(d); else begin(null); };
   Main.toTitle = function () {
-    A.engine(false); UI.hideDeath(); UI.closeWin(); UI.closeMap(); document.getElementById('pause').classList.add('hidden');
+    A.engine(false); A.siren(false); UI.hideDeath(); UI.closeWin(); UI.closeMap(); document.getElementById('pause').classList.add('hidden');
     UI.open.menu = false; UI.showLoading(true, 'Returning…', 0.5);
     setTimeout(() => { startTitleWorld(); Main.mode = 'title'; UI.showLoading(false); UI.showTitle(true); }, 40);
   };

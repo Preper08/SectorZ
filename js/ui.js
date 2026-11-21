@@ -21,7 +21,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'tvttl']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'carsirenrow', 'carsiren', 'tvttl']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.eqcol = $('eqcol');
@@ -233,7 +233,7 @@
   }
   UI.openMap = function () { if (!Inv.has(S.player.inv, 'map')) { DSZ.Game.toast(S, 'You need a Town Map.'); return; } UI.open.map = true; els.mapwin.classList.remove('hidden'); drawBigMap(); };
   UI.closeMap = function () { UI.open.map = false; els.mapwin.classList.add('hidden'); };
-  UI.toggleMenu = function (v) { v = v === undefined ? !UI.open.menu : v; UI.open.menu = v; els.pause.classList.toggle('hidden', !v); if (S) S.paused = v; if (v) { cancelDrag(); A.engine(false); } };
+  UI.toggleMenu = function (v) { v = v === undefined ? !UI.open.menu : v; UI.open.menu = v; els.pause.classList.toggle('hidden', !v); if (S) S.paused = v; if (v) { cancelDrag(); A.engine(false); A.siren(false); } };
   UI.showSettings = function (v) { UI.open.settings = v; els.settings.classList.toggle('hidden', !v); if (v) buildSettings(); else if (!UI.open.title && S && S.state === 'play') { UI.toggleMenu(true); } titleVeil(); };
   UI.showControls = function (v) { UI.open.controls = v; els.controls.classList.toggle('hidden', !v); titleVeil(); };
   // On the title screen, Settings and Controls open on top of the title overlay. Hide the
@@ -714,7 +714,7 @@
     row('God mode (admin)', tog('godmode', () => { if (S && s.godmode && DSZ.Game.godKit) DSZ.Game.godKit(S); if (S) DSZ.Game.toast(S, s.godmode ? 'God mode ON - immortal, infinite items.' : 'God mode OFF.'); }));
   }
   function buildControls() {
-    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Z', 'Sneak (toggle)'], ['Ctrl', 'Crouch (toggle)'], ['E', 'Interact · search · open · enter car'], ['T', 'Search nearest vehicle (trunk)'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['V', 'Rozika: stay / follow'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];
+    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Z', 'Sneak (toggle)'], ['Ctrl', 'Crouch (toggle)'], ['E', 'Interact · search · open · enter car'], ['T', 'Search nearest vehicle (trunk)'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['V', 'Rozika: stay / follow'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Car: N', 'Police siren (toggle)'], ['Esc', 'Pause']];
     els.ctlbody.innerHTML = '<div class="ctl">' + rows.map(r => '<b>' + r[0] + '</b><span>' + r[1] + '</span>').join('') + '</div>';
   }
 
@@ -768,10 +768,13 @@
     if (els.carkmh.textContent !== String(kmh)) els.carkmh.textContent = kmh;
     const hp = Math.max(0, Math.round(c.hp)), maxhp = Math.max(1, Math.round(c.maxhp || 140));
     const fuel = Math.max(0, Math.round(c.fuel)), maxfuel = Math.max(1, Math.round(c.maxfuel || 60));
-    const sig = c.kind + '|' + hp + '|' + fuel;
+    const police = !!(DSZ.CarArt.K(c.kind).police), siren = !!c.sirenOn;
+    const sig = c.kind + '|' + hp + '|' + fuel + '|' + (siren ? 1 : 0);
     if (sig === carSig) return;
     carSig = sig;
     els.carname.textContent = DSZ.CarArt.name(c.kind);
+    els.carsirenrow.classList.toggle('hidden', !police);
+    if (police) { els.carsiren.textContent = siren ? 'ON' : 'OFF'; els.carsiren.classList.toggle('on', siren); }
     const hf = hp / maxhp, ff = fuel / maxfuel;
     els.carhp.style.width = (hf * 100) + '%';
     els.carhp.className = hf > 0.55 ? 'ok' : hf > 0.25 ? 'mid' : 'low';

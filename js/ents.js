@@ -436,7 +436,7 @@
   // ------------------------------------------------------------ cars
   E.spawnCar = function (S, spec) {
     const K = DSZ.CarArt.kinds[spec.kind];
-    const c = { x: spec.x, y: spec.y, ang: spec.ang, vx: 0, vy: 0, speed: 0, steer: 0, kind: spec.kind, color: spec.color, state: spec.state, hp: spec.state === 'ok' ? 140 : (spec.state === 'burnt' ? 0 : 60), maxhp: 140, fuel: spec.state === 'ok' ? 15 + Math.random() * 45 : 0, maxfuel: 60, lightsOn: false, engineOn: false, braking: false, rev: false, fire: false, smoke: 0, seed: spec.seed, drivable: spec.state === 'ok', dead: spec.state === 'burnt', cont: null, flash: 0, alarm: 0, throttle: 0, bounce: 0, noiseT: 0 };
+    const c = { x: spec.x, y: spec.y, ang: spec.ang, vx: 0, vy: 0, speed: 0, steer: 0, kind: spec.kind, color: spec.color, state: spec.state, hp: spec.state === 'ok' ? 140 : (spec.state === 'burnt' ? 0 : 60), maxhp: 140, fuel: spec.state === 'ok' ? 15 + Math.random() * 45 : 0, maxfuel: 60, lightsOn: false, sirenOn: false, sirenT: 0, engineOn: false, braking: false, rev: false, fire: false, smoke: 0, seed: spec.seed, drivable: spec.state === 'ok', dead: spec.state === 'burnt', cont: null, flash: 0, alarm: 0, throttle: 0, bounce: 0, noiseT: 0 };
     S.cars.push(c); return c;
   };
   E.damageCar = function (S, c, dmg, sx, sy, bullet) {
@@ -446,7 +446,7 @@
     else if (c.hp < c.maxhp * 0.12 && !c.fire && c.drivable) { c.fire = true; c.fireT = 9; }
   };
   E.destroyCar = function (S, c) {
-    c.dead = true; c.state = 'burnt'; c.drivable = false; c.fire = true; c.fireT = 25; c.engineOn = false; c.lightsOn = false; c.speed = 0; c.vx = c.vy = 0;
+    c.dead = true; c.state = 'burnt'; c.drivable = false; c.fire = true; c.fireT = 25; c.engineOn = false; c.lightsOn = false; c.sirenOn = false; A.siren(false); c.speed = 0; c.vx = c.vy = 0;
     E.explode(S, c.x, c.y, 5.5, 90, c);
     if (S.player.driving === c) DSZ.Game.exitCar(S, true);
   };

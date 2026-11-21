@@ -433,7 +433,7 @@
   }
   Game.enterCar = function (S, c) {
     const p = S.player; p.driving = c; c.engineOn = c.fuel > 0; p.x = c.x; p.y = c.y; A.play('door', c.x, c.y, 0.8);
-    Game.toast(S, c.fuel > 0 ? 'W/S drive   A/D steer   Space handbrake   L lights   H horn   E exit' : 'No fuel. Find a gas can.');
+    Game.toast(S, c.fuel > 0 ? 'W/S drive   A/D steer   Space handbrake   L lights   H horn' + (DSZ.CarArt.K(c.kind).police ? '   N siren' : '') + '   E exit' : 'No fuel. Find a gas can.');
     if (c.fuel > 0) { A.play('click'); E.noise(S, c.x, c.y, 14); }
   };
   Game.exitCar = function (S, eject) {
@@ -450,7 +450,7 @@
       if (!W.hitCircle(x, y, 0.3) && clearOfCars(x, y)) { p.x = x; p.y = y; ok = true; break; }
     } if (ok) break; }
     if (!ok) { const f = W.freeNear(c.x, c.y, 6); p.x = f[0]; p.y = f[1]; }
-    p.driving = null; c.engineOn = false; c.lightsOn = false; A.engine(false); A.play('door', c.x, c.y, 0.8);
+    p.driving = null; c.engineOn = false; c.lightsOn = false; c.sirenOn = false; A.engine(false); A.siren(false); A.play('door', c.x, c.y, 0.8);
   };
   Game.trySleep = function (S) {
     const p = S.player;
@@ -478,6 +478,17 @@
       if (In.pressed('KeyL')) { c.lightsOn = !c.lightsOn; A.play('click'); }
       if (In.pressed('KeyH')) { A.play('horn', c.x, c.y, 1.2, 70); E.noise(S, c.x, c.y, 45); }
       if (In.pressed('KeyG')) Game.refuelNearby(S);
+      // Siren only exists on the police cruiser. N toggles it; while on it wails continuously
+      // and keeps drawing zombies from a long way off, just like the horn but without holding a key.
+      if (In.pressed('KeyN') && DSZ.CarArt.K(c.kind).police) {
+        c.sirenOn = !c.sirenOn; c.sirenT = 0; A.play('click');
+        if (c.sirenOn) E.noise(S, c.x, c.y, 55);
+      }
+      if (c.sirenOn) {
+        c.sirenT -= dt;
+        if (c.sirenT <= 0) { c.sirenT = 0.65; E.noise(S, c.x, c.y, 50); }
+        A.siren(true);
+      } else A.siren(false);
       if (c.engineOn) { A.engine(true, Math.min(1, Math.abs(c.speed) / 12 + (k.thr ? 0.18 : 0.05)), 1); if (c.fuel <= 0) c.engineOn = false; } else A.engine(false);
       if (In.pressed('KeyE') && !ui.blockKeys()) { Game.exitCar(S); S.focus = (p.dead || S.build.active) ? null : findFocus(S); return; }
       p.x = c.x; p.y = c.y; p.moving = false; p.crouch = false; p.sneak = false; p.pose.crouch = false; p.pose.legs = 'idle'; S.stats.distance += Math.abs(c.speed) * dt / 1000;
@@ -953,7 +964,7 @@
       v: 1, seed: S.seed, hour: S.hour, day: S.day, difficulty: S.difficulty || 'normal', stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
       player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
       dog: S.dog ? { x: S.dog.x, y: S.dog.y, ang: S.dog.ang, name: S.dog.name, bond: S.dog.bond, unfed: S.dog.unfed, stay: !!S.dog.stay } : null,
-      mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
+      mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn, sirenOn: c.sirenOn }))
     };
   }
   Game.save = function (S) {
@@ -1011,7 +1022,7 @@
     for (const idx of d.removed || []) { const x = idx % C.W, y = (idx / C.W) | 0; const o = W.getObj(x, y); if (o && !o.base) { W.removeObj(x, y); } }
     for (const m of d.mods || []) { const o = W.getObj(m.x, m.y); if (!o) continue; if (m.grid) o.grid = m.grid; if (m.searched) o.searched = true; if (m.broken) o.broken = true; if (m.open !== undefined) o.open = m.open; if (m.locked !== undefined) o.locked = m.locked; if (m.hp !== undefined) o.hp = m.hp; if (m.chop) o.chop = m.chop; W.refresh(m.x, m.y); }
     for (const b of d.base || []) { const o = { t: b.t, f: b.f, v: 0, base: true, b: 0, open: b.open, hp: b.hp, fuel: b.fuel, lit: b.lit, water: b.water, grid: b.grid }; W.setObj(b.x, b.y, o); if (D[b.t].fire && b.lit || b.t === O.BLAMP) Game.attachBaseLight(o); }
-    S.drops = d.drops || []; S.cars.length = 0; for (const c of d.cars || []) { const car = E.spawnCar(S, { x: c.x, y: c.y, ang: c.ang, kind: c.kind, color: c.color, state: c.state, seed: 1 }); Object.assign(car, { hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, lightsOn: c.lightsOn }); }
+    S.drops = d.drops || []; S.cars.length = 0; for (const c of d.cars || []) { const car = E.spawnCar(S, { x: c.x, y: c.y, ang: c.ang, kind: c.kind, color: c.color, state: c.state, seed: 1 }); Object.assign(car, { hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, lightsOn: c.lightsOn, sirenOn: c.sirenOn }); }
     S.cam.x = p.x; S.cam.y = p.y; Game.refreshEquipVisuals(S); DSZ.Render.dirtyAll();
     // The dog. A save from before the companion existed has no dog record, so one is placed
     // beside the player instead of the player loading in alone - the dog is part of the game now,
