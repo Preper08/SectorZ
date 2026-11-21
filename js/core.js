@@ -106,7 +106,7 @@
   //   zDensity - how many zombies populate the world at generation
   //   horde    - size of the nightly horde
   //   zPower   - zombie HP and damage
-  //   loot     - amount of loot in containers
+  //   loot     - amount of loot in containers and corpses, and how worn it is
   //   needs    - hunger/thirst drain speed
   //   infect   - chance and speed of infection
   //   start    - starting food/water supplies

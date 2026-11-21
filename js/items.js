@@ -167,38 +167,64 @@
     storage: { n: [1, 3], t: [['scrap', 4], ['nails', 3], ['wood', 3], ['tape', 3], ['rags', 3], ['beans', 3], ['water', 3], ['battery', 3]] },
     attic: { n: [0, 2], t: [['rags', 5], ['cloth', 5], ['wood', 3], ['rope', 2], ['tape', 2], ['nails', 2], ['lantern', 0.8], ['jacket', 1.5], ['raincoat', 1], ['wintercoat', 1]] },
     trash: { n: [0, 2], t: [['rags', 6], ['scrap', 4], ['bottle', 5], ['soda', 3], ['cloth', 3], ['bread', 2], ['tape', 1], ['nails', 1.5]] },
-    mail: { n: [0, 1], t: [['candy', 2], ['rags', 2], ['map', 1], ['keys', 0.6]] },
-    register: { n: [0, 1], t: [['candy', 3], ['battery', 2], ['keys', 1], ['lighter', 3]] },
+    mail: { n: [0, 1], t: [['candy', 2], ['map', 1], ['keys', 0.6]] },
+    register: { n: [0, 1], t: [['candy', 3], ['keys', 1], ['lighter', 3], ['map', 1]] },
     church: { n: [0, 2], t: [['candy', 2], ['bread', 3], ['water', 3], ['cloth', 3], ['rags', 3], ['lantern', 1.2], ['medkit', 0.5]] },
     zombie: { n: [0, 2], t: [['rags', 5], ['candy', 3], ['cloth', 3], ['keys', 0.8], ['lighter', 1], ['bandage', 1.5], ['ammo9', 1], ['water', 1.5], ['beans', 1]], none: 0.55 },
+    // Corpse loot by zombie type. A walker has whatever was in their pockets when they turned;
+    // a runner was fleeing and dropped most of it; a brute still carries the tools and supplies
+    // that made them heavy; a crawler lost nearly everything. Weights, not new items, so the
+    // loot stays in the existing item set.
+    zombieRunner: { n: [0, 1], t: [['candy', 5], ['water', 4], ['rags', 4], ['keys', 2], ['lighter', 3], ['bandage', 2], ['soda', 3]], none: 0.45 },
+    zombieBrute: { n: [1, 3], t: [['rags', 4], ['scrap', 5], ['nails', 4], ['pipe', 4], ['tape', 3], ['beans', 3], ['bandage', 2], ['painkillers', 2], ['ammo9', 2], ['hammer', 1.5], ['wire', 3], ['machete', 0.6]], none: 0.2 },
+    zombieCrawler: { n: [0, 1], t: [['rags', 6], ['cloth', 4], ['candy', 2], ['keys', 1], ['bandage', 1.5]], none: 0.5 },
+    // One guaranteed roll for a body searched inside a themed building: the place they died in
+    // is what they were carrying. Used at 50% so corpses still differ from the shelves.
+    zombieMedical: { n: [1, 1], t: [['bandage', 6], ['painkillers', 5], ['antibiotics', 2], ['splint', 2], ['rags', 4]] },
+    zombieGuns: { n: [1, 1], t: [['ammo9', 6], ['shell', 4], ['ammo762', 3], ['rags', 4], ['keys', 2]] },
+    zombieFood: { n: [1, 1], t: [['beans', 4], ['water', 4], ['candy', 4], ['chips', 4], ['bread', 3], ['soda', 4]] },
+    zombieTools: { n: [1, 1], t: [['nails', 4], ['scrap', 4], ['tape', 3], ['wire', 3], ['crowbar', 1.5], ['hammer', 1.5], ['rags', 3]] },
+    zombieClothes: { n: [1, 1], t: [['cloth', 4], ['rags', 4], ['cap', 2], ['sneakers', 2], ['jeans', 1.5]] },
     car: { n: [0, 2], t: [['rags', 3], ['gascan', 2], ['tape', 2], ['battery', 2], ['flashlight', 1.2], ['soda', 2], ['crowbar', 1.2], ['tire', 1.5], ['map', 2], ['keys', 0.7]] },
     cartrunk: { n: [0, 3], t: [['scrap', 3], ['tire', 2], ['gascan', 2.5], ['wire', 2], ['rags', 3], ['tape', 2], ['water', 2], ['beans', 2], ['backpack', 0.8], ['crowbar', 1.5]] }
   };
+  // Which corpse table a zombie type rolls. game.js uses this when a body is searched.
+  DSZ.ZOMBIE_LOOT = { walker: 'zombie', runner: 'zombieRunner', brute: 'zombieBrute', crawler: 'zombieCrawler' };
+  // One roll of a stackable item. Ammo and nails come by the handful, everything else that
+  // stacks by the one-to-three. The item's own stack limit caps it, so a roll can never ask
+  // for more than one legal stack no matter what a table lists.
+  function rollQty(rng, d) {
+    if (d.stack <= 1) return 1;
+    const cap = d.type === 'ammo' ? 12 : d.id === 'nails' ? 12 : 3;
+    return 1 + ((rng() * Math.min(d.stack, cap)) | 0);
+  }
   DSZ.rollLoot = function (rng, table, bonus) {
     const T = L[table]; if (!T) return [];
     const out = [];
     let n = T.n[0] + ((rng() * (T.n[1] - T.n[0] + 1)) | 0) + (bonus || 0);
-    // Difficulty scales how much loot a container holds. The multiplier touches three
-    // things so the whole curve moves, not just the number of item types:
-    //   - the "nothing here" chance: fewer empty containers on Easy, more on Hard
-    //   - the number of rolls, scaled so the EXPECTED count is exactly n*loot (a table
+    // Difficulty scales how much loot a container or corpse holds, and how worn it is:
+    //   - the number of rolls is scaled so the EXPECTED count is exactly n*loot (a table
     //     whose n is 1 on Normal still becomes 2 now and then on Easy, and 0 on Hard)
-    // Normal is loot 1.0, which short-circuits, so its output is byte-for-byte unchanged.
+    //   - item condition: durability, fuel and battery charge are multiplied by min(1, loot),
+    //     so Hard hands out worn tools and near-empty cans instead of identical fresh ones
+    // The empty chance stays the table's own value at every difficulty. Scaling it with loot
+    // as well used to cut Hard's expected loot to about a third of Normal instead of 70%:
+    // Easy and Hard only change the amount (and condition) found, never how often a container
+    // is worth opening. Normal is loot 1.0, which short-circuits, so its output is unchanged.
     const lm = DSZ.DIFFCUR ? DSZ.DIFFCUR.loot : 1;
+    const wear = Math.min(1, lm);
     if (lm !== 1) {
-      if (T.none) { if (rng() < Math.min(0.95, T.none / lm)) return out; }
       const sc = n * lm, lo = Math.floor(sc);
       n = lo + (rng() < sc - lo ? 1 : 0);
-    } else if (T.none && rng() < T.none) return out;
+    }
+    if (T.none && rng() < T.none) return out;
     for (let i = 0; i < n; i++) {
       const id = U.weighted(rng, T.t), d = I[id];
-      let q = 1;
-      if (d.stack > 1) q = 1 + ((rng() * Math.min(d.stack, id === 'nails' ? 12 : (d.type === 'ammo' ? 12 : 3))) | 0);
-      const item = { id, q };
+      const item = { id, q: rollQty(rng, d) };
       if (d.type === 'gun') item.mag = 0;
-      if (d.dur) item.dur = Math.max(1, Math.round(d.dur * (0.35 + rng() * 0.65)));
-      if (d.id === 'gascan') item.fuel = (rng() * 70) | 0;
-      if (d.id === 'flashlight') item.bat = 20 + ((rng() * 80) | 0);
+      if (d.dur) item.dur = Math.max(1, Math.round(d.dur * (0.35 + rng() * 0.65) * wear));
+      if (d.id === 'gascan') item.fuel = Math.round(((rng() * 70) | 0) * wear);
+      if (d.id === 'flashlight') item.bat = Math.round((20 + ((rng() * 80) | 0)) * wear);
       if (d.id === 'torch' || d.id === 'lantern') item.burn = d.burn;
       if (d.type === 'drink' && id === 'water') item.q = 1;
       out.push(item);

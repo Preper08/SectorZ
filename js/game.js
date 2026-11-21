@@ -627,11 +627,48 @@
     S.search = { kind: 'cont', o, t: 0, total: 0.5 + (d.cont.w * d.cont.h) * 0.045 };
     return true;
   };
+  // Corpses: what a body holds follows the zombie type and the place it died. The base table
+  // is the type (a brute carries more, a runner dropped most of it); a body searched inside a
+  // themed building has a 50% chance of one extra item from that building's stock, so a
+  // hospital corpse can hold bandages and a gun-shop corpse a handful of rounds. fillLootGrid
+  // starts from a per-type grid and widens it if the rolls do not fit.
+  const CORPSE_GRID = { walker: [4, 3], runner: [4, 3], brute: [5, 3], crawler: [3, 2] };
+  function corpseTheme(z) {
+    const b = W.buildingAt(Math.floor(z.x), Math.floor(z.y)); if (!b) return null;
+    if (b.shop === 'guns' || b.kind === 'police') return 'zombieGuns';
+    if (b.shop === 'pharmacy' || b.kind === 'hospital') return 'zombieMedical';
+    if (b.shop === 'grocery' || b.shop === 'diner' || b.shop === 'gas' || b.kind === 'super') return 'zombieFood';
+    if (b.shop === 'hardware' || b.kind === 'warehouse') return 'zombieTools';
+    if (b.shop === 'clothing') return 'zombieClothes';
+    return null;
+  }
+  // Fill a small loot grid from rolled rows. Largest footprint first, and if greedy placement
+  // runs out of room the grid grows by a column and is filled again from scratch. A corpse or
+  // trunk therefore never silently swallows a rolled item just because two large items left a
+  // hole too small for it.
+  function fillLootGrid(w, h, rows) {
+    const specs = rows.slice().sort((a, b) => I[b.id].w * I[b.id].h - I[a.id].w * I[a.id].h);
+    for (;;) {
+      const g = Inv.grid(w, h);
+      let full = false;
+      for (const r of specs) if (Inv.addTo(g, Inv.make(r.id, r.q, r)) !== 0) { full = true; break; }
+      if (!full) return g;
+      w++;
+    }
+  }
   Game.finishSearch = function (S, s) {
     const o = s.o;
     if (s.kind === 'cont') { o.searched = true; const g = Inv.fillContainer(o, rnd); S.stats.looted++; DSZ.UI.openLoot(D[o.t].cont.name, g, o); }
-    else if (s.kind === 'corpse') { o.searched = true; o.grid = Inv.grid(4, 3); for (const r of DSZ.rollLoot(rnd, 'zombie', 0)) Inv.addTo(o.grid, Inv.make(r.id, r.q, r)); DSZ.UI.openLoot('Corpse', o.grid, o); }
-    else { o.searched = true; o.grid = Inv.grid(5, 3); for (const r of DSZ.rollLoot(rnd, rnd() < 0.5 ? 'car' : 'cartrunk', 0)) Inv.addTo(o.grid, Inv.make(r.id, r.q, r)); DSZ.UI.openLoot(o.drivable ? 'Vehicle (trunk)' : 'Vehicle', o.grid, o); }
+    else if (s.kind === 'corpse') {
+      o.searched = true;
+      const gs = CORPSE_GRID[o.type] || [4, 3];
+      const rows = DSZ.rollLoot(rnd, DSZ.ZOMBIE_LOOT[o.type] || 'zombie', 0);
+      const theme = corpseTheme(o);
+      if (theme && rnd() < 0.5) for (const r of DSZ.rollLoot(rnd, theme, 0)) rows.push(r);
+      o.grid = fillLootGrid(gs[0], gs[1], rows);
+      DSZ.UI.openLoot('Corpse', o.grid, o);
+    }
+    else { o.searched = true; o.grid = fillLootGrid(5, 3, DSZ.rollLoot(rnd, rnd() < 0.5 ? 'car' : 'cartrunk', 0)); DSZ.UI.openLoot(o.drivable ? 'Vehicle (trunk)' : 'Vehicle', o.grid, o); }
     A.play('pickup');
   };
 

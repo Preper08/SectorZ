@@ -28,7 +28,7 @@
   def(O.TREE_DEAD, 'Dead tree', { h: 110, hp: 300, tall: true, tree: true });
   def(O.BUSH, 'Bush', { solid: false, h: 22, hp: 20, bush: true });
   def(O.ROCK, 'Boulder', { h: 28, hp: 999 });
-  def(O.CRATE, 'Crate', { h: 30, cont: { w: 6, h: 4, loot: 'crate', name: 'Crate' } });
+  def(O.CRATE, 'Crate', { h: 30, cont: { w: 6, h: 4, loot: 'storage', name: 'Crate' } });
   def(O.SHELF, 'Shelf', { h: 62, cont: { w: 7, h: 4, loot: 'store', name: 'Shelves' } });
   def(O.FRIDGE, 'Fridge', { h: 64, cont: { w: 5, h: 4, loot: 'fridge', name: 'Fridge' } });
   def(O.KCAB, 'Kitchen cabinet', { h: 40, cont: { w: 5, h: 3, loot: 'kitchen', name: 'Cabinet' } });
