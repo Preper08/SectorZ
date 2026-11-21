@@ -690,7 +690,7 @@
     row('God mode (admin)', tog('godmode', () => { if (S && s.godmode && DSZ.Game.godKit) DSZ.Game.godKit(S); if (S) DSZ.Game.toast(S, s.godmode ? 'God mode ON - immortal, infinite items.' : 'God mode OFF.'); }));
   }
   function buildControls() {
-    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Z', 'Sneak'], ['Ctrl', 'Crouch (toggle)'], ['E', 'Interact · search · open · enter car'], ['T', 'Search nearest vehicle (trunk)'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];
+    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Z', 'Sneak'], ['Ctrl', 'Crouch (toggle)'], ['E', 'Interact · search · open · enter car'], ['T', 'Search nearest vehicle (trunk)'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['V', 'Rozika: stay / follow'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Esc', 'Pause']];
     els.ctlbody.innerHTML = '<div class="ctl">' + rows.map(r => '<b>' + r[0] + '</b><span>' + r[1] + '</span>').join('') + '</div>';
   }
 
@@ -710,15 +710,18 @@
     const bond = Math.round(d.bond || 0);
     const tName = DSZ.Dog.tierName(bond);
     const ti = DSZ.Dog.tierIndex(bond);
+    const stay = !!d.stay;
     // The note is the actionable half of the panel: can she eat right now, or not.
     let note, sig;
     if (d.fedT > 0) { note = '<b>' + Math.ceil(d.fedT) + 's</b> until she is hungry'; }
     else if (DSZ.Dog.pickFood(S.player.inv)) { note = 'E to <b>feed</b> her'; }
     else { note = 'no food - E to <b>pet</b>'; }
-    sig = bond + '|' + ti + '|' + note;
+    sig = bond + '|' + ti + '|' + note + '|' + (stay ? 1 : 0);
     if (sig === dogSig) return;
     dogSig = sig;
-    els.dogtier.textContent = tName;
+    // "Stay" in the tier slot is the only mode indicator the HUD needs: the controls screen
+    // documents V, and a stay command is otherwise invisible once the dog is off screen.
+    els.dogtier.textContent = tName + (stay ? ' · Stay' : '');
     els.dogtier.className = 'dtier t' + ti;
     els.dogbond.style.width = bond + '%';
     els.dogbond.className = 't' + ti;

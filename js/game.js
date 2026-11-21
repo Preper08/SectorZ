@@ -592,6 +592,7 @@
       if (In.pressed('KeyR') && !S.build.active) Game.reload(S);
       if (In.pressed('KeyQ')) Game.dropSelected(S);
       if (In.pressed('KeyG')) Game.refuelNearby(S);
+      if (In.pressed('KeyV') && !p.driving) DSZ.Dog.command(S);
       if (In.pressed('KeyT')) {
       if (S.focus && S.focus.kind === 'bed' && D[S.focus.ref.t].cont) Game.searchBed(S, S.focus.ref);
       else if (S.focus && S.focus.kind === 'pc') Game.searchBed(S, S.focus.ref);  // same drawer search, the desk just also has a screen
@@ -939,7 +940,7 @@
       horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights, killed: S.horde.killed || 0 },
       v: 1, seed: S.seed, hour: S.hour, day: S.day, difficulty: S.difficulty || 'normal', stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
       player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
-      dog: S.dog ? { x: S.dog.x, y: S.dog.y, ang: S.dog.ang, name: S.dog.name, bond: S.dog.bond, unfed: S.dog.unfed } : null,
+      dog: S.dog ? { x: S.dog.x, y: S.dog.y, ang: S.dog.ang, name: S.dog.name, bond: S.dog.bond, unfed: S.dog.unfed, stay: !!S.dog.stay } : null,
       mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn }))
     };
   }
@@ -1010,6 +1011,8 @@
                 // simply has neither, and she comes back at the default 40
                 bond: (typeof d.dog.bond === 'number') ? d.dog.bond : 40,
                 fedT: 0, petT: 0, unfed: d.dog.unfed || 0, happy: 0,
+                // a dog left on stay stays put across a save and load
+                stay: !!d.dog.stay,
                 // A save from the build where she was called Zuca must not keep the old name, so
                 // only a name that differs from both defaults survives the load.
                 name: (d.dog.name && d.dog.name !== 'Zuca') ? d.dog.name : 'Rozika' };

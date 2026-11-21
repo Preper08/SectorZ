@@ -208,7 +208,9 @@
       barkT: 0, whineT: 6 + Math.random() * 10, wagT: 0, alert: 0,
       sprite: null, name: 'Rozika',
       // bond: 0-100. Starts friendly rather than devoted, so there is somewhere to go.
-      bond: 40, fedT: 0, petT: 0, unfed: 0, happy: 0
+      bond: 40, fedT: 0, petT: 0, unfed: 0, happy: 0,
+      // false = heel the player, true = hold this spot until told to follow again
+      stay: false
     };
     return S.dog;
   };
@@ -324,6 +326,21 @@
     return 'You pet Rozika.  Bond ' + Math.round(d.bond) + ' · ' + after;
   };
 
+  // Toggle between following and holding position. A staying dog still barks and whines, so
+  // she keeps warning the player, but she does not heel and is not recalled when the player
+  // walks away. Pressing follow again brings her back; update() recalls her if the gap is
+  // more than TELEPORT_D, which is the same safety net used for a dog left behind by lag.
+  Dog.command = function (S) {
+    const d = S.dog; if (!d) return null;
+    d.stay = !d.stay;
+    d.vx = d.vy = 0;
+    if (DSZ.Audio && DSZ.Audio.play) DSZ.Audio.play(d.stay ? 'dogWhine' : 'dogBark', d.x, d.y, 0.3);
+    if (DSZ.Ents && DSZ.Ents.floatText) DSZ.Ents.floatText(S, d.x, d.y, d.stay ? 'Stay' : 'Follow', '#ffd070', 12);
+    const msg = d.stay ? 'Rozika will stay here.' : 'Rozika will follow you.';
+    if (DSZ.Game && DSZ.Game.toast) DSZ.Game.toast(S, msg);
+    return msg;
+  };
+
   // ---------------------------------------------------------------- update
   // The dog walks toward a heel position behind the player. It is not a physics body: it uses
   // the same moveCircle as everyone else so it cannot clip through walls, and it is snapped
@@ -357,15 +374,20 @@
     const dx = p.x - d.x, dy = p.y - d.y;
     const dist = Math.hypot(dx, dy) || 1;
 
-    // recall: never leave the dog behind
-    if (dist > TELEPORT_D) {
+    // recall: never leave the dog behind. A dog told to stay is not behind by accident, so
+    // recall only applies in follow mode.
+    if (!d.stay && dist > TELEPORT_D) {
       const spot = Dog.findSpot(S, p.x, p.y);
       d.x = spot[0]; d.y = spot[1]; d.vx = d.vy = 0;
       return;
     }
 
     let mx = 0, my = 0, spd = 0;
-    if (dist > MAX_D) {
+    if (d.stay) {
+      // hold the spot exactly: no heel chase and no step-away drift, so the place she was left
+      // stays the place she is found
+      d.vx = 0; d.vy = 0;
+    } else if (dist > MAX_D) {
       // aim at a point HEEL behind the player rather than at the player itself
       const tx = p.x - (dx / dist) * HEEL, ty = p.y - (dy / dist) * HEEL;
       const ddx = tx - d.x, ddy = ty - d.y, dd = Math.hypot(ddx, ddy) || 1;
