@@ -348,6 +348,23 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       }
       cap([J.shL[0] + 0.02, -0.14, J.shL[2] + 0.02], [J.shL[0] + 0.02, -0.05, J.shL[2] + 0.02], 0.026, dk); // shoulder tabs
       cap([J.shR[0] + 0.02, 0.14, J.shR[2] + 0.02], [J.shR[0] + 0.02, 0.05, J.shR[2] + 0.02], 0.026, dk);
+    },
+    // military combat top: olive/coyote camouflage patches, reinforced shoulders and chest pockets
+    miltop: (J, cap, shirt, covered) => {
+      const dk = shirt.map(v => v * 0.62), tan = shirt.map((v, i) => Math.min(255, v * 1.25 + [22, 18, 8][i]));
+      cap([J.neck[0] - 0.03, -0.08, J.neck[2] - 0.02], [J.neck[0] - 0.03, 0.08, J.neck[2] - 0.02], 0.07, dk); // high collar
+      cap([J.shL[0] + 0.02, -0.16, J.shL[2] + 0.02], [J.shL[0] + 0.02, -0.03, J.shL[2] + 0.02], 0.07, dk); // reinforced shoulders
+      cap([J.shR[0] + 0.02, 0.16, J.shR[2] + 0.02], [J.shR[0] + 0.02, 0.03, J.shR[2] + 0.02], 0.07, dk);
+      if (!covered) {
+        const xf = J.pel[0] + 0.17;
+        for (const [y, t] of [[-0.1, 0.3], [0.08, 0.36], [-0.04, 0.6], [0.11, 0.72]]) {
+          const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t;
+          cap([xf, y, z], [xf, y + 0.04, z + 0.05], 0.03, tan); // camo patches
+        }
+        cap([xf, -0.085, J.pel[2] + 0.19], [xf, -0.085, J.pel[2] + 0.28], 0.02, dk); // chest pockets
+        cap([xf, 0.085, J.pel[2] + 0.19], [xf, 0.085, J.pel[2] + 0.28], 0.02, dk);
+      }
+      cap([J.pel[0] + 0.02, -0.15, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.15, J.pel[2] + 0.02], 0.16, shirt); // hem
     }
   };
 
@@ -368,6 +385,20 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       cap([J.pel[0] + 0.18, -0.075, J.pel[2] + 0.13], [J.pel[0] + 0.18, -0.075, J.pel[2] + 0.24], 0.052, dk); // magazine pouches
       cap([J.pel[0] + 0.18, 0.075, J.pel[2] + 0.13], [J.pel[0] + 0.18, 0.075, J.pel[2] + 0.24], 0.052, dk);
       cap([J.pel[0] + 0.1, -0.16, J.pel[2] + 0.02], [J.pel[0] + 0.1, 0.16, J.pel[2] + 0.02], 0.055, lt); // waist belt
+    },
+    // military plate carrier: broader hard plate, thick padded straps, MOLLE rows and four
+    // utility pouches. More layered and robust than the police carrier at the same footprint.
+    milvest: (J, cap, shirt, vc) => {
+      const dk = vc.map(v => v * 0.68), tan = [150, 128, 86], lt = vc.map(v => Math.min(255, v * 1.5 + 18));
+      cap([J.neck[0] + 0.06, 0, J.neck[2] - 0.02], [J.pel[0] + 0.06, 0, J.pel[2] + 0.1], 0.15, vc, { plate: true });
+      const mid = lerp3(J.pel, J.neck, 0.55);
+      cap([mid[0] + 0.05, -0.16, mid[2] - 0.02], [mid[0] + 0.05, -0.16, mid[2] + 0.17], 0.085, dk); // side panels
+      cap([mid[0] + 0.05, 0.16, mid[2] - 0.02], [mid[0] + 0.05, 0.16, mid[2] + 0.17], 0.085, dk);
+      cap([J.shL[0] + 0.03, -0.15, J.shL[2]], [J.shL[0] + 0.06, -0.02, J.shL[2] + 0.03], 0.09, vc); // padded shoulders
+      cap([J.shR[0] + 0.03, 0.15, J.shR[2]], [J.shR[0] + 0.06, 0.02, J.shR[2] + 0.03], 0.09, vc);
+      for (const y of [-0.09, -0.02, 0.05]) cap([J.pel[0] + 0.17, y, J.pel[2] + 0.11], [J.pel[0] + 0.17, y, J.neck[2] - 0.12], 0.012, tan); // MOLLE
+      for (const y of [-0.11, 0.11]) for (const z of [J.pel[2] + 0.16, J.pel[2] + 0.26]) cap([J.pel[0] + 0.2, y, z], [J.pel[0] + 0.2, y, z + 0.06], 0.038, dk); // pouches
+      cap([J.pel[0] + 0.11, -0.17, J.pel[2] + 0.02], [J.pel[0] + 0.11, 0.17, J.pel[2] + 0.02], 0.06, lt); // waist belt
     }
   };
 
@@ -395,6 +426,28 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         x.globalAlpha = 1;
       }
       x.strokeStyle = 'rgba(20,26,38,0.65)'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(hp.x - hr * 0.75, hp.y + hr * 0.45); x.lineTo(hp.x - hr * 0.55, hp.y + hr * 0.95); x.stroke();
+    },
+    // military high-cut helmet: slimmer olive shell, side rails and a front equipment mount.
+    // No visor - the open face is the difference from the riot helmet.
+    milhelmet: (x, spec, hp, ht, hr, rgb, pr, J) => {
+      x.fillStyle = rgb(spec.hat, 1); x.beginPath(); x.arc(hp.x, hp.y - 1, hr * 1.04, Math.PI * 0.92, Math.PI * 2.08); x.lineTo(ht.x + hr * 0.98, hp.y + hr * 0.2); x.lineTo(ht.x - hr * 0.98, hp.y + hr * 0.2); x.closePath(); x.fill();
+      x.strokeStyle = rgb(spec.hat, 1.45); x.lineWidth = 2; x.beginPath(); x.arc(hp.x, hp.y - 1, hr, Math.PI * 0.96, Math.PI * 2.04); x.stroke();
+      const P = (dx, dy, dz) => pr([J.head[0] + dx, J.head[1] + dy, J.head[2] + dz]);
+      x.strokeStyle = 'rgba(28,34,22,0.85)'; x.lineWidth = 2.2;
+      for (const side of [-1, 1]) { // side accessory rails
+        const a = P(0.02, side * 0.13, 0.02), b = P(0.02, side * 0.13, -0.08);
+        x.beginPath(); x.moveTo(a.x, a.y); x.lineTo(b.x, b.y); x.stroke();
+      }
+      const fv = pr([1, 0, 0]).d;
+      if (fv > 0.02) { // front NVG bracket
+        const m = P(0.115, 0, 0.045), n = P(0.115, 0, -0.02);
+        x.globalAlpha = Math.min(1, fv * 2.2);
+        x.strokeStyle = 'rgba(190,180,140,0.9)'; x.lineWidth = 2.4;
+        x.beginPath(); x.moveTo(m.x, m.y); x.lineTo(n.x, n.y); x.stroke();
+        x.fillStyle = 'rgba(30,36,24,0.9)'; x.beginPath(); x.arc(m.x, m.y, 2.2, 0, 7); x.fill();
+        x.globalAlpha = 1;
+      }
+      x.strokeStyle = 'rgba(24,28,20,0.7)'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(hp.x - hr * 0.7, hp.y + hr * 0.45); x.lineTo(hp.x - hr * 0.5, hp.y + hr * 0.95); x.stroke();
     },
     // cap: flat dome + front brim + top button
     cap: (x, spec, hp, ht, hr, rgb, pr, J) => {
@@ -486,6 +539,25 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const pL = lerp3(J.hipL, J.kneeL, 0.45), pR = lerp3(J.hipR, J.kneeR, 0.45);
       cap([pL[0] + 0.025, pL[1] - 0.06, pL[2]], [pL[0] + 0.025, pL[1] - 0.06, pL[2] - 0.16], 0.05, dk); // duty pockets
       cap([pR[0] + 0.025, pR[1] + 0.06, pR[2]], [pR[0] + 0.025, pR[1] + 0.06, pR[2] - 0.16], 0.05, dk);
+    },
+    // military camo trousers: olive base, two-tone camo patches, big knee pads and cargo pockets
+    milpants: (J, cap, pr, skin, col, legR) => {
+      cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.078, col);
+      cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.078, col);
+      const dk = col.map(v => v * 0.62), tan = col.map((v, i) => Math.min(255, v * 1.2 + [20, 16, 6][i]));
+      // camo patches follow each thigh segment so they bend with the leg
+      for (const [hip, knee] of [[J.hipL, J.kneeL], [J.hipR, J.kneeR]]) {
+        for (const [t, side, c] of [[0.25, -0.05, dk], [0.55, 0.06, tan], [0.78, -0.03, dk]]) {
+          const a = lerp3(hip, knee, t), b = lerp3(hip, knee, Math.min(1, t + 0.16));
+          cap([a[0] + 0.03, a[1] + side, a[2]], [b[0] + 0.03, b[1] + side, b[2]], 0.035, c);
+        }
+      }
+      const kL = lerp3(J.kneeL, J.footL, 0.16), kR = lerp3(J.kneeR, J.footR, 0.16);
+      cap([kL[0] + 0.02, kL[1], kL[2]], [kL[0] + 0.02, kL[1], kL[2] - 0.14], 0.09, dk); // knee pads
+      cap([kR[0] + 0.02, kR[1], kR[2]], [kR[0] + 0.02, kR[1], kR[2] - 0.14], 0.09, dk);
+      const pL = lerp3(J.hipL, J.kneeL, 0.45), pR = lerp3(J.hipR, J.kneeR, 0.45);
+      cap([pL[0] + 0.03, pL[1] - 0.06, pL[2]], [pL[0] + 0.03, pL[1] - 0.06, pL[2] - 0.17], 0.055, tan); // cargo pockets
+      cap([pR[0] + 0.03, pR[1] + 0.06, pR[2]], [pR[0] + 0.03, pR[1] + 0.06, pR[2] - 0.17], 0.055, tan);
     }
   };
   // footwear: shaft / laces / foot / heel / sole per item; barefoot is the default
@@ -554,6 +626,24 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         cap([ft[0] - 0.07, ft[1], ft[2] + 0.03], [ft[0] + 0.17, ft[1], ft[2] + 0.03], 0.06, shoes, { d: front }); // toe box
         cap([ft[0] - 0.075, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.05, dk, { d: front }); // heel
         cap([ft[0] - 0.07, ft[1], ft[2] + 0.004], [ft[0] + 0.17, ft[1], ft[2] + 0.004], 0.044, dk, { sole: true, d: front + 0.01 });
+      });
+    },
+    // military combat boots: coyote-brown shaft, cross laces, padded ankle cuff and a heavy sole
+    milboots: (J, cap, pr, skin, shoes, shin) => {
+      [[J.kneeL, J.footL, shin && shin.L], [J.kneeR, J.footR, shin && shin.R]].forEach(([kne, ft, sd]) => {
+        const front = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
+        const dk = shoes.map(v => v * 0.65), lt = shoes.map(v => Math.min(255, v * 1.5 + 20));
+        const t0 = lerp3(kne, ft, 0.02), t1 = ft;
+        cap([t0[0], t0[1], t0[2] + 0.01], [t1[0], t1[1], t1[2] + 0.015], 0.086, shoes, { d: front }); // shaft
+        const c0 = lerp3(kne, ft, 0.07);
+        cap([c0[0], c0[1], c0[2] + 0.012], [c0[0], c0[1], c0[2] - 0.05], 0.095, dk, { d: front + 0.012 }); // padded cuff
+        for (const t of [0.27, 0.21, 0.15, 0.09]) { // cross laces
+          const p = lerp3(kne, ft, t);
+          cap([p[0], p[1] - 0.04, p[2] + 0.014], [p[0], p[1] + 0.04, p[2] + 0.014], 0.01, lt, { d: front + 0.02 });
+        }
+        cap([ft[0] - 0.075, ft[1], ft[2] + 0.03], [ft[0] + 0.18, ft[1], ft[2] + 0.03], 0.064, shoes, { d: front }); // toe box
+        cap([ft[0] - 0.08, ft[1], ft[2] + 0.02], [ft[0] - 0.03, ft[1], ft[2] + 0.055], 0.052, dk, { d: front }); // heel
+        cap([ft[0] - 0.075, ft[1], ft[2] + 0.004], [ft[0] + 0.18, ft[1], ft[2] + 0.004], 0.048, dk, { sole: true, d: front + 0.01 });
       });
     }
   };

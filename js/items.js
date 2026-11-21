@@ -143,6 +143,15 @@
   // Police duty boots match ordinary boots in footprint and protection; the only mechanical edge
   // is slightly quieter steps. The black/navy colour and taller shaft match the rest of the kit.
   it('policeboots', 'Police Boots', 'clothes', { w: 2, h: 2, slot: 'feet', def: 6, warm: 6, quiet: 3.5, col: '#141a2b', desc: 'Black duty boots. Tough, but not as quiet as trainers.' });
+  // Military set - god mode only. These ids are deliberately absent from every table in LOOT:
+  // they can be spawned from the admin backpack, and a future Military Area only needs to add
+  // them to its own table, with no item or rendering redesign. Total armour is 91: better than
+  // the police set (79) and the old maximum (86), but still under the 80% bite reduction cap.
+  it('milhelmet', 'Military Combat Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 22, warm: 4, col: '#4a5036', desc: 'High-cut helmet with side rails and an NVG mount.' });
+  it('miltop', 'Military Combat Top', 'clothes', { w: 2, h: 2, slot: 'body', def: 12, warm: 10, cols: 3, rows: 2, col: '#6b7048', desc: 'Camouflage uniform with reinforced panels and six pockets.' });
+  it('milpants', 'Military Combat Pants', 'clothes', { w: 2, h: 3, slot: 'legs', def: 8, cols: 4, rows: 2, col: '#6b7048', desc: 'Matching camo trousers. Reinforced knees, eight pockets.' });
+  it('milboots', 'Military Combat Boots', 'clothes', { w: 2, h: 2, slot: 'feet', def: 7, warm: 6, quiet: 4.5, col: '#7a6246', desc: 'Coyote-brown duty boots. Tougher than police boots, but louder.' });
+  it('milvest', 'Military Plate Carrier', 'clothes', { w: 2, h: 2, slot: 'vest', def: 42, warm: 3, cols: 4, rows: 3, col: '#4b5136', desc: 'Military ballistic carrier. More protection than a police vest.' });
   it('backpack', 'Backpack', 'bag', { w: 2, h: 3, slot: 'bag', cols: 8, rows: 5, col: '#5c6a46', desc: '+ storage' });
   it('bigpack', 'Hiking Pack', 'bag', { w: 3, h: 3, slot: 'bag', cols: 10, rows: 7, col: '#8a4a30', desc: '++ storage' });
   // Tactical police pack: same 2x3 footprint as the ordinary backpack, a little more room, but
