@@ -7,6 +7,7 @@
   const CH = C.CH, ZU = 39.2, SC = 45.25;
   let cv, ctx, lm, lctx, LW = 0, LH = 0, tmp, tctx;
   let camIx = 0, camIy = 0, zoom = 1, T = 0;
+  let displayGain = -1;
   const chunks = new Map();
   let roofStrips = new WeakMap(), roofFrame = 0, roofBakeBudget = 0;
   let bakeBudget = 3;
@@ -86,6 +87,18 @@
     return AMB[0][1];
   };
   R.daylight = function (h) { const a = R.ambient(h); return U.clamp((a[0] + a[1] + a[2]) / 3 / 235, 0, 1); };
+  // Display-only exposure. The world is already lit and graded before this filter runs, so the
+  // brightness setting cannot change ambient values, light radii, the vision mask or gameplay.
+  // Daytime gets the full adjustment; night gets a quarter so the dark hours stay dark. The
+  // rounded gain is cached because dl changes every frame, while the CSS value only needs to
+  // change when the rounded percentage does.
+  function applyDisplayBrightness(dl) {
+    const b = DSZ.settings.brightness / 100;
+    const gain = b === 1 ? 1 : Math.round((1 + (b - 1) * (0.25 + 0.75 * dl)) * 100) / 100;
+    if (gain === displayGain) return;
+    displayGain = gain;
+    cv.style.filter = gain === 1 ? 'none' : 'brightness(' + gain + ')';
+  }
   function sunShadow(S) {
     const h = S.hour, dl = R.daylight(h), tt = U.clamp((h - 5.5) / 13, 0, 1);
     let a, f, str;
@@ -184,6 +197,7 @@
     const svy0 = camIy - VH / 2 * iz, svy1 = camIy + VH / 2 * iz;
     const MX = 160, MT = 280, MB = 60;
     const amb = R.ambient(S.hour), dl = R.daylight(S.hour), sun = sunShadow(S), p = S.player;
+    applyDisplayBrightness(dl);
     const pb = W.buildingAt(Math.floor(p.x), Math.floor(p.y));
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#07080a'; ctx.fillRect(0, 0, VW, VH);
     ctx.setTransform(zoom, 0, 0, zoom, VW / 2 - camIx * zoom, VH / 2 - camIy * zoom);

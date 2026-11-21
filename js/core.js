@@ -97,7 +97,7 @@
 
   DSZ.settings = {
     renderScale: 1, lightRes: 0.25, blur: true, grain: true, bloom: true, shadows: true,
-    volume: 0.7, music: 0.5, quality: 'auto', showFps: false, godmode: false, difficulty: 'normal'
+    brightness: 100, volume: 0.7, music: 0.5, quality: 'auto', showFps: false, godmode: false, difficulty: 'normal'
   };
   // Difficulty presets. "normal" is deliberately all 1.0 - it is exactly the game as it
   // played before this system existed, so the default balance is untouched. Everything the

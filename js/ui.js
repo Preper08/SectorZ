@@ -673,6 +673,11 @@
     const sel = (key, opts, cb) => { const e = document.createElement('select'); opts.forEach(o => { const op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; e.appendChild(op); }); e.value = String(s[key]); e.onchange = () => { s[key] = isNaN(+e.value) || e.value === '' || e.value === 'auto' ? e.value : +e.value; if (typeof opts[0][0] === 'boolean') s[key] = e.value === 'true'; DSZ.saveSettings(); cb && cb(); }; return e; };
     const tog = (key, cb) => sel(key, [[true, 'On'], [false, 'Off']], () => { s[key] = String(s[key]) === 'true'; DSZ.saveSettings(); cb && cb(); });
     row('Master volume', slider('volume', 0, 1, 0.05, () => A.setVolume())); row('Ambience & music', slider('music', 0, 1, 0.05, () => A.setVolume()));
+    const brightWrap = document.createElement('div'); brightWrap.style.cssText = 'display:flex;align-items:center;gap:8px';
+    const brightVal = document.createElement('b'); brightVal.textContent = s.brightness + '%'; brightVal.style.cssText = 'min-width:38px;text-align:right;color:var(--accent)';
+    const bright = slider('brightness', 70, 130, 5, () => { brightVal.textContent = s.brightness + '%'; }); bright.style.flex = '1';
+    brightWrap.appendChild(bright); brightWrap.appendChild(brightVal);
+    row('Brightness', brightWrap);
     // Difficulty for the NEXT new game. A loaded save keeps its own difficulty, so this
     // shows the running one too, to avoid confusion about why nothing changed mid-run.
     const running = (S && S.difficulty) ? DSZ.DIFF[S.difficulty].name : null;
