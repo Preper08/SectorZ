@@ -326,6 +326,15 @@
       if (!target) target = W.blds.find(b => b && b.kind === 'shop' && b.shop !== 'guns' && b.shop !== 'hardware');
       if (target) { target.shop = 'clothing'; target.name = 'clothing'; for (const p of target.props) if (p.t === O.SHELF) p.loot = 'clothing'; }
     }
+    // Landmarks. The six civic sites are pushed by their own blocks; the shops worth finding get
+    // a label too, but only when the building actually exists. The gun shop is the one that is
+    // not guaranteed - the conversion above only fires if a hardware store was rolled, which is
+    // most towns but not all - so a missing label there is the truth, not a bug.
+    const landmark = (b, name) => { if (b) Gen.poi.push({ name, x: b.x + b.w / 2, y: b.y + b.h / 2, minor: true }); };
+    landmark(W.blds.find(b => b && b.kind === 'super'), 'Supermarket');
+    landmark(W.blds.find(b => b && b.kind === 'shop' && b.shop === 'guns'), 'Gun Shop');
+    landmark(W.blds.find(b => b && b.kind === 'shop' && b.shop === 'clothing'), 'Clothing');
+    for (const b of W.blds) if (b && b.kind === 'diner') landmark(b, 'Diner');
     streets();
     forest();
     // A door must lead somewhere. Interior partitions are handled per building (Bld.repairDoors),

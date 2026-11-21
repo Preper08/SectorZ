@@ -464,6 +464,48 @@
 
   Props.pcResetMap = function () { pcMapCache = null; };
 
+  // Town-map landmark labels, shared by the town map (ui.js) and the police terminal map so the
+  // two always agree. The six civic sites keep the big label; shops and diners get a smaller one
+  // on a dark plate. Shops in one block can sit 8 tiles apart, which is narrower than the word,
+  // so a label that would collide is nudged a line up or down and gets a leader back to its
+  // building. If every line is taken the label is dropped: one missing label beats a stack of
+  // unreadable text.
+  Props.poiLabels = function (x, project, o) {
+    const boxes = [];
+    const hits = a => boxes.some(b => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]);
+    const list = (DSZ.Gen.poi || []).filter(q => o.minor !== false || !q.minor).slice().sort((a, b) => (a.minor ? 1 : 0) - (b.minor ? 1 : 0));
+    x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+    for (const q of list) {
+      const s = project(q.x, q.y), sx = s[0], sy = s[1];
+      const minor = !!q.minor, plate = minor || o.mainPlate;
+      x.font = minor ? o.minorFont : o.mainFont;
+      const txt = minor || o.upper ? q.name.toUpperCase() : q.name;
+      const tw = x.measureText(txt).width, lh = minor ? o.minorH : o.mainH;
+      const bw = tw + 6, bh = lh + 4;
+      let box = null, shift = 0;
+      for (const d of [0, -bh, bh, -2 * bh, 2 * bh]) {
+        const cand = [sx - bw / 2, sy - lh - 2 + d, sx + bw / 2, sy - lh - 2 + d + bh];
+        if (!hits(cand)) { box = cand; shift = d; break; }
+      }
+      if (!box) continue;
+      boxes.push(box);
+      if (plate) {
+        // leader first, so the plate covers its end
+        if (shift) {
+          x.strokeStyle = o.plate; x.lineWidth = 1.4; x.beginPath();
+          x.moveTo(sx, sy); x.lineTo(sx, shift < 0 ? box[3] : box[1]); x.stroke();
+        }
+        x.fillStyle = o.plate; x.fillRect(box[0], box[1], bw, bh);
+        x.fillStyle = minor ? o.minorColor : o.mainColor;
+        x.fillText(txt, sx, box[3] - 4);
+      } else {
+        x.strokeStyle = o.stroke; x.lineWidth = o.strokeW;
+        x.strokeText(txt, sx, sy);
+        x.fillStyle = o.mainColor; x.fillText(txt, sx, sy);
+      }
+    }
+  };
+
   // ---- Police badge, drawn in the terminal's header.
   // A shield is the one shape everyone reads as "police" at a glance, and at this size (about
   // 37 px tall on a 1080-wide canvas) an emblem inside it would turn to mush once the canvas is
@@ -582,17 +624,14 @@
 
       // points of interest. Labels are drawn last and over a dark backing plate, because at the
       // old size they were set straight onto the map and vanished into the building colours.
-      x.font = font(h * 0.028, true); x.textAlign = 'center'; x.textBaseline = 'bottom';
-      const plate = 'rgba(4,8,12,0.72)';
-      for (const q of DSZ.Gen.poi || []) {
-        const px = dx + q.x * map.k * sc, py = dy + q.y * map.k * sc;
-        const tw = x.measureText(q.name.toUpperCase()).width;
-        const th = h * 0.026;
-        x.fillStyle = plate;
-        x.fillRect(px - tw / 2 - 3, py - 3 - th, tw + 6, th + 2);
-        x.fillStyle = '#eaf2f8';
-        x.fillText(q.name.toUpperCase(), px, py - 2);
-      }
+      // Only the six civic sites get text here: this map is a quarter of the size of the town
+      // map, and shop names at that scale covered each other and the streets. Shops are already
+      // legible by colour on this map - the legend calls them STORES - so nothing is lost.
+      DSZ.Props.poiLabels(x, (qx, qy) => [dx + qx * map.k * sc, dy + qy * map.k * sc], {
+        mainFont: font(h * 0.028, true), minorFont: font(h * 0.021, true),
+        mainH: h * 0.026, minorH: h * 0.019, mainColor: '#eaf2f8', minorColor: '#aebfd0',
+        upper: true, mainPlate: true, minor: false, plate: 'rgba(4,8,12,0.72)'
+      });
       // player position
       if (S && S.player) {
         const px = dx + S.player.x * map.k * sc, py = dy + S.player.y * map.k * sc;

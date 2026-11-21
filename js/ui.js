@@ -656,7 +656,11 @@
     if (!mmCanvas) mmCanvas = buildWorldMap(); const cv = els.bigmap, x = cv.getContext('2d'), k = cv.width / C.W, p = S.player;
     x.imageSmoothingEnabled = false; x.drawImage(mmCanvas, 0, 0, cv.width, cv.height);
     x.fillStyle = 'rgba(255,255,255,0.9)'; x.font = 'bold 13px Rajdhani, sans-serif'; x.textAlign = 'center'; x.strokeStyle = 'rgba(0,0,0,0.9)'; x.lineWidth = 3;
-    for (const q of DSZ.Gen.poi) { x.strokeText(q.name, q.x * k, q.y * k); x.fillText(q.name, q.x * k, q.y * k); }
+    DSZ.Props.poiLabels(x, (qx, qy) => [qx * k, qy * k], {
+      mainFont: 'bold 13px Rajdhani, sans-serif', minorFont: 'bold 11px Rajdhani, sans-serif',
+      mainH: 13, minorH: 11, mainColor: 'rgba(255,255,255,0.9)', minorColor: '#c6d6e4',
+      stroke: 'rgba(0,0,0,0.9)', strokeW: 3, plate: 'rgba(6,10,14,0.68)'
+    });
     for (const c of S.cars) if (c.drivable) { x.fillStyle = '#7ad0ff'; x.fillRect(c.x * k - 3, c.y * k - 3, 6, 6); }
     x.fillStyle = '#ffdd55'; x.beginPath(); x.arc(p.x * k, p.y * k, 5, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 2; x.stroke();
   }
