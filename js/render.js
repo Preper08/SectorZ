@@ -822,7 +822,7 @@
       ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.6, -2)[0] - 1, P0(TOT * 0.6, -2)[1] - 1, 2, 2); // sight
       hl(P0(TOT * 0, -0.9)[0], P0(TOT * 0, -0.9)[1], P0(TOT * 0.75, -0.9)[0], P0(TOT * 0.75, -0.9)[1], 0.9);
     } },
-    shotgun: { len: 0.5, th: 3, draw: W => {
+    shotgun: { len: 0.4, th: 3, draw: W => {
       const { segT, P0, hl, TOT, col, dark, wood } = W;
       segT(TOT * -0.3, TOT * 0.78, 0, 0, 3.4, col); // receiver
       segT(TOT * 0.78, TOT * 1.04, 0, 0, 1.7, dark); // barrel
