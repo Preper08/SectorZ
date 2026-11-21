@@ -37,16 +37,31 @@
   Inv.place = function (g, it, x, y) { it.x = x; it.y = y; if (g.items.indexOf(it) < 0) g.items.push(it); return it; };
   Inv.remove = function (g, it) { const i = g.items.indexOf(it); if (i >= 0) g.items.splice(i, 1); };
   Inv.canStack = (a, b) => a.id === b.id && I[a.id].stack > 1 && a.q < I[a.id].stack && !a.dur && !b.dur;
-  // merge into stacks, then first free slot. returns remaining quantity (0 = fully added)
+  // merge into stacks, then first free slots. returns remaining quantity (0 = fully added).
+  // A quantity above the item's stack limit is split into several stacks; placing one
+  // oversized item used to let 100 rounds or 4 bandages live in a single slot.
   Inv.addTo = function (g, it) {
-    const d = I[it.id];
-    if (d.stack > 1) for (const o of g.items) { if (it.q <= 0) break; if (o.id === it.id && o.q < d.stack) { const m = Math.min(d.stack - o.q, it.q); o.q += m; it.q -= m; } }
+    const d = I[it.id], max = d.stack > 1 ? d.stack : 1;
+    if (max > 1) for (const o of g.items) { if (it.q <= 0) break; if (o.id === it.id && o.q < max) { const m = Math.min(max - o.q, it.q); o.q += m; it.q -= m; } }
     if (it.q <= 0) return 0;
-    for (const rot of d.w === d.h ? [false] : [false, true]) {
-      it.rot = rot;
-      for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (Inv.fits(g, it, x, y)) { Inv.place(g, it, x, y); return 0; }
+    while (it.q > 0) {
+      const q = Math.min(max, it.q);
+      const piece = q === it.q ? it : Object.assign({}, it, { q, uid: ++Inv.uid });
+      piece.q = q;
+      let placed = false;
+      for (const rot of d.w === d.h ? [false] : [false, true]) {
+        piece.rot = rot;
+        for (let y = 0; y < g.h && !placed; y++) for (let x = 0; x < g.w; x++) {
+          if (Inv.fits(g, piece, x, y)) { Inv.place(g, piece, x, y); placed = true; break; }
+        }
+        if (placed) break;
+      }
+      if (!placed) { piece.rot = false; break; }
+      if (piece === it) return 0;
+      it.q -= q;
     }
-    it.rot = false; return it.q;
+    it.rot = false;
+    return it.q;
   };
 
   // ---- player inventory
@@ -125,12 +140,42 @@
   };
   // refresh every storage slot (used on load / migration)
   Inv.refreshAll = function (P, dropFn) { for (const s of Inv.STORE) Inv.refreshSlot(P, s, dropFn); };
+  // Old saves (and old containers) can carry a quantity above the item's stack limit in a
+  // single slot, because addTo used to place the whole amount at once. Split the excess back
+  // into legal stacks: first free cells in the same grid, then the other grids, then the
+  // ground. Items are moved, never copied or silently deleted.
+  Inv.repairStacks = function (P, dropFn) {
+    for (const s of Inv.STORE) {
+      const g = Inv.gridOf(P, s); if (!g || !g.items) continue;
+      for (const it of g.items.slice()) {
+        const max = I[it.id].stack > 1 ? I[it.id].stack : 1;
+        if (it.q <= max) continue;
+        const over = it.q - max;
+        it.q = max;
+        const rest = Object.assign({}, it, { q: over, uid: ++Inv.uid, x: 0, y: 0, rot: false });
+        if (Inv.addTo(g, rest) !== 0) {
+          const left = Inv.give(P, rest);
+          if (left && dropFn) dropFn(left);
+        }
+      }
+    }
+    for (const it of P.hot) {
+      if (!it) continue;
+      const max = I[it.id].stack > 1 ? I[it.id].stack : 1;
+      if (it.q <= max) continue;
+      const over = it.q - max;
+      it.q = max;
+      const left = Inv.give(P, Object.assign({}, it, { q: over, uid: ++Inv.uid }));
+      if (left && dropFn) dropFn(left);
+    }
+  };
   // An item definition can change size between builds - the torso garments went from a
   // one-wide flannel to two tiles wide, which turns a legal old layout into an illegal one.
   // Positions are saved, footprints are not, so a bag saved under the old rule can hold two
   // items that overlap under the new one. Re-pack only the grids that actually overlap, so a
   // player's carefully arranged bag is never touched when nothing changed.
   Inv.repairOverlaps = function (P, dropFn) {
+    Inv.repairStacks(P, dropFn);
     for (const s of Inv.STORE) {
       const g = Inv.gridOf(P, s); if (!g || !g.items || g.items.length < 2) continue;
       let bad = false;

@@ -103,25 +103,20 @@
   // so it is safe to call on every god-mode enable or game start.
   Game.godKit = function (S) {
     const p = S.player, P = p.inv;
-    if (!P.equip.bag || P.equip.bag.id !== 'bigpack') Inv.equip(P, Inv.make('bigpack'), Game.dropFn(S));
-    const ensure = (id, q, extra) => { const have = Inv.count(P, id); if (have < q) Inv.give(P, Inv.make(id, q - have, extra)); };
-    ensure('pistol', 1, { mag: 12 }); ensure('shotgun', 1, { mag: 6 }); ensure('rifle', 1, { mag: 5 });
-    ensure('machete', 1); ensure('crowbar', 1); ensure('axe', 1);
-    ensure('ammo9', 40); ensure('shell', 20); ensure('ammo762', 20);
-    ensure('medkit', 2); ensure('bandage', 5); ensure('antibiotics', 3); ensure('painkillers', 3); ensure('splint', 2);
-    ensure('mre', 4); ensure('beans', 4); ensure('water', 4); ensure('soda', 4);
-    ensure('hammer', 1); ensure('nails', 30); ensure('wood', 6); ensure('scrap', 12); ensure('tape', 3);
-    ensure('gascan', 1, { fuel: 100 }); ensure('battery', 3); ensure('flashlight', 1, { bat: 100 }); ensure('map', 1); ensure('lighter', 1);
     // Admin outfit: cap, flannel shirt, kevlar vest, cargo pants, boots and the hiking pack.
-    // Only swap a slot when it is not already wearing the requested item, so enabling god mode
-    // twice does not shuffle the same clothes in and out of the inventory.
+    // Wear it before filling the kit so the vest, legs and body pocket grids are available
+    // for the supplies. Only swap a slot when it is not already wearing the requested item,
+    // so enabling god mode twice does not shuffle the same clothes in and out of the inventory.
     const wear = (slot, id) => { if (!P.equip[slot] || P.equip[slot].id !== id) Inv.equip(P, Inv.make(id), Game.dropFn(S)); };
-    wear('head', 'cap'); wear('body', 'flannel'); wear('vest', 'vest');
-    wear('legs', 'cargopants'); wear('feet', 'boots'); wear('bag', 'bigpack');
-    if (P.equip.light && P.equip.light.bat !== undefined) P.equip.light.bat = 100;
-    // The worn set changed, so the figure has to be told.
-    Game.refreshEquipVisuals(S);
-    // put the main weapons into empty hotbar slots (1-4)
+    wear('bag', 'bigpack'); wear('head', 'cap'); wear('body', 'flannel');
+    wear('vest', 'vest'); wear('legs', 'cargopants'); wear('feet', 'boots');
+    // giveOrDrop keeps the loadout intact even when the pack is full: the remainder lands at
+    // the player's feet instead of disappearing because ensure() ignored the leftover.
+    const ensure = (id, q, extra) => { const have = Inv.count(P, id); if (have < q) Game.giveOrDrop(S, Inv.make(id, q - have, extra)); };
+    ensure('pistol', 1, { mag: 12 }); ensure('shotgun', 1, { mag: 6 }); ensure('rifle', 1, { mag: 5 });
+    ensure('machete', 1);
+    // Move the main weapons into empty hotbar slots before filling the rest of the kit. They
+    // leave the pack, so the supplies get those cells instead of being pushed to the ground.
     const kit = ['pistol', 'shotgun', 'rifle', 'machete'];
     for (let i = 0; i < P.hot.length; i++) {
       if (P.hot[i]) continue;
@@ -130,6 +125,15 @@
       const it = Inv.all(P).find(x => x.id === id);
       if (it) { Inv.removeItem(P, it); P.hot[i] = it; }
     }
+    ensure('crowbar', 1); ensure('axe', 1);
+    ensure('ammo9', 40); ensure('shell', 20); ensure('ammo762', 20);
+    ensure('medkit', 2); ensure('bandage', 5); ensure('antibiotics', 3); ensure('painkillers', 3); ensure('splint', 2);
+    ensure('mre', 4); ensure('beans', 4); ensure('water', 4); ensure('soda', 4);
+    ensure('hammer', 1); ensure('nails', 30); ensure('wood', 6); ensure('scrap', 12); ensure('tape', 3);
+    ensure('gascan', 1, { fuel: 100 }); ensure('battery', 3); ensure('flashlight', 1, { bat: 100 }); ensure('map', 1); ensure('lighter', 1);
+    if (P.equip.light && P.equip.light.bat !== undefined) P.equip.light.bat = 100;
+    // The worn set changed, so the figure has to be told.
+    Game.refreshEquipVisuals(S);
     Game.toast(S, 'God mode: inventory filled - items are infinite.');
   };
 
