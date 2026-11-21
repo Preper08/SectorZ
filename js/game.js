@@ -470,7 +470,7 @@
       if (In.pressed('KeyG')) Game.refuelNearby(S);
       if (c.engineOn) { A.engine(true, Math.min(1, Math.abs(c.speed) / 12 + (k.thr ? 0.18 : 0.05)), 1); if (c.fuel <= 0) c.engineOn = false; } else A.engine(false);
       if (In.pressed('KeyE') && !ui.blockKeys()) { Game.exitCar(S); S.focus = (p.dead || S.build.active) ? null : findFocus(S); return; }
-      p.x = c.x; p.y = c.y; p.moving = false; p.crouch = false; p.pose.crouch = false; p.pose.legs = 'idle'; S.stats.distance += Math.abs(c.speed) * dt / 1000;
+      p.x = c.x; p.y = c.y; p.moving = false; p.crouch = false; p.sneak = false; p.pose.crouch = false; p.pose.legs = 'idle'; S.stats.distance += Math.abs(c.speed) * dt / 1000;
       // keep the focus marker on the current car (findFocus returns the 'E Exit vehicle' target
       // while driving); without this the early return leaves a stale marker at the old position
       S.focus = (p.dead || S.build.active) ? null : findFocus(S);
@@ -481,7 +481,9 @@
     if (S.sleeping || S.search && false) { ix = iy = 0; }
     let mx = 0, my = 0; const il = Math.hypot(ix, iy);
     if (il > 0) { ix /= il; iy /= il; mx = ix / 64 + iy / 32; my = iy / 32 - ix / 64; const l = Math.hypot(mx, my); mx /= l; my /= l; }
-    p.sneak = In.down('ControlLeft') || In.down('KeyZ');
+    // sneak: a toggle, so one tap is enough. Holding Z used to be the only way to sneak, which
+    // looked broken because nothing changes until you move. Crouch (Ctrl) stays separate.
+    if (In.pressed('KeyZ') && !ui.blockKeys()) p.sneak = !p.sneak;
     // crouch: toggle with Left/Right Ctrl (walk speed and collision radius are unchanged; only the pose gets lower)
     if ((In.pressed('ControlLeft') || In.pressed('ControlRight')) && !ui.blockKeys()) p.crouch = !p.crouch;
     const wantRun = In.down('ShiftLeft') && il > 0 && p.stamina > 4 && !p.sneak && !p.crouch && !p.broken;
@@ -888,7 +890,7 @@
     const steps = 20, step = dt * 60 / steps * 1.0;
     s.t += dt; S.hour += (dt * 60) * (24 / C.DAY_LEN); if (S.hour >= 24) { S.hour -= 24; S.day++; }
     p.energy = Math.min(100, p.energy + 14 * dt); p.hp = Math.min(100, p.hp + 3 * dt * (p.food > 20 && p.water > 20 ? 1 : 0));
-    p.crouch = false; p.pose.crouch = false; // standing up resets the crouch toggle
+    p.crouch = false; p.sneak = false; p.pose.crouch = false; // standing up resets the crouch and sneak toggles
     S.weather.rain += (S.weather.target - S.weather.rain) * Math.min(1, dt * 2);
     for (const z of S.zombies) if (!z.dead && z.state === 'chase' && Math.hypot(z.x - p.x, z.y - p.y) < 14) { S.sleeping = null; Game.toast(S, 'Something woke you up!', 'bad'); return; }
     if (p.energy >= 100 || s.t > 8) { S.sleeping = null; Game.toast(S, 'You wake up refreshed.'); }
