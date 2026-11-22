@@ -6,9 +6,8 @@
   // type: tool|melee|gun|ammo|food|drink|med|mat|clothes|misc|bag|light|fuel
   const I = DSZ.ITEMS = {};
   function it(id, name, type, o) { I[id] = Object.assign({ id, name, type, w: 1, h: 1, stack: 1, icon: id, desc: '', col: '#aaa' }, o); }
-
-
-  // ---- melee
+// Portable workbench – carried in inventory, can be placed as a building
+it('bbench', 'Workbench', 'misc', { w: 2, h: 2, stack: 1, desc: 'Portable workbench. Right-click to place.' });
   it('fists', 'Fists', 'melee', { dmg: 8, range: 1.0, rate: 0.45, stam: 4, noise: 4, hidden: true });
   it('bat', 'Baseball Bat', 'melee', { w: 1, h: 2, dmg: 26, range: 1.5, rate: 0.62, stam: 9, noise: 7, dur: 60, desc: 'Solid wood. Reliable.', col: '#b08848' });
   it('crowbar', 'Crowbar', 'melee', { w: 1, h: 2, dmg: 22, range: 1.4, rate: 0.5, stam: 7, noise: 7, dur: 90, pry: true, desc: 'Great for opening locked doors.', col: '#7a8088' });

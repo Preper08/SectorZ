@@ -178,17 +178,6 @@
     for (const id of ['milhelmet', 'miltop', 'milpants', 'milboots', 'milvest', 'milpack']) ensure(id, 1);
     // Give the player a hammer so they can build structures.
     ensure('hammer', 1);
-    // Place a workbench building near the player so they can immediately craft.
-    const W = DSZ.World;
-    const player = S.player;
-    // pick a random offset tile around the player (avoid placing on top of the player)
-    const ox = Math.random() > 0.5 ? 1 : -1;
-    const oy = Math.random() > 0.5 ? 1 : -1;
-    const tx = Math.floor(player.x) + ox;
-    const ty = Math.floor(player.y) + oy;
-    if (W.inb(tx, ty) && !W.getObj(tx, ty) && (DSZ.G ? DSZ.G.FOREST !== W.groundAt(tx, ty) : true)) {
-      Game.placeBase(S, O.BWORKBENCH, tx, ty, 0);
-    }
     ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40);
     // The worn set changed, so the figure has to be told.
     Game.refreshEquipVisuals(S);
@@ -266,6 +255,42 @@
       }
       case 'tool': if (d.id === 'map') { DSZ.UI && DSZ.UI.openMap(); return true; } return false;
       case 'mat': if (d.id === 'battery') { const fl = P.equip.light; if (fl && fl.bat !== undefined && fl.bat < 90) { fl.bat = 100; consume(); Game.toast(S, 'Flashlight recharged'); A.play('click'); return true; } } return false;
+      case 'misc': if (it.id === 'bbench') { // Portable workbench – enter placement mode
+        const W = DSZ.World;
+        const p = S.player;
+        // Start placement: pick a free tile near the player (avoid placing on top)
+        const ox = Math.random() > 0.5 ? 1 : -1;
+        const oy = Math.random() > 0.5 ? 1 : -1;
+        const tx = Math.floor(p.x) + ox;
+        const ty = Math.floor(p.y) + oy;
+        if (W.inb(tx, ty) && !W.getObj(tx, ty) && W.tileFree(S, tx, ty) && Math.hypot(tx + 0.5 - p.x, ty + 0.5 - p.y) > 0.8) {
+          S.build.active = true;
+          S.build.def = O.BWORKBENCH;
+          S.build.tile = [tx, ty];
+          S.build.ok = true;
+          S.build.why = '';
+          A.play('click');
+          return true;
+        }
+        // If we can't place, try a few offsets
+        for (let i = 0; i < 4; i++) {
+          const ox2 = i === 0 ? 1 : i === 1 ? -1 : 0;
+          const oy2 = i === 2 ? 1 : i === 3 ? -1 : 0;
+          const tx2 = Math.floor(p.x) + ox2;
+          const ty2 = Math.floor(p.y) + oy2;
+          if (W.inb(tx2, ty2) && !W.getObj(tx2, ty2) && W.tileFree(S, tx2, ty2) && Math.hypot(tx2 + 0.5 - p.x, ty2 + 0.5 - p.y) > 0.8) {
+            S.build.active = true;
+            S.build.def = O.BWORKBENCH;
+            S.build.tile = [tx2, ty2];
+            S.build.ok = true;
+            S.build.why = '';
+            A.play('click');
+            return true;
+          }
+        }
+        Game.toast(S, 'No free space to place workbench');
+        return false;
+      }
       case 'fuel': return Game.refuelNearby(S, it);
       default: return false;
     }
