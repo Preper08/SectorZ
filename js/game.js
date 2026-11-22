@@ -176,6 +176,8 @@
     // The military set is carried, not worn: the player stays in uniform but can switch instantly.
     // These ids are absent from loot tables, so god mode is their only source for now.
     for (const id of ['milhelmet', 'miltop', 'milpants', 'milboots', 'milvest', 'milpack']) ensure(id, 1);
+    // Crafting station for god mode.
+    ensure('bbench', 1);
     ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40);
     // The worn set changed, so the figure has to be told.
     Game.refreshEquipVisuals(S);
