@@ -176,8 +176,19 @@
     // The military set is carried, not worn: the player stays in uniform but can switch instantly.
     // These ids are absent from loot tables, so god mode is their only source for now.
     for (const id of ['milhelmet', 'miltop', 'milpants', 'milboots', 'milvest', 'milpack']) ensure(id, 1);
-    // Crafting station for god mode.
-    ensure('bbench', 1);
+    // Give the player a hammer so they can build structures.
+    ensure('hammer', 1);
+    // Place a workbench building near the player so they can immediately craft.
+    const W = DSZ.World;
+    const player = S.player;
+    // pick a random offset tile around the player (avoid placing on top of the player)
+    const ox = Math.random() > 0.5 ? 1 : -1;
+    const oy = Math.random() > 0.5 ? 1 : -1;
+    const tx = Math.floor(player.x) + ox;
+    const ty = Math.floor(player.y) + oy;
+    if (W.inb(tx, ty) && !W.getObj(tx, ty) && (DSZ.G ? DSZ.G.FOREST !== W.groundAt(tx, ty) : true)) {
+      Game.placeBase(S, O.BWORKBENCH, tx, ty, 0);
+    }
     ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40);
     // The worn set changed, so the figure has to be told.
     Game.refreshEquipVisuals(S);

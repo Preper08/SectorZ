@@ -6,8 +6,7 @@
   // type: tool|melee|gun|ammo|food|drink|med|mat|clothes|misc|bag|light|fuel
   const I = DSZ.ITEMS = {};
   function it(id, name, type, o) { I[id] = Object.assign({ id, name, type, w: 1, h: 1, stack: 1, icon: id, desc: '', col: '#aaa' }, o); }
-// Workbench item – registered so Inv.make('bbench') does not throw
-it('bbench', 'Workbench', 'misc', { w: 2, h: 2, stack: 1, desc: 'Unlocks advanced crafting.' });
+
 
   // ---- melee
   it('fists', 'Fists', 'melee', { dmg: 8, range: 1.0, rate: 0.45, stam: 4, noise: 4, hidden: true });
