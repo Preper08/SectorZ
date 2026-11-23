@@ -790,7 +790,7 @@
     const it = p.heldDef;
     if (it) {
       const hx = i[0] + s.hand[0] * CH_SCALE, hy = i[1] - lift + s.hand[1] * CH_SCALE;
-      drawHeld(it, p, hx, hy, S);
+      drawHeld(it, p, hx, hy, S, spec.skin);
     }
     if (p.flash > 0) { ctx.globalAlpha = p.flash * 0.35; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - lift - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
     if (p.hurt > 0) { ctx.globalAlpha = Math.min(0.5, p.hurt); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#f00'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - lift - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
@@ -801,7 +801,7 @@
   // entries receive (W) = { segT, P0, seg, hl, ctx, TOT, th, col, dark, wood, tipx, tipy, p, it }
   const WEAPON_FIGS = {
     // guns -----------------------------------------------------------------
-    pistol: { len: 0.2, th: 2.6, draw: W => {
+    pistol: { len: 0.2, th: 2.6, grip: 3, draw: W => {
       const { segT, P0, seg, hl, ctx, TOT, col, dark } = W;
       segT(TOT * 0.1, TOT * 0.92, -0.8, -0.8, 2.9, col); // slide
       segT(TOT * 0.92, TOT * 1.02, -0.8, -0.8, 1.6, dark); // muzzle
@@ -810,7 +810,7 @@
       ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.55, -1.9)[0] - 0.9, P0(TOT * 0.55, -1.9)[1] - 1, 1.8, 1.8); // rear sight
       hl(P0(TOT * 0.2, -0.9)[0], P0(TOT * 0.2, -0.9)[1], P0(TOT * 0.85, -0.9)[0], P0(TOT * 0.85, -0.9)[1], 0.8);
     } },
-    smg: { len: 0.42, th: 2.6, draw: W => {
+    smg: { len: 0.42, th: 2.6, grip: 3, draw: W => {
       const { segT, P0, seg, hl, ctx, TOT, col, dark } = W;
       segT(TOT * -0.16, TOT * 0.8, 0, 0, 3.2, col); // boxy receiver
       segT(TOT * 0.8, TOT * 1.02, 0, 0, 1.6, dark); // short barrel
@@ -822,7 +822,7 @@
       ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.6, -2)[0] - 1, P0(TOT * 0.6, -2)[1] - 1, 2, 2); // sight
       hl(P0(TOT * 0, -0.9)[0], P0(TOT * 0, -0.9)[1], P0(TOT * 0.75, -0.9)[0], P0(TOT * 0.75, -0.9)[1], 0.9);
     } },
-    shotgun: { len: 0.4, th: 3, draw: W => {
+    shotgun: { len: 0.4, th: 3, grip: 0, draw: W => {
       const { segT, P0, hl, TOT, col, dark, wood } = W;
       segT(TOT * -0.3, TOT * 0.78, 0, 0, 3.4, col); // receiver
       segT(TOT * 0.78, TOT * 1.04, 0, 0, 1.7, dark); // barrel
@@ -831,7 +831,7 @@
       segT(TOT * 0.36, TOT * 0.54, 1.8, 2.7, 2.5, wood); // wooden pump
       hl(P0(TOT * -0.05, -1)[0], P0(TOT * -0.05, -1)[1], P0(TOT * 0.7, -1)[0], P0(TOT * 0.7, -1)[1], 1);
     } },
-    rifle: { len: 0.54, th: 3, draw: W => {
+    rifle: { len: 0.54, th: 3, grip: 3, draw: W => {
       const { segT, P0, seg, hl, ctx, TOT, col, dark, wood } = W;
       segT(TOT * -0.26, TOT * 0.58, 0, 0, 3.2, wood); // wooden stock
       segT(TOT * 0.58, TOT * 0.92, 0, 0, 2.7, col); // steel action
@@ -844,7 +844,7 @@
     // Modern assault rifle: collapsible stock, flat-top rail, vented handguard, muzzle brake,
     // curved magazine, pistol grip and a small reflex sight. Drawn in weapon space like the
     // other guns, so it follows the same aim/animation and iso-camera projection.
-    arifle: { len: 0.5, th: 3, draw: W => {
+    arifle: { len: 0.5, th: 3, grip: 4, draw: W => {
       const { segT, P0, seg, hl, ctx, TOT, col, dark } = W;
       segT(TOT * -0.36, TOT * -0.14, -0.4, -0.4, 2.2, '#2b2e31'); // collapsible stock
       segT(TOT * -0.38, TOT * -0.345, -2, -2, 3.6, '#191b1d'); // buttplate
@@ -956,7 +956,7 @@
     } }
   };
 
-  function drawHeld(it, p, hx, hy, S) {
+  function drawHeld(it, p, hx, hy, S, skin) {
     // 3D direction from hand along facing, with elevation
     const a = p.ang, ca = Math.cos(a), sa = Math.sin(a);
     let el = 0, L = 0.5, th = 3.4, col = '#2a2a2e', col2 = '#555';
@@ -978,8 +978,6 @@
     else if (it.type === 'light') { L = 0.2; th = 3.2; col = it.col || '#d8c040'; el = 0; }
     else return;
     const dx = ca * Math.cos(el) * L, dy = sa * Math.cos(el) * L, dz = Math.sin(el) * L;
-    const tipx = hx + (dx - dy) * 32, tipy = hy + (dx + dy) * 16 - dz * ZU;
-    const bx = hx - (dx - dy) * 32 * 0.18, by = hy - (dx + dy) * 16 * 0.18 + dz * ZU * 0.18;
     ctx.lineCap = 'round';
     const seg = (x1, y1, x2, y2, w, c) => { ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = w + 1.5; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
     const hl = (x1, y1, x2, y2, w) => { ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1 - 0.8); ctx.lineTo(x2, y2 - 0.8); ctx.stroke(); };
@@ -990,8 +988,15 @@
     // top side when the weapon points left, which made the grip look like it was rotating around
     // the gun as the player turned. Pick the perpendicular that points down the screen instead.
     if (it.type === 'gun' && ny < 0) { nx = -nx; ny = -ny; }
+    // The figure's hand anchor is the wrist, while every gun draws its grip a few px below that
+    // point. Shift the whole weapon so the grip centre actually sits in the hand instead of
+    // floating beside it - the offset is part of the weapon definition, not a global guess.
+    const gripN = wf && wf.grip !== undefined ? wf.grip : (it.type === 'gun' ? 3 : 0);
+    const ox = hx - nx * gripN, oy = hy - ny * gripN;
+    const tipx = ox + (dx - dy) * 32, tipy = oy + (dx + dy) * 16 - dz * ZU;
+    const bx = ox - (dx - dy) * 32 * 0.18, by = oy - (dx + dy) * 16 * 0.18 + dz * ZU * 0.18;
     // point at distance t (px) along the axis from the hand, offset n px to the side
-    const P0 = (t, n) => [hx + px * t + nx * (n || 0), hy + py * t + ny * (n || 0)];
+    const P0 = (t, n) => [ox + px * t + nx * (n || 0), oy + py * t + ny * (n || 0)];
     const segT = (t0, t1, n0, n1, w, c) => { const A2 = P0(t0, n0), B2 = P0(t1, n1); seg(A2[0], A2[1], B2[0], B2[1], w, c); };
     // full screen-space length of the weapon (behind-hand part + held part) in px
     const TOT = Math.hypot(tipx - bx, tipy - by) / 0.82;
@@ -1000,6 +1005,15 @@
       const wood = '#6a4a2a';
       if (wf) wf.draw({ segT, P0, seg, hl, ctx, TOT, th, col, dark, wood, px, py, nx, ny, fx, fy, tipx, tipy, p, it });
       else { seg(bx, by, tipx, tipy, th, col); hl(bx, by, tipx, tipy, th * 0.3); } // unknown gun fallback
+      // The figure sprite is drawn before the weapon, so the grip would cover the hand. Paint
+      // the knuckles back over the grip centre (now aligned with the hand anchor) to sell it.
+      if (skin) {
+        const c = 'rgb(' + (skin[0] | 0) + ',' + (skin[1] | 0) + ',' + (skin[2] | 0) + ')';
+        ctx.strokeStyle = 'rgba(12,8,6,0.7)'; ctx.lineWidth = 5.4;
+        ctx.beginPath(); ctx.moveTo(hx - 2.4, hy - 1.2); ctx.lineTo(hx + 2.4, hy + 1.2); ctx.stroke();
+        ctx.strokeStyle = c; ctx.lineWidth = 3.6;
+        ctx.beginPath(); ctx.moveTo(hx - 2.4, hy - 1.2); ctx.lineTo(hx + 2.4, hy + 1.2); ctx.stroke();
+      }
       if (p.muzzle > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(sprites.flare, tipx - 24, tipy - 24, 48, 48); ctx.globalCompositeOperation = 'source-over'; }
       return;
     }
