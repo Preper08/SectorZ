@@ -663,10 +663,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         // A shoe wraps the ankle, so it has to be in front of whatever the leg drew there. The
         // shin depth already accounts for how far up the leg that capsule reaches, which is the
         // whole difference between shorts and trousers.
-        const front = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
+        // A crouched shin bends toward the camera, so its average depth can exceed the ankle's;
+        // sort the shaft in front of the WHOLE shin or bare skin shows through the boot.
+        const front = Math.max(pr(ft).d, pr(kne).d, sd || -Infinity) + 0.05;
         // shaft: from below the knee to the ankle. In a crouch the knee is folded forward, so a
         // full-length shaft would cover most of the short bent leg - start it higher up the shin.
-        const t0 = lerp3(kne, ft, J.crouch ? 0.3 : 0.02), t1 = ft;
+        const t0 = lerp3(kne, ft, J.crouch ? 0.18 : 0.02), t1 = ft;
         cap([t0[0], t0[1], t0[2] + 0.01 * s], [t1[0], t1[1], t1[2] + 0.015 * s], 0.079 * s, shoes, { d: front });
         // laces: cross stitches down the front of the shaft
         const l0 = lerp3(kne, ft, J.crouch ? 0.5 : 0.3), l1 = lerp3(kne, ft, J.crouch ? 0.18 : 0.08);
@@ -684,9 +686,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     policeboots: (J, cap, pr, skin, shoes, shin, sc) => {
       const s = sc === undefined ? 1 : sc;
       [[J.kneeL, J.footL, shin && shin.L], [J.kneeR, J.footR, shin && shin.R]].forEach(([kne, ft, sd]) => {
-        const front = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
+        const front = Math.max(pr(ft).d, pr(kne).d, sd || -Infinity) + 0.05;
         const dk = shoes.map(v => v * 0.62), lt = shoes.map(v => Math.min(255, v * 1.6 + 16));
-        const t0 = lerp3(kne, ft, J.crouch ? 0.3 : 0.02), t1 = ft;
+        const t0 = lerp3(kne, ft, J.crouch ? 0.18 : 0.02), t1 = ft;
         cap([t0[0], t0[1], t0[2] + 0.01 * s], [t1[0], t1[1], t1[2] + 0.015 * s], 0.082 * s, shoes, { d: front }); // shaft
         const c0 = lerp3(kne, ft, J.crouch ? 0.34 : 0.06);
         cap([c0[0], c0[1], c0[2] + 0.012 * s], [c0[0], c0[1], c0[2] - 0.04 * s], 0.09 * s, dk, { d: front + 0.012 }); // cuff
@@ -703,9 +705,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     milboots: (J, cap, pr, skin, shoes, shin, sc) => {
       const s = sc === undefined ? 1 : sc;
       [[J.kneeL, J.footL, shin && shin.L], [J.kneeR, J.footR, shin && shin.R]].forEach(([kne, ft, sd]) => {
-        const front = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
+        const front = Math.max(pr(ft).d, pr(kne).d, sd || -Infinity) + 0.05;
         const dk = shoes.map(v => v * 0.65), lt = shoes.map(v => Math.min(255, v * 1.5 + 20));
-        const t0 = lerp3(kne, ft, J.crouch ? 0.3 : 0.02), t1 = ft;
+        const t0 = lerp3(kne, ft, J.crouch ? 0.18 : 0.02), t1 = ft;
         cap([t0[0], t0[1], t0[2] + 0.01 * s], [t1[0], t1[1], t1[2] + 0.015 * s], 0.086 * s, shoes, { d: front }); // shaft
         const c0 = lerp3(kne, ft, J.crouch ? 0.34 : 0.07);
         cap([c0[0], c0[1], c0[2] + 0.012 * s], [c0[0], c0[1], c0[2] - 0.05 * s], 0.095 * s, dk, { d: front + 0.012 }); // padded cuff
