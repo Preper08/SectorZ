@@ -156,6 +156,7 @@
     const wear = (slot, id) => { if (!P.equip[slot] || P.equip[slot].id !== id) Inv.equip(P, Inv.make(id), Game.dropFn(S)); };
     wear('bag', 'policepack'); wear('head', 'helmet'); wear('body', 'policeshirt');
     wear('vest', 'vest'); wear('legs', 'policepants'); wear('feet', 'policeboots');
+    wear('light', 'flashlight'); // a working torch, charged by Inv.make, for the dark
     // giveOrDrop keeps the kit intact even when the pack is full: the remainder lands at the
     // player's feet instead of disappearing because ensure() ignored the leftover.
     const ensure = (id, q, extra) => { const have = Inv.count(P, id); if (have < q) Game.giveOrDrop(S, Inv.make(id, q - have, extra)); };
@@ -192,6 +193,7 @@
       Game.placeBase(S, benchDef, tx, ty, 0);
     }
     ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40); ensure('ammo556', 90);
+    ensure('map', 1); // full town map on the admin kit, ready for the M key
     // The worn set changed, so the figure has to be told.
     Game.refreshEquipVisuals(S);
     Game.toast(S, 'God mode: police kit + all weapons. Items are infinite.');
