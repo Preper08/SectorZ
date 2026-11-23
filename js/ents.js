@@ -443,7 +443,8 @@
   // ------------------------------------------------------------ cars
   E.spawnCar = function (S, spec) {
     const K = DSZ.CarArt.kinds[spec.kind];
-    const c = { x: spec.x, y: spec.y, ang: spec.ang, vx: 0, vy: 0, speed: 0, steer: 0, kind: spec.kind, color: spec.color, state: spec.state, hp: spec.state === 'ok' ? 140 : (spec.state === 'burnt' ? 0 : 60), maxhp: 140, fuel: spec.state === 'ok' ? 15 + Math.random() * 45 : 0, maxfuel: 60, lightsOn: false, sirenOn: false, sirenT: 0, engineOn: false, braking: false, rev: false, fire: false, smoke: 0, seed: spec.seed, drivable: spec.state === 'ok', dead: spec.state === 'burnt', cont: null, flash: 0, alarm: 0, throttle: 0, bounce: 0, noiseT: 0 };
+    const hull = spec.kind === 'armored' ? 260 : 140; // armoured car soaks much more punishment
+    const c = { x: spec.x, y: spec.y, ang: spec.ang, vx: 0, vy: 0, speed: 0, steer: 0, kind: spec.kind, color: spec.color, state: spec.state, hp: spec.state === 'ok' ? hull : (spec.state === 'burnt' ? 0 : 60), maxhp: hull, fuel: spec.state === 'ok' ? 15 + Math.random() * 45 : 0, maxfuel: 60, lightsOn: false, sirenOn: false, sirenT: 0, engineOn: false, braking: false, rev: false, fire: false, smoke: 0, seed: spec.seed, drivable: spec.state === 'ok', dead: spec.state === 'burnt', cont: null, flash: 0, alarm: 0, throttle: 0, bounce: 0, noiseT: 0 };
     S.cars.push(c); return c;
   };
   E.damageCar = function (S, c, dmg, sx, sy, bullet) {
@@ -487,7 +488,7 @@
     const K = DSZ.CarArt.kinds[c.kind], G = DSZ.Game; const inp = driven ? S.carInput : { thr: 0, str: 0, hand: true };
     const fx = Math.cos(c.ang), fy = Math.sin(c.ang), lx = -fy, ly = fx;
     let vf = c.vx * fx + c.vy * fy, vl = c.vx * lx + c.vy * ly;
-    const hasFuel = c.fuel > 0 && c.hp > 0, max = (c.kind === 'taxi' ? 12.5 : c.kind === 'van' ? 10 : c.kind === 'pickup' ? 11 : 12) * (c.hp < 40 ? 0.7 : 1);
+    const hasFuel = c.fuel > 0 && c.hp > 0, max = (c.kind === 'taxi' ? 12.5 : c.kind === 'van' ? 10 : c.kind === 'pickup' ? 11 : c.kind === 'armored' ? 9.5 : 12) * (c.hp < 40 ? 0.7 : 1);
     let thr = driven && hasFuel && c.engineOn ? inp.thr : 0;
     c.braking = false; c.rev = vf < -0.5 && thr < 0;
     if (thr > 0) { if (vf < -0.3) { vf += 30 * dt; c.braking = true; } else vf += 10.5 * dt * (1 - Math.max(0, vf) / max); }

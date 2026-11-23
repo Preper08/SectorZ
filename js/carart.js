@@ -17,12 +17,13 @@
     taxi: { L: 2.3, W: 0.98, hh: 0.5, cab: [-0.62, 0.5, -0.4, 0.2], ch: 0.82, wb: 0.72, taxi: true, fixed: [226, 184, 40] },
     police: { L: 2.35, W: 1.0, hh: 0.5, cab: [-0.62, 0.52, -0.4, 0.22], ch: 0.82, wb: 0.74, police: true, fixed: [32, 40, 56] },
     van: { L: 2.6, W: 1.04, hh: 0.64, cab: [-1.2, 0.95, -1.18, 0.55], ch: 1.18, wb: 0.84, van: true },
-    pickup: { L: 2.55, W: 1.04, hh: 0.56, cab: [-0.15, 0.78, -0.02, 0.5], ch: 0.92, wb: 0.82, pickup: true }
+    pickup: { L: 2.55, W: 1.04, hh: 0.56, cab: [-0.15, 0.78, -0.02, 0.5], ch: 0.92, wb: 0.82, pickup: true },
+    armored: { L: 2.7, W: 1.1, hh: 0.62, cab: [-1.0, 0.92, -0.95, 0.5], ch: 1.16, wb: 0.86, armored: true, fixed: [64, 106, 74] }
   };
   const KINDS = {};
   for (const k in RAW) {
     const r = RAW[k], o = { L: r.L * CAR_SCALE, W: r.W * CAR_SCALE, hh: r.hh * CAR_SCALE, ch: r.ch * CAR_SCALE, wb: r.wb * CAR_SCALE, cab: r.cab.map(v => v * CAR_SCALE) };
-    if (r.taxi) o.taxi = true; if (r.police) o.police = true; if (r.van) o.van = true; if (r.pickup) o.pickup = true;
+    if (r.taxi) o.taxi = true; if (r.police) o.police = true; if (r.van) o.van = true; if (r.pickup) o.pickup = true; if (r.armored) o.armored = true;
     if (r.fixed) o.fixed = r.fixed;
     // derived collision capsule (used for walls, entities and car-vs-car):
     // col  = circle radius for physics/entities, wcol = circle radius for tile collision,
@@ -37,7 +38,7 @@
   CarArt.halfW = function (kind) { return (KINDS[kind] || KINDS.sedan).W / 2; };
   // Human-readable names for the driving HUD. Unknown kinds fall back rather than
   // leaking a raw id into the interface.
-  const NAMES = { sedan: 'Sedan', hatch: 'Hatchback', taxi: 'Taxi', police: 'Police Cruiser', van: 'Van', pickup: 'Pickup' };
+  const NAMES = { sedan: 'Sedan', hatch: 'Hatchback', taxi: 'Taxi', police: 'Police Cruiser', van: 'Van', pickup: 'Pickup', armored: 'Armoured Car' };
   CarArt.name = function (kind) { return NAMES[kind] || 'Vehicle'; };
   CarArt.kinds = KINDS;
 
@@ -98,6 +99,31 @@
     if (K.van) {
       const cf = G3.box(cb[0], -Wd * 0.96, cz, 1.0 * S, Wd * 0.96, ch, c, { top: [c[0] * 1.08, c[1] * 1.08, c[2] * 1.08] });
       for (const f of cf) { if (f.role === 'px') { f.glass = true; f.glassCol = glassCol; f.inset = 0.86; if (state === 'wreck') f.crack = seed + 5; } else if (f.role === 'py' || f.role === 'ny') { f.d = (x, w, h) => { x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(w * 0.7, h * 0.18, w * 0.26, h * 0.5); x.fillStyle = glassCol.length ? G3.shade(glassCol, 1.4) : '#222'; x.fillRect(w * 0.72, h * 0.22, w * 0.22, h * 0.42); stains(x, w, h); }; } else if (f.role === 'nx') { f.d = (x, w, h) => { x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(w * 0.1, h * 0.1, w * 0.36, h * 0.3); x.fillRect(w * 0.54, h * 0.1, w * 0.36, h * 0.3); x.fillStyle = 'rgba(0,0,0,0.5)'; x.fillRect(w / 2 - 1, 0, 2, h); stains(x, w, h); }; } faces.push(f); }
+    } else if (K.armored) {
+      // Boxed armoured cabin: narrow slit windows, bolted armour belts and a roof hatch.
+      const cf = G3.box(cb[0], -Wd * 0.96, cz, 1.05 * S, Wd * 0.96, ch, c, { top: [c[0] * 1.08, c[1] * 1.08, c[2] * 1.08] });
+      for (const f of cf) {
+        if (f.role === 'px') { f.glass = true; f.glassCol = glassCol; f.inset = 0.72; if (state === 'wreck') f.crack = seed + 11; }
+        else if (f.role === 'nx') f.d = (x, w, h) => {
+          x.fillStyle = 'rgba(0,0,0,0.5)'; x.fillRect(w * 0.14, h * 0.18, w * 0.72, h * 0.38);
+          x.fillStyle = glassCol; x.fillRect(w * 0.22, h * 0.24, w * 0.56, h * 0.2);
+          x.strokeStyle = 'rgba(0,0,0,0.45)'; x.lineWidth = 2; x.beginPath(); x.moveTo(w / 2, h * 0.56); x.lineTo(w / 2, h * 0.96); x.stroke();
+          stains(x, w, h);
+        };
+        else if (f.role === 'py' || f.role === 'ny') f.d = (x, w, h) => {
+          x.fillStyle = 'rgba(0,0,0,0.45)';
+          for (const sx of [0.12, 0.58]) x.fillRect(w * sx, h * 0.18, w * 0.3, h * 0.2);
+          x.fillStyle = glassCol;
+          for (const sx of [0.14, 0.6]) x.fillRect(w * sx, h * 0.21, w * 0.26, h * 0.14);
+          x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(0, h * 0.64, w, h * 0.09); // armour belt
+          x.fillStyle = 'rgba(255,255,255,0.12)';
+          for (let i = 0; i < 6; i++) x.fillRect(w * (0.08 + i * 0.15), h * 0.78, 2, 2); // bolts
+          stains(x, w, h);
+        };
+        faces.push(f);
+      }
+      const rx = (cb[2] + cb[3]) / 2;
+      faces.push(...G3.box(rx - 0.28 * S, -0.28 * S, ch, rx + 0.28 * S, 0.28 * S, ch + 0.12 * S, [70, 78, 62], { top: [86, 94, 76] }));
     } else if (K.pickup) {
       const cab = G3.frustum([cb[0], cb[1], -Wd * 0.94, Wd * 0.94, cz], [cb[2], cb[3], -Wd * 0.84, Wd * 0.84, ch], c, { top: [c[0] * 1.1, c[1] * 1.1, c[2] * 1.1], glassF: true, glassB: true, glassS: true });
       for (const f of cab) if (f.glass) { f.glassCol = glassCol; if (state === 'wreck') f.crack = seed + f.role.length; }

@@ -285,7 +285,8 @@
     }
     put(bx + 2, by + 24, O.BARRIER);
     // vehicles: one drivable olive pickup and a pair of wrecks in the clear lane
-    const truck = Gen.addCar(bx + 13, by + 21.5, Math.PI / 2, 'ok', 'pickup'); if (truck) truck.color = 5;
+    // The drivable vehicle is now an armoured car; the two wrecks stay as military pickups.
+    const truck = Gen.addCar(bx + 13, by + 21.5, Math.PI / 2, 'ok', 'armored'); if (truck) truck.color = 5;
     for (const x of [bx + 6, bx + 20]) { const w = Gen.addCar(x, by + 21.5, Math.PI / 2, 'wreck', 'pickup'); if (w) w.color = 5; }
     lampAt(bx + 5, by + 18, true, [210, 225, 255]); lampAt(bx + 20, by + 18, rng() < 0.7, [210, 225, 255]);
     put(bx + 2, by + 19, O.WRECKFIRE, {});
