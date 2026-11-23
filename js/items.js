@@ -300,6 +300,10 @@
   };
   for (const id in TEAR) R.push({ id: 'r_tear_' + id, tab: 'Salvage', icon: id, out: ['rags', TEAR[id]], in: [[id, 1]], desc: 'Tear the ' + I[id].name.toLowerCase() + ' into rags.' });
 
+  // The portable Workbench: what a placed workbench becomes when picked up with E, and what is
+  // consumed when it is placed again. Shares its id with the build-catalogue entry below.
+  it('bbench', 'Workbench', 'misc', { w: 2, h: 2, col: '#a87848', desc: 'Right-click to place it in the world.' });
+
   // ----------------------------------------------------------------- base-building catalogue
   const B = DSZ.BUILD = [
     { id: 'bwall_w', obj: O.BWALL_W, name: 'Wood Wall', tab: 'Walls', cost: [['wood', 3], ['nails', 4]], desc: 'Basic barricade.' },

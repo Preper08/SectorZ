@@ -132,7 +132,23 @@
     milboots: (x, c) => { const col = c || '#7a6246'; poly(x, [[18, 10], [34, 10], [34, 36], [54, 41], [56, 50], [12, 50], [14, 36]], grad(x, 12, 10, 56, 50, col, 1.4, 0.55)); rr(x, 18, 10, 16, 6, 2, shade(col, 0.7)); x.fillStyle = '#1b1712'; x.fillRect(12, 46, 44, 6); x.strokeStyle = shade(col, 2.4); x.lineWidth = 1.6; for (let i = 0; i < 4; i++) { x.beginPath(); x.moveTo(22, 19 + i * 6); x.lineTo(30, 19 + i * 6); x.stroke(); } },
     milvest: (x, c) => { const col = c || '#4b5136'; poly(x, [[17, 9], [29, 13], [35, 13], [47, 9], [53, 22], [48, 55], [16, 55], [11, 22]], grad(x, 11, 9, 53, 55, col, 1.4, 0.55)); rr(x, 21, 16, 22, 29, 3, shade(col, 0.7)); x.strokeStyle = shade(col, 2.3); x.lineWidth = 1.8; for (let i = 0; i < 3; i++) { x.beginPath(); x.moveTo(18, 24 + i * 8); x.lineTo(46, 24 + i * 8); x.stroke(); } x.fillStyle = '#968056'; [[14, 27, 9, 8], [41, 27, 9, 8], [15, 40, 9, 8], [40, 40, 9, 8]].forEach(p => x.fillRect(p[0], p[1], p[2], p[3])); x.fillStyle = '#d8c060'; x.fillRect(27, 21, 10, 4); },
     fannypack: (x, c) => { rr(x, 8, 24, 48, 22, 10, grad(x, 8, 24, 56, 46, '#4a4a52', 1.3, 0.6)); x.strokeStyle = '#ccc'; x.lineWidth = 2; x.beginPath(); x.moveTo(12, 30); x.lineTo(52, 30); x.stroke(); },
-    plank_bundle: (x, c) => { for (let i = 0; i < 4; i++) poly(x, [[8, 22 + i * 8], [56, 14 + i * 8], [56, 20 + i * 8], [8, 28 + i * 8]], grad(x, 8, 0, 56, 0, '#b88852', 1.2 - i * 0.08, 0.7)); }
+    plank_bundle: (x, c) => { for (let i = 0; i < 4; i++) poly(x, [[8, 22 + i * 8], [56, 14 + i * 8], [56, 20 + i * 8], [8, 28 + i * 8]], grad(x, 8, 0, 56, 0, '#b88852', 1.2 - i * 0.08, 0.7)); },
+    // Workbench: thick plank tabletop on four legs with a lower shelf, a vice clamped to one
+    // end and a hammer lying on the top, so it reads as a workbench at a glance, not a crate.
+    bbench: (x, c) => {
+      const wood = c || '#a87848';
+      x.fillStyle = shade(wood, 0.62); x.fillRect(10, 26, 7, 31); x.fillRect(47, 26, 7, 31);
+      rr(x, 13, 41, 38, 7, 2, shade(wood, 0.8));
+      rr(x, 5, 15, 54, 11, 3, grad(x, 5, 15, 59, 26, wood, 1.4, 0.72));
+      x.fillStyle = shade(wood, 1.6); x.fillRect(7, 16, 50, 2);
+      x.strokeStyle = 'rgba(50,28,10,0.4)'; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(9, 21); x.lineTo(55, 21); x.stroke();
+      rr(x, 47, 6, 13, 10, 2, '#565c64');
+      x.fillStyle = '#7c848e'; x.fillRect(49, 8, 9, 3);
+      x.fillStyle = '#c04040'; x.fillRect(55, 11, 4, 6);
+      capsule(x, 12, 12, 26, 9, 3, '#946a3c');
+      poly(x, [[24, 4], [33, 6], [32, 12], [23, 10]], '#8a9098');
+    }
   };
 
   Icons.get = function (id) {

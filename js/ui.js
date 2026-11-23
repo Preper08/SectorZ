@@ -641,6 +641,14 @@
   let buildSig = '';
   function renderBuild() {
     const b = S.build, bar = els.buildbar; if (!b.active) { bar.classList.add('hidden'); buildSig = ''; return; }
+    // Placing a carried item (the portable Workbench): the catalogue does not apply here, only
+    // the controls do, and switching to another build would consume the item for the wrong thing.
+    if (b.itemId) {
+      const isig = 'item|' + b.itemId + '|' + (b.def && b.def.id) + '|' + (b.why || '');
+      if (isig !== buildSig) { buildSig = isig; bar.classList.remove('hidden'); bar.innerHTML = '<div class="bhelp">LMB place &nbsp;·&nbsp; RMB / X cancel (keeps the item) &nbsp;·&nbsp; R rotate &nbsp;·&nbsp; B / Esc exit' + (b.why ? ' &nbsp;·&nbsp; <b style="color:var(--bad)">' + b.why + '</b>' : '') + '</div>'; }
+      else bar.classList.remove('hidden');
+      return;
+    }
     const P = S.player.inv, sig = b.tab + '|' + (b.def && b.def.id) + '|' + DSZ.BUILD.map(d => Inv.canBuild(P, d) ? 1 : 0).join('') + '|' + (b.why || ''); if (sig === buildSig) { bar.classList.remove('hidden'); return; } buildSig = sig;
     bar.classList.remove('hidden');
     const tabs = [...new Set(DSZ.BUILD.map(d => d.tab))];

@@ -16,7 +16,7 @@
     const Gn = DSZ.Gen;
     const S = Game.S = {
       seed, time: 0, hour: C.START_HOUR, day: 1, difficulty: difficulty, cam: { x: 0, y: 0, zoom: 1, tz: 1, shake: 0 }, player: null, zombies: [], cars: [], drops: [], particles: [], decals: [], bullets: [], glowLights: [], noiseEvents: [],
-      weather: { rain: 0, target: 0, t: 60 + Math.random() * 60, flash: 0, thunder: 0, lt: 30 }, stats: { kills: 0, distance: 0, looted: 0, built: 0 }, muzzle: 0, focus: null, build: { active: false, def: null, tile: null, ok: false, rot: 0, tab: 'Walls' },
+      weather: { rain: 0, target: 0, t: 60 + Math.random() * 60, flash: 0, thunder: 0, lt: 30 }, stats: { kills: 0, distance: 0, looted: 0, built: 0 }, muzzle: 0, focus: null, build: { active: false, def: null, tile: null, ok: false, rot: 0, tab: 'Walls', itemId: null },
       carInput: { thr: 0, str: 0, hand: false }, toasts: [], state: 'play', search: null, prying: null, sleeping: null, spawnT: 20, saveT: 60, cinema: 0, paused: false, mouse: { wx: 0, wy: 0 },
       horde: { night: 0, active: false, announced: false, surgeT: 0, spawned: 0, left: 0, nights: 0 }
     };
@@ -268,6 +268,14 @@
       }
       case 'tool': if (d.id === 'map') { DSZ.UI && DSZ.UI.openMap(); return true; } return false;
       case 'mat': if (d.id === 'battery') { const fl = P.equip.light; if (fl && fl.bat !== undefined && fl.bat < 90) { fl.bat = 100; consume(); Game.toast(S, 'Flashlight recharged'); A.play('click'); return true; } } return false;
+      case 'misc': if (it.id === 'bbench') { // carried workbench: enter placement mode, consume only on a confirmed placement
+        if (p.driving) { Game.toast(S, 'Not while driving.'); return false; }
+        const def = DSZ.BUILD.find(d => d.obj === O.BWORKBENCH); if (!def) return false;
+        Game.setBuild(S, true); S.build.def = def; S.build.itemId = 'bbench';
+        if (DSZ.UI && DSZ.UI.open.win) DSZ.UI.closeWin();
+        A.play('click'); Game.toast(S, 'Place the Workbench: click to set it down, R rotate, right-click to cancel');
+        return true;
+      } return false;
       case 'fuel': return Game.refuelNearby(S, it);
       default: return false;
     }
@@ -301,7 +309,9 @@
 
   // ---------------------------------------------------------------- base building
   Game.setBuild = function (S, on) {
-    const b = S.build; b.active = on; if (on) { b.def = b.def || DSZ.BUILD[0]; b.tile = null; } else b.tile = null;
+    // itemId marks one-shot item placement (the portable Workbench); every entry into build
+    // mode starts as a normal material build and useItem re-arms it afterwards.
+    const b = S.build; b.active = on; b.itemId = null; if (on) { b.def = b.def || DSZ.BUILD[0]; b.tile = null; } else b.tile = null;
   };
   Game.placeBase = function (S, def, tx, ty, rot) {
     const o = { t: def.obj, f: rot & 3, v: 0, base: true, b: 0 }, d = D[def.obj];
@@ -334,18 +344,25 @@
     const b = S.build, p = S.player; if (!b.active || DSZ.UI.blockMouse()) { b.tile = null; return; }
     const tx = Math.floor(S.mouse.wx), ty = Math.floor(S.mouse.wy); b.tile = [tx, ty];
     const near = Math.hypot(tx + 0.5 - p.x, ty + 0.5 - p.y) < 5.5;
-    b.ok = near && tileFree(S, tx, ty) && Inv.canBuild(p.inv, b.def) && Inv.has(p.inv, 'hammer');
-    b.why = !near ? 'Too far' : (!Inv.has(p.inv, 'hammer') ? 'Need a hammer' : (!Inv.canBuild(p.inv, b.def) ? 'Missing materials' : (!tileFree(S, tx, ty) ? 'Blocked' : '')));
+    const itemId = b.itemId; // set when the ghost places a carried item instead of a material build
+    const haveItem = !itemId || Inv.has(p.inv, itemId);
+    b.ok = near && tileFree(S, tx, ty) && (itemId ? haveItem : Inv.canBuild(p.inv, b.def) && Inv.has(p.inv, 'hammer'));
+    b.why = !near ? 'Too far' : (itemId ? (!haveItem ? 'No ' + I[itemId].name + ' in inventory' : (!tileFree(S, tx, ty) ? 'Blocked' : '')) : (!Inv.has(p.inv, 'hammer') ? 'Need a hammer' : (!Inv.canBuild(p.inv, b.def) ? 'Missing materials' : (!tileFree(S, tx, ty) ? 'Blocked' : ''))));
     if (In.pressed('KeyR')) b.rot = (b.rot + 1) & 3;
     if (In.mouse.clicked && b.ok) {
-      if (!DSZ.settings.godmode) Inv.payBuild(p.inv, b.def); // god mode: build for free
+      if (itemId) { if (!DSZ.settings.godmode) Inv.take(p.inv, itemId, 1); } // carried item: exactly one, only now
+      else if (!DSZ.settings.godmode) Inv.payBuild(p.inv, b.def); // god mode: build for free
       Game.placeBase(S, b.def, tx, ty, b.rot); A.play('build', tx + 0.5, ty + 0.5, 1); E.debris(S, tx + 0.5, ty + 0.5, 0.6, 8, '#8a6a44'); E.noise(S, tx + 0.5, ty + 0.5, 12); S.stats.built++;
+      if (itemId && !DSZ.settings.godmode && !Inv.has(p.inv, itemId)) Game.setBuild(S, false); // placed the last one: leave placement mode
     } else if (In.mouse.clicked && !b.ok && b.why) Game.toast(S, b.why);
     if (In.mouse.rclicked || In.pressed('KeyX')) {
-      const o = W.getObj(tx, ty); if (o && o.base && near) {
-        const def = DSZ.BUILD.find(d => d.obj === o.t); if (def) Inv.refundBuild(p.inv, def, 0.7, Game.dropFn(S));
-        if (o.grid) for (const it of o.grid.items) Game.dropItem(S, tx + 0.5, ty + 0.5, it);
-        W.removeObj(tx, ty); DSZ.Render.dirtyAt(tx, ty); A.play('build', tx + 0.5, ty + 0.5, 0.8);
+      if (itemId) { Game.setBuild(S, false); A.play('click', null, null, 0.3); } // cancel placement: the item stays in the inventory
+      else {
+        const o = W.getObj(tx, ty); if (o && o.base && near) {
+          const def = DSZ.BUILD.find(d => d.obj === o.t); if (def) Inv.refundBuild(p.inv, def, 0.7, Game.dropFn(S));
+          if (o.grid) for (const it of o.grid.items) Game.dropItem(S, tx + 0.5, ty + 0.5, it);
+          W.removeObj(tx, ty); DSZ.Render.dirtyAt(tx, ty); A.play('build', tx + 0.5, ty + 0.5, 0.8);
+        }
       }
     }
   }
@@ -380,6 +397,9 @@
       // container branch: E opens the terminal, T still searches the drawers underneath.
       else if (o.t === O.COMPUTERDESK) consider('pc', o, cx, cy, 'E  Use computer    T  ' + (o.searched ? 'Open' : 'Search'), 1.7, -0.1);
       else if (d.cont) { const open = o.base || o.grid; consider('cont', o, cx, cy, (o.base ? 'E  Open ' : (o.searched ? 'E  Open ' : 'E  Search ')) + d.cont.name, 1.7); }
+      // A player-built workbench is picked up whole and carried as the portable Workbench item,
+      // so it can be placed again somewhere else. Only base-built ones: never world furniture.
+      else if (o.t === O.BWORKBENCH && o.base) consider('bench', o, cx, cy, 'E  Pick up Workbench', 1.7);
       else if (d.station === 'fire' || d.station === 'furnace') consider('fire', o, cx, cy, o.lit ? 'E  Add fuel (' + Math.round(o.fuel) + 's)' : 'E  Light fire (needs log/sticks)', 1.8);
       else if (o.t === O.BRAIN) consider('rain', o, cx, cy, 'E  Collect water (' + Math.floor(o.water || 0) + ')', 1.8);
       else if (o.t === O.SINK) consider('sink', o, cx, cy, 'E  Fill bottle', 1.5);
@@ -409,6 +429,15 @@
         const isNew = isC ? !o.grid : (!o.grid && !o.base);
         if (o.base || o.grid || (isC && o.grid)) { DSZ.UI.openLoot(isC ? 'Corpse' : D[o.t].cont.name, o.grid || (o.grid = Inv.grid(D[o.t].cont.w, D[o.t].cont.h)), o); break; }
         S.search = { kind: f.kind, o, t: 0, total: isC ? 0.9 : 0.5 + (D[o.t].cont.w * D[o.t].cont.h) * 0.045 };
+        break;
+      }
+      case 'bench': {
+        // The inventory takes the item FIRST; the world object is only removed once the give
+        // succeeded, so a full inventory leaves the workbench standing exactly where it was.
+        const o = f.ref, it = Inv.make('bbench');
+        if (Inv.give(p.inv, it)) { Game.toast(S, 'Not enough space to pick it up'); break; }
+        W.removeObj(o.x, o.y); DSZ.Render.dirtyAt(o.x, o.y);
+        A.play('pickup'); Game.toast(S, 'Picked up Workbench');
         break;
       }
       case 'car': {
