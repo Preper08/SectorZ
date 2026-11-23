@@ -159,7 +159,7 @@
     // giveOrDrop keeps the kit intact even when the pack is full: the remainder lands at the
     // player's feet instead of disappearing because ensure() ignored the leftover.
     const ensure = (id, q, extra) => { const have = Inv.count(P, id); if (have < q) Game.giveOrDrop(S, Inv.make(id, q - have, extra)); };
-    const guns = ['pistol', 'smg', 'shotgun', 'rifle'];
+    const guns = ['pistol', 'smg', 'shotgun', 'rifle', 'arifle'];
     for (const id of guns) ensure(id, 1, { mag: I[id].mag || 0 });
     for (const id of ['bat', 'crowbar', 'knife', 'machete', 'axe', 'pipe']) ensure(id, 1);
     // Move the six handiest weapons to the hotbar before packing anything else. Besides being
@@ -191,7 +191,7 @@
     if (W.inb(tx, ty) && !W.getObj(tx, ty) && (DSZ.G ? DSZ.G.FOREST !== W.groundAt(tx, ty) : true)) {
       Game.placeBase(S, benchDef, tx, ty, 0);
     }
-    ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40);
+    ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40); ensure('ammo556', 90);
     // The worn set changed, so the figure has to be told.
     Game.refreshEquipVisuals(S);
     Game.toast(S, 'God mode: police kit + all weapons. Items are infinite.');
