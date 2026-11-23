@@ -93,6 +93,11 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     let hL, hR, hintL = [-0.4, -0.7, -0.3], hintR = [-0.4, 0.7, -0.3];
     const swing = moving ? A * 0.9 : 0;
     if (arms === 'walk') { hL = [Math.sin(ph) * swing, -0.26, pz + 0.04 + 0.12]; hR = [Math.sin(ph + Math.PI) * swing, 0.26, pz + 0.04 + 0.12]; hL[2] += 0.05; hR[2] += 0.05; }
+    else if (arms === 'idleEmpty') { // bare hands: left arm hangs beside the body, right rests on the hip
+      hL = [Math.sin(ph) * swing * 0.5, -0.19, pz - 0.11 + Math.abs(Math.sin(ph)) * 0.02];
+      hR = [0.08, 0.26, pz + 0.18];
+      hintL = [0, 0, -1]; hintR = [0, 0.5, -0.4];
+    }
     else if (arms === 'aim') { hR = [0.5, 0.12, pz + 0.46]; hL = [0.42, -0.04, pz + 0.43]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.5]; }
     else if (arms === 'light') { hR = [0.36, 0.2, pz + 0.37]; hL = [Math.sin(ph) * swing, -0.26, pz + 0.17]; hintR = [0, 0.6, -0.5]; }
     else if (arms === 'swing' || arms === 'swingL' || arms === 'swingR') {
