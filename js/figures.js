@@ -862,6 +862,41 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       spec.bagId = 'milpack'; spec.bagCol = [74, 80, 54];
       spec.blood = 4 + ((r() * 6) | 0);
     }
+    // Legs and footwear. drawLegs falls back to shorts + barefoot when these are unset, which
+    // made every zombie look like it was in summer shorts with no shoes. Uniformed dead keep
+    // full-length duty trousers and boots; civilians get a believable mix of long trousers,
+    // shorts and ragged/bare legs.
+    if (type === 'police') {
+      spec.legsId = 'policepants'; spec.pants = [28 + ((r() * 10) | 0), 42 + ((r() * 10) | 0), 74];
+      spec.feetId = 'policeboots'; spec.shoes = [20, 26, 43];
+    } else if (type === 'military') {
+      spec.legsId = 'milpants'; spec.feetId = 'milboots'; spec.shoes = [122, 98, 70];
+    } else if (type === 'doctor') {
+      spec.legsId = 'trousers'; spec.feetId = 'sneakers'; spec.shoes = [210, 212, 205];
+    } else {
+      const lv = r();
+      if (lv < 0.55) { // full-length trousers
+        const style = r(), wear = 0.62 + r() * 0.25;
+        if (style < 0.4) { spec.legsId = 'jeans'; spec.pants = [64, 84, 124].map(v => v * wear); }
+        else if (style < 0.65) { spec.legsId = 'trousers'; spec.pants = [78, 80, 86].map(v => v * wear); }
+        else if (style < 0.85) { spec.legsId = 'cargopants'; spec.pants = [92, 94, 72].map(v => v * wear); }
+        else { spec.legsId = 'tracksuit'; spec.pants = [70, 76, 92].map(v => v * wear); }
+        const ft = r();
+        if (ft < 0.5) { spec.feetId = 'sneakers'; spec.shoes = [200, 200, 190]; }
+        else if (ft < 0.8) { spec.feetId = 'boots'; spec.shoes = [70, 54, 40]; }
+        else { spec.feetId = 'runners'; spec.shoes = [90, 100, 120]; }
+      } else if (lv < 0.85) { // shorts, with shoes more often than not
+        spec.legsId = 'shorts'; spec.pants = [125, 118, 98].map(v => v * (0.62 + r() * 0.25));
+        if (r() < 0.7) { spec.feetId = 'sneakers'; spec.shoes = [190, 188, 175]; }
+        else { spec.feetId = 'barefoot'; }
+      } else { // ragged, bare legs
+        spec.legsId = 'bare'; spec.feetId = 'barefoot';
+      }
+    }
+    // Torn/dirty duty uniform on some of the uniformed dead, without changing their silhouette.
+    if ((type === 'police' || type === 'military') && r() < 0.3) {
+      spec.pants = spec.pants.map(v => v * 0.76); spec.blood = (spec.blood || 3) + 3;
+    }
     return spec;
   };
   Fig.SKIN = SKIN;
