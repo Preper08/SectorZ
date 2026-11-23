@@ -18,6 +18,8 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   const nrm = a => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  // item colours are stored as CSS hex; figures work in RGB arrays. Shade keeps the zombie dirt.
+  const hexRgb = (h, k) => { const m = /^#([0-9a-f]{6})$/i.exec(h || ''); return m ? [1, 3, 5].map(i => Math.round(parseInt(m[1].slice(i - 1, i + 1), 16) * (k === undefined ? 1 : k))) : null; };
 
   // two-bone IK with a bend hint vector
   function ik(a, t, l1, l2, hint) {
@@ -897,7 +899,11 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     const spec = { id: 'Z' + type + seed, seed, skin: dead, hair: HAIR[(r() * HAIR.length) | 0], shirt: sh, pants: pn, shoes: [28, 24, 22], eye: 'rgba(120,20,16,0.95)', bald: r() < 0.22, blood: 3 + ((r() * 8) | 0), armR: 0.062 };
     if (type === 'brute') { spec.shirt = sh.map(v => v * 0.8); spec.armR = 0.09; spec.skin = [dead[0] * 0.95, dead[1] * 0.95, dead[2] * 0.95]; }
     if (type === 'runner') { spec.skin = [dead[0] + 14, dead[1] - 4, dead[2] - 4]; }
-    if (r() < 0.22) spec.hat = [r() * 90 | 0, r() * 90 | 0, r() * 90 | 0];
+    if (r() < 0.22) { // a real player cap, dirtied rather than a random invisible colour
+      const capCol = hexRgb(DSZ.ITEMS.cap && DSZ.ITEMS.cap.col, 0.6 + r() * 0.35);
+      spec.hat = capCol || [r() * 90 | 0, r() * 90 | 0, r() * 90 | 0];
+      if (capCol) spec.headId = 'cap';
+    }
     if (type === 'doctor') {
       // A stained white coat over scrubs, surgical cap and no armour - the staff the ward turned.
       const dirt = 0.72 + r() * 0.16;
@@ -961,6 +967,18 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     // Torn/dirty duty uniform on some of the uniformed dead, without changing their silhouette.
     if ((type === 'police' || type === 'military') && r() < 0.3) {
       spec.pants = spec.pants.map(v => v * 0.76); spec.blood = (spec.blood || 3) + 3;
+    }
+    // Civilian dead wear real player clothing ids, so the figure and a corpse's possible loot
+    // describe the same outfit. Common shirts are weighted heavily; coats and armour stay rare.
+    if (type !== 'police' && type !== 'military' && type !== 'doctor') {
+      const body = U.weighted(r, [['tshirt', 5], ['flannel', 4], ['hoodie', 3], ['sweater', 3], ['jacket', 3], ['leather', 1.2], ['raincoat', 1], ['padded', 0.7], ['wintercoat', 0.6]]);
+      spec.bodyId = body;
+      const col = hexRgb(DSZ.ITEMS[body] && DSZ.ITEMS[body].col, 0.5 + r() * 0.28);
+      if (col) spec.shirt = col;
+      spec.worn = [body];
+      if (spec.legsId && DSZ.ITEMS[spec.legsId]) spec.worn.push(spec.legsId);
+      if (spec.feetId && DSZ.ITEMS[spec.feetId]) spec.worn.push(spec.feetId);
+      if (spec.headId === 'cap') spec.worn.push('cap');
     }
     return spec;
   };

@@ -770,6 +770,22 @@
       const rows = DSZ.rollLoot(rnd, DSZ.ZOMBIE_LOOT[o.type] || 'zombie', 0);
       const theme = corpseTheme(o);
       if (theme && rnd() < 0.5) for (const r of DSZ.rollLoot(rnd, theme, 0)) rows.push(r);
+      // A civilian corpse can yield the actual clothes on its body. Fig.zombieSpec records the
+      // same item ids the figure renders, so loot always matches the outfit. A quarter chance
+      // per piece and a two-piece cap keep corpses from becoming walking wardrobes.
+      const worn = o.spec && o.spec.worn;
+      if (worn) {
+        let added = 0;
+        for (const id of worn) {
+          if (added >= 2) break;
+          if (!I[id] || rows.some(r => r.id === id)) continue;
+          if (rnd() < 0.25) {
+            const row = { id, q: 1 };
+            if (I[id].dur) row.dur = Math.max(1, Math.round(I[id].dur * (0.3 + rnd() * 0.4)));
+            rows.push(row); added++;
+          }
+        }
+      }
       o.grid = fillLootGrid(gs[0], gs[1], rows);
       DSZ.UI.openLoot('Corpse', o.grid, o);
     }
