@@ -923,12 +923,20 @@
       hl(P0(TOT * 0.05, -1.1)[0], P0(TOT * 0.05, -1.1)[1], P0(TOT * 0.82, -1.1)[0], P0(TOT * 0.82, -1.1)[1], 1);
     } },
     hammer: { len: 0.34, th: 2.8, draw: W => {
-      const { segT, P0, hl, ctx, TOT, fx, fy } = W;
-      segT(TOT * -0.06, TOT * 0.76, 0, 0, 2.6, '#946a3c'); // handle
-      const h2 = P0(TOT * 0.85, 0);
-      ctx.fillStyle = '#8a9096'; ctx.beginPath();
-      ctx.ellipse(h2[0], h2[1], 2.6, 4.9, Math.atan2(fy, fx) + Math.PI / 2, 0, 7); ctx.fill(); // steel head
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+      const { segT, P0, seg, hl, TOT, px, py, nx, ny } = W;
+      // Tapered wooden handle with a lighter grain, matching the inventory icon's brown shaft.
+      segT(TOT * -0.08, TOT * 0.78, 0, 0, 2.8, '#946a3c');
+      segT(TOT * -0.04, TOT * 0.55, -0.6, -0.6, 0.6, '#b8895a');
+      const c = P0(TOT * 0.82, 0), tip = (t, n) => [c[0] + px * t + nx * n, c[1] + py * t + ny * n];
+      // Claw hammer head: a steel block across the handle, bright striking face on one side and
+      // two curved claw prongs on the other - the silhouette of the icon, not an oval blob.
+      const f0 = tip(2.2, 5.2), f1 = tip(2.2, -3.6), b0 = tip(-2.2, 5.2);
+      seg(f0[0], f0[1], f1[0], f1[1], 5.2, '#8a9096');
+      seg(f0[0] + px * 1.3, f0[1] + py * 1.3, b0[0] + px * 1.3, b0[1] + py * 1.3, 4.6, '#b9bec4');
+      for (const s of [-1, 1]) {
+        const p0 = tip(-1.6, -3.4 + s * 1.3), p1 = tip(-4.6, -5.2 + s * 1.5);
+        seg(p0[0], p0[1], p1[0], p1[1], 1.8, '#9ba1a7');
+      }
       hl(P0(TOT * 0.05, -0.6)[0], P0(TOT * 0.05, -0.6)[1], P0(TOT * 0.58, -0.6)[0], P0(TOT * 0.58, -0.6)[1], 0.7);
     } },
     spear: { len: 1.05, th: 2.4, draw: W => {
