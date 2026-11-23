@@ -652,7 +652,7 @@
       p.pose.lf = 0; p.pose.crouch = false;
     } else {
       p.pose.legs = p.moving ? (p.running ? 'run' : 'walk') : 'idle'; p.pose.lf = Math.floor(p.ph) & 7; p.pose.crouch = p.crouch;
-      if (p.atkT > 0) { p.pose.arms = 'swing'; p.pose.af = Math.min(4, Math.floor((1 - p.atkT / p.atkTotal) * 5)); }
+      if (p.atkT > 0) { p.pose.arms = p.atkHand === 'right' ? 'swingR' : 'swingL'; p.pose.af = Math.min(4, Math.floor((1 - p.atkT / p.atkTotal) * 5)); }
       else if (gun) { p.pose.arms = 'aim'; p.pose.af = 0; } else if (P.equip.light && p.lightOn && !mel) { p.pose.arms = 'light'; } else if (mel && p.aiming) { p.pose.arms = 'walk'; } else { p.pose.arms = 'walk'; p.pose.af = 0; }
     }
     // ---- hotbar select
@@ -678,7 +678,11 @@
     if (p.atkT > 0) { p.atkT -= dt; if (!p.atkDone && p.atkT < p.atkTotal * 0.55) { p.atkDone = true; E.melee(S, p, p.atkDef, p.atkItem); if (p.atkItem && p.atkItem.dur !== undefined && p.atkItem.dur <= 0) { Game.toast(S, I[p.atkItem.id].name + ' broke!', 'bad'); Inv.removeItem(P, p.atkItem); } } }
     if (canAct && p.cool <= 0 && p.reload <= 0) {
       const wantsFire = p.heldDef && p.heldDef.auto ? In.mouse.down : In.mouse.clicked;
-      if (wantsFire && In.mouse.down) {
+      // Left click = left hand, right click = right hand for fists and melee weapons. Guns keep
+      // left-click firing and right-click aiming, so they are excluded here.
+      const rightHit = !gun && In.mouse.rclicked && (!p.heldDef || (p.heldDef.type !== 'food' && p.heldDef.type !== 'drink' && p.heldDef.type !== 'med'));
+      if ((wantsFire || rightHit) && (In.mouse.down || In.mouse.rdown)) {
+        p.atkHand = rightHit ? 'right' : 'left';
         if (!h) { // fists
           const fd = I.fists; p.cool = fd.rate; p.atkT = p.atkTotal = 0.3; p.atkDone = false; p.atkDef = fd; p.atkItem = null; p.stamina = Math.max(0, p.stamina - fd.stam); }
         else if (gun) {

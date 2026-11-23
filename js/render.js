@@ -966,14 +966,14 @@
       if (it.type === 'gun') { col = it.col || '#333'; el = 0; }
       else if (it.type === 'melee') {
         col = it.col || '#aaa';
-        if (p.pose.arms === 'swing') { const t = p.pose.af / 4; el = t < 0.4 ? 0.2 + t * 3 : (t < 0.7 ? 1.4 - (t - 0.4) * 5.5 : -0.3); } else el = 0.3; // carry angle closer to the body
+        if (p.pose.arms === 'swing' || p.pose.arms === 'swingL' || p.pose.arms === 'swingR') { const t = p.pose.af / 4; el = t < 0.4 ? 0.2 + t * 3 : (t < 0.7 ? 1.4 - (t - 0.4) * 5.5 : -0.3); } else el = 0.3; // carry angle closer to the body
       }
       else if (it.type === 'light') { col = it.col || '#d8c040'; el = 0; }
     }
     else if (it.type === 'gun') { L = it.w >= 4 ? 0.62 : 0.4; th = it.w >= 4 ? 3 : 2.6; col = it.col || '#333'; el = 0; }
     else if (it.type === 'melee') {
       L = it.range * 0.45; th = 2.8; col = it.col || '#aaa';
-      if (p.pose.arms === 'swing') { const t = p.pose.af / 4; el = t < 0.4 ? 0.2 + t * 3 : (t < 0.7 ? 1.4 - (t - 0.4) * 5.5 : -0.3); } else el = 0.3;
+      if (p.pose.arms === 'swing' || p.pose.arms === 'swingL' || p.pose.arms === 'swingR') { const t = p.pose.af / 4; el = t < 0.4 ? 0.2 + t * 3 : (t < 0.7 ? 1.4 - (t - 0.4) * 5.5 : -0.3); } else el = 0.3;
     }
     else if (it.type === 'light') { L = 0.2; th = 3.2; col = it.col || '#d8c040'; el = 0; }
     else return;

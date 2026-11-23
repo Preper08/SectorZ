@@ -95,11 +95,20 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (arms === 'walk') { hL = [Math.sin(ph) * swing, -0.26, pz + 0.04 + 0.12]; hR = [Math.sin(ph + Math.PI) * swing, 0.26, pz + 0.04 + 0.12]; hL[2] += 0.05; hR[2] += 0.05; }
     else if (arms === 'aim') { hR = [0.5, 0.12, pz + 0.46]; hL = [0.42, -0.04, pz + 0.43]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.5]; }
     else if (arms === 'light') { hR = [0.36, 0.2, pz + 0.37]; hL = [Math.sin(ph) * swing, -0.26, pz + 0.17]; hintR = [0, 0.6, -0.5]; }
-    else if (arms === 'swing') {
+    else if (arms === 'swing' || arms === 'swingL' || arms === 'swingR') {
       const t = af / 4; // 0 wind-up .. 1 follow through
       const wind = [-0.15, 0.3, pz + 0.85], hit = [0.55, 0.1, pz + 0.4], fin = [0.5, -0.25, pz + 0.12];
-      let p; if (t < 0.4) p = lerp3([0.1, 0.25, pz + 0.3], wind, t / 0.4); else if (t < 0.7) p = lerp3(wind, hit, (t - 0.4) / 0.3); else p = lerp3(hit, fin, (t - 0.7) / 0.3);
-      hR = p; hL = [p[0] * 0.8, p[1] * 0.4 - 0.06, p[2] - 0.08]; hintR = [0, 0.7, -0.2]; hintL = [0, -0.6, -0.3];
+      let q; if (t < 0.4) q = lerp3([0.1, 0.25, pz + 0.3], wind, t / 0.4); else if (t < 0.7) q = lerp3(wind, hit, (t - 0.4) / 0.3); else q = lerp3(hit, fin, (t - 0.7) / 0.3);
+      if (arms === 'swingL') {
+        // Mirror the arc onto the left side; the right hand stays in a relaxed guard.
+        hL = [q[0], -Math.abs(q[1]), q[2]];
+        hR = [0.42, 0.12, pz + 0.46];
+        hintL = [0, -0.7, -0.2]; hintR = [0, 0.5, -0.5];
+      } else {
+        hR = q;
+        hL = [0.42, -0.12, pz + 0.46];
+        hintR = [0, 0.7, -0.2]; hintL = [0, -0.5, -0.5];
+      }
     }
     else if (arms === 'zreach') { const w = Math.sin(ph) * 0.05; hR = [0.58, 0.17, pz + 0.5 + w]; hL = [0.52, -0.17, pz + 0.43 - w]; hintR = [0, 0.4, -0.7]; hintL = [0, -0.4, -0.7]; }
     else if (arms === 'zatk') { const t = af / 3, s = Math.sin(t * Math.PI); hR = [0.5 + 0.2 * s, 0.14, pz + 0.55 - 0.3 * s]; hL = [0.5 + 0.2 * s, -0.14, pz + 0.5 - 0.3 * s]; hintR = [0, 0.4, -0.7]; hintL = [0, -0.4, -0.7]; }
