@@ -888,23 +888,27 @@
       ctx.fillStyle = '#b0b6ba'; ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(tm[0], tm[1]); ctx.lineTo(t1[0], t1[1]); ctx.closePath(); ctx.fill(); // angled tip
       hl(P0(TOT * 0.2, 0)[0], P0(TOT * 0.2, 0)[1], P0(TOT * 0.96, 0)[0], P0(TOT * 0.96, 0)[1], 0.9);
     } },
-    axe: { len: 0.52, th: 2.8, draw: W => {
-      const { segT, P0, hl, ctx, TOT, px, py, nx, ny, tipx, tipy } = W;
-      segT(TOT * -0.14, TOT * 0.9, 0, 0, 2.6, '#8a6a40'); // handle ends just below the head
-      const h2 = P0(TOT * 0.9, 0);
-      ctx.fillStyle = '#c84034'; ctx.beginPath(); // head: red wedge perpendicular to the handle
-      ctx.moveTo(h2[0] + px * 3, h2[1] + py * 3);
-      ctx.lineTo(h2[0] + nx * 7.5 + px * 1.5, h2[1] + ny * 7.5 + py * 1.5);
-      ctx.lineTo(h2[0] + nx * 7.5 + px * -2.5, h2[1] + ny * 7.5 + py * -2.5);
-      ctx.lineTo(h2[0] + px * -3, h2[1] + py * -3);
+    axe: { len: 0.42, th: 2.6, draw: W => {
+      const { segT, P0, seg, hl, ctx, TOT, px, py, nx, ny } = W;
+      // Shorter haft with a grain highlight, matching the icon's brown shaft.
+      segT(TOT * -0.1, TOT * 0.78, 0, 0, 2.4, '#8a6a40');
+      segT(TOT * -0.06, TOT * 0.44, -0.5, -0.5, 0.5, '#a88354');
+      const c = P0(TOT * 0.78, 0), tip = (t, n) => [c[0] + px * t + nx * n, c[1] + py * t + ny * n];
+      // Single-bit fire-axe head: broad red blade on one side, short poll on the other, with a
+      // pale steel cutting edge - the same shape as the inventory icon, not a thin wedge.
+      const pts = [tip(2.8, 6.4), tip(2.2, -2), tip(-2.6, -2), tip(-2.2, 6.4)];
+      ctx.fillStyle = '#c84034'; ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
       ctx.closePath(); ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = 'rgba(255,180,150,0.35)'; ctx.beginPath(); // bevelled edge look
-      ctx.moveTo(h2[0] + nx * 7.5 + px * 1.5, h2[1] + ny * 7.5 + py * 1.5);
-      ctx.lineTo(h2[0] + nx * 4 + px * 0, h2[1] + ny * 4 + py * 0);
-      ctx.lineTo(h2[0] + nx * 7.5 + px * -2.5, h2[1] + ny * 7.5 + py * -2.5);
-      ctx.closePath(); ctx.fill();
-      hl(P0(TOT * 0.05, -0.7)[0], P0(TOT * 0.05, -0.7)[1], P0(TOT * 0.6, -0.7)[0], P0(TOT * 0.6, -0.7)[1], 0.8);
+      const e0 = tip(2.8, 6.8), e1 = tip(-2.2, 6.8);
+      seg(e0[0], e0[1], e1[0], e1[1], 1.4, '#d8d6cf'); // ground cutting edge
+      const pick0 = tip(-0.2, -2), pick1 = tip(-0.4, -6.2), pick2 = tip(-0.5, -8);
+      seg(pick0[0], pick0[1], pick1[0], pick1[1], 1.8, '#8a9096'); // fire-axe pick
+      seg(pick1[0], pick1[1], pick2[0], pick2[1], 0.9, '#b0b6ba');
+      const eye0 = tip(1.4, 0), eye1 = tip(-1.4, 0);
+      seg(eye0[0], eye0[1], eye1[0], eye1[1], 1.2, '#3d4145'); // head eye around the haft
+      hl(P0(TOT * 0.05, -0.6)[0], P0(TOT * 0.05, -0.6)[1], P0(TOT * 0.5, -0.6)[0], P0(TOT * 0.5, -0.6)[1], 0.7);
     } },
     crowbar: { len: 0.62, th: 2.8, draw: W => {
       const { segT, P0, seg, hl, TOT, col } = W;
