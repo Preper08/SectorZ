@@ -30,6 +30,10 @@
   function addZ(x, y, type) { Gen.zombieSpawns.push([x, y, type || U.weighted(rng, [['walker', 82], ['runner', 8], ['brute', 5], ['crawler', 5]])]); }
 
   const SHOPS = ['grocery', 'pharmacy', 'hardware', 'clothing', 'general', 'electronics', 'diner'];
+  // Every town must contain every shop type. The first two commercial blocks pin their first
+  // shops to rotations that together cover all seven types (hardware becomes the gun shop just
+  // below); the rest of each block and the third block stay random, so towns still differ.
+  const SHOP_ROTATIONS = [SHOPS, SHOPS.slice(4).concat(SHOPS.slice(0, 4)), null];
 
   // ---------------------------------------------------------------- base terrain & roads
   function terrain() {
@@ -143,7 +147,7 @@
       let cx = bx;
       while (cx + 8 <= bx + 26) {
         let w = 8 + R(5); if (cx + w + 8 > bx + 26) w = bx + 26 - cx;
-        const type = types ? types[idx % types.length] : U.pick(rng, SHOPS);
+        const type = types && idx < types.length ? types[idx] : U.pick(rng, SHOPS);
         const isDiner = type === 'diner';
         const b = Bld.make({ x: cx, y: row === 0 ? by : by + 16, w, h: 10, kind: isDiner ? 'diner' : 'shop', shop: type, door: row === 0 ? 'N' : 'S', rng, floor: G.TILE, name: type, locked: rng() < 0.2, mat: U.pick(rng, ['brick_r', 'brick_b', 'stucco', 'block']), roof: '#33353a' });
         b.flat = true;
@@ -309,12 +313,12 @@
       ['gas', 'church', 'res', 'hospital']
     ];
     Gen.blocks = [];
-    let startHouse = null;
+    let startHouse = null, commN = 0;
     for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
       const bx = Gen.centers[i] + 5, by = Gen.centers[j] + 5, t = layout[j][i];
       Gen.blocks.push({ x: bx, y: by, type: t });
       if (t === 'res') { const hs = resBlock(bx, by); if (!startHouse && i === 0 && j === 0) startHouse = hs[0]; }
-      else if (t === 'comm') commBlock(bx, by);
+      else if (t === 'comm') commBlock(bx, by, SHOP_ROTATIONS[commN++]);
       else if (t === 'super') superBlock(bx, by);
       else if (t === 'police' || t === 'hospital') civicBlock(bx, by, t);
       else if (t === 'church') churchBlock(bx, by);
@@ -334,9 +338,8 @@
       if (target) { target.shop = 'clothing'; target.name = 'clothing'; for (const p of target.props) if (p.t === O.SHELF) p.loot = 'clothing'; }
     }
     // Landmarks. The six civic sites are pushed by their own blocks; the shops worth finding get
-    // a label too, but only when the building actually exists. The gun shop is the one that is
-    // not guaranteed - the conversion above only fires if a hardware store was rolled, which is
-    // most towns but not all - so a missing label there is the truth, not a bug.
+    // a label too. All of them now have a building behind them: the pinned rotations above make
+    // sure every shop type (and therefore the gun shop) exists in every town.
     const landmark = (b, name) => { if (b) Gen.poi.push({ name, x: b.x + b.w / 2, y: b.y + b.h / 2, minor: true }); };
     landmark(W.blds.find(b => b && b.kind === 'super'), 'Supermarket');
     landmark(W.blds.find(b => b && b.kind === 'shop' && b.shop === 'guns'), 'Gun Shop');
