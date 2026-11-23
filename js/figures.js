@@ -224,8 +224,17 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   // arms: upper arm + forearm with IK elbow, sleeve or bare skin
   function drawArms(J, spec, cap, rb, skin, shirt) {
     const sleeve = spec.sleeve || shirt;
-    cap(J.shL, J.elL, rb + 0.008, sleeve); cap(J.elL, J.handL, rb, spec.glove || skin);
-    cap(J.shR, J.elR, rb + 0.008, sleeve); cap(J.elR, J.handR, rb, spec.glove || skin);
+    if (spec.fullSleeve) {
+      // Long coats reach the wrist; leave only the hand bare instead of a bare forearm.
+      const l = lerp3(J.elL, J.handL, 0.82), r = lerp3(J.elR, J.handR, 0.82);
+      cap(J.shL, J.elL, rb + 0.012, sleeve); cap(J.elL, l, rb + 0.008, sleeve);
+      cap(J.shR, J.elR, rb + 0.012, sleeve); cap(J.elR, r, rb + 0.008, sleeve);
+      cap(l, J.handL, rb * 0.85, spec.glove || skin);
+      cap(r, J.handR, rb * 0.85, spec.glove || skin);
+    } else {
+      cap(J.shL, J.elL, rb + 0.008, sleeve); cap(J.elL, J.handL, rb, spec.glove || skin);
+      cap(J.shR, J.elR, rb + 0.008, sleeve); cap(J.elR, J.handR, rb, spec.glove || skin);
+    }
   }
 
   // bag: distinct shapes per bag type. The pack sits on the back, so it has to sort on the far
@@ -373,7 +382,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         for (const t of [0.35, 0.7]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf - 0.01, -0.05, z], [xf - 0.01, 0.05, z], 0.01, dk); } // welded seams
         cap([J.pel[0] + 0.02, -0.075, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.075, J.pel[2] + 0.02], 0.02, lt); // hem binding
       }
-      cap([J.pel[0] + 0.01, -0.07, J.pel[2] - 0.06], [J.pel[0] + 0.01, 0.07, J.pel[2] - 0.06], 0.1, shirt); // narrow fall
+      // Long, narrow slicker fall - the hem reaches well past the hips without widening them.
+      cap([J.pel[0] + 0.01, -0.075, J.pel[2] + 0.02], [J.pel[0] + 0.01, 0.075, J.pel[2] - 0.18], 0.095, shirt);
+      cap([J.pel[0] + 0.01, -0.08, J.pel[2] - 0.18], [J.pel[0] + 0.01, 0.08, J.pel[2] - 0.18], 0.1, dk); // hem binding
     },
     // winter coat: thick padded shoulders and fur collar, quilted chest, but a fitted waist
     // instead of the old wide hem that made every wearer look broad at the hips.
@@ -390,8 +401,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         for (const z of [J.pel[2] + 0.14, J.pel[2] + 0.28]) cap([xf, -0.07, z], [xf, 0.07, z], 0.012, dk); // insulated quilting
         cap([xf, 0, J.pel[2] + 0.1], [xf, 0, J.neck[2] - 0.1], 0.011, lt); // zip line
       }
-      cap([J.pel[0] + 0.01, -0.09, J.pel[2] - 0.02], [J.pel[0] + 0.01, 0.09, J.pel[2] - 0.02], 0.12, shirt); // fitted waist
-      cap([J.pel[0] + 0.01, -0.07, J.pel[2] - 0.1], [J.pel[0] + 0.01, 0.07, J.pel[2] - 0.1], 0.1, dk); // cinched hem band
+      // Fitted but long parka tail: the hem hangs below the hips, the waist itself stays narrow.
+      cap([J.pel[0] + 0.01, -0.085, J.pel[2] + 0.02], [J.pel[0] + 0.01, 0.085, J.pel[2] - 0.14], 0.115, shirt);
+      cap([J.pel[0] + 0.01, -0.07, J.pel[2] - 0.14], [J.pel[0] + 0.01, 0.07, J.pel[2] - 0.14], 0.1, dk); // cinched hem band
     },
     // police duty shirt: sharp collar, shoulder tabs, gold badge and a radio pocket.
     // Navy like the riot helmet and the ballistic vest, so the whole set reads as one uniform.
@@ -905,7 +917,8 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     // character looked dressed in blue. Slots that are empty now use the skin colour, and the
     // legs use the bare entry; sleeves follow the shirt, which is also skin when the torso is bare.
     const skin = SKIN[1], pants = eq.legsCol || skin;
-    return { id: 'P' + (eq.bodyId || 0) + (eq.vestId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0) + (eq.legsId || 0), skin, hair: HAIR[1], shirt: eq.bodyCol || skin, pants, sleeve: null, shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, legsId: eq.legsId || 'bare', legsCol: eq.legsCol || null, vestId: eq.vestId || null, vestCol: eq.vestCol || null, eye: 'rgba(14,10,10,0.9)' };
+    const fullSleeve = eq.bodyId === 'wintercoat' || eq.bodyId === 'raincoat';
+    return { id: 'P' + (eq.bodyId || 0) + (eq.vestId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0) + (eq.legsId || 0), skin, hair: HAIR[1], shirt: eq.bodyCol || skin, pants, sleeve: null, fullSleeve, shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, legsId: eq.legsId || 'bare', legsCol: eq.legsCol || null, vestId: eq.vestId || null, vestCol: eq.vestCol || null, eye: 'rgba(14,10,10,0.9)' };
   };
   Fig.zombieSpec = function (seed, type) {
     const r = U.mulberry32(seed * 7919 + 13);
@@ -988,6 +1001,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (type !== 'police' && type !== 'military' && type !== 'doctor') {
       const body = U.weighted(r, [['tshirt', 5], ['flannel', 4], ['hoodie', 3], ['sweater', 3], ['jacket', 3], ['leather', 1.2], ['raincoat', 1], ['padded', 0.7], ['wintercoat', 0.6]]);
       spec.bodyId = body;
+      spec.fullSleeve = body === 'wintercoat' || body === 'raincoat';
       const col = hexRgb(DSZ.ITEMS[body] && DSZ.ITEMS[body].col, 0.5 + r() * 0.28);
       if (col) spec.shirt = col;
       spec.worn = [body];
