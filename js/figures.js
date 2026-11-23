@@ -200,7 +200,11 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     const legJ = tuck < 1 ? Object.assign({}, J, {
       footL: lerp3(J.kneeL, J.footL, tuck), footR: lerp3(J.kneeR, J.footR, tuck)
     }) : J;
-    lg(legJ, lcap, pr, skin, pants, legR);
+    // In a deep squat with shorts, bare skin between the hem and a tall boot reads as the shin
+    // detaching from the footwear. Extend the boot colour over that stretch so the leg reads as
+    // one continuous tall boot; standing and low shoes keep the normal skin.
+    const tallBoot = id === 'boots' || id === 'policeboots' || id === 'milboots';
+    lg(legJ, lcap, pr, tallBoot && J.crouch ? shoes : skin, pants, legR);
     const fw = FOOTWEAR_FIGS[id] || FOOTWEAR_FIGS.barefoot;
     fw(J, cap, pr, skin, shoes, shinDepth(spec, J, pr), J.crouch ? 0.8 : 1);
   }
@@ -525,8 +529,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const cuff = [col[0] * 1.12, col[1] * 1.12, col[2] * 1.12];
       cap(lerp3(J.hipL, J.kneeL, 0.55), hemL, legR * 1.16, cuff);
       cap(lerp3(J.hipR, J.kneeR, 0.55), hemR, legR * 1.16, cuff);
-      // bare skin shins
-      cap(hemL, J.footL, 0.068, skin); cap(hemR, J.footR, 0.068, skin);
+      // Bare skin must follow the knee bend. A single hem->ankle capsule cuts straight across
+      // the folded knee in a crouch, so the leg looked detached from the boot below it.
+      cap(hemL, J.kneeL, 0.068, skin); cap(J.kneeL, J.footL, 0.068, skin);
+      cap(hemR, J.kneeR, 0.068, skin); cap(J.kneeR, J.footR, 0.068, skin);
     },
     // trousers: grey, slim tapered legs to the ankle with a pressed centre crease
     trousers: (J, cap, pr, skin, col, legR) => {
