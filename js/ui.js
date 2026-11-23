@@ -484,7 +484,7 @@
   UI.markCraftDirty = () => { UI._csig = null; };
   function renderHot(force) {
     if (!S) return; const P = S.player.inv, p = S.player;
-    const sig = P.sel + '|' + P.hot.map(it => it ? it.id + it.q + (it.mag !== undefined ? it.mag : '') + (it.dur !== undefined ? (it.dur | 0) : '') : '-').join(',') + '|' + Inv.count(P, 'ammo9') + Inv.count(P, 'shell') + Inv.count(P, 'ammo762');
+    const sig = P.sel + '|' + P.hot.map(it => it ? it.id + it.q + (it.mag !== undefined ? it.mag : '') + (it.dur !== undefined ? (it.dur | 0) : '') : '-').join(',') + '|' + Inv.count(P, 'ammo9') + Inv.count(P, 'shell') + Inv.count(P, 'ammo762') + Inv.count(P, 'ammo556');
     if (!force && sig === hotSig) return; hotSig = sig;
     els.hotbar.querySelectorAll('.hslot').forEach((d, i) => {
       const it = P.hot[i]; d.classList.toggle('sel', P.sel === i);

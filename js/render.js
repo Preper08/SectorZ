@@ -841,6 +841,34 @@
       ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(P0(TOT * 0.64, -1.9)[0], P0(TOT * 0.64, -1.9)[1], 1.3, 0, 7); ctx.fill(); // bolt handle
       hl(P0(TOT * -0.05, -0.8)[0], P0(TOT * -0.05, -0.8)[1], P0(TOT * 0.88, -0.8)[0], P0(TOT * 0.88, -0.8)[1], 0.9);
     } },
+    // Modern assault rifle: collapsible stock, flat-top rail, vented handguard, muzzle brake,
+    // curved magazine, pistol grip and a small reflex sight. Drawn in weapon space like the
+    // other guns, so it follows the same aim/animation and iso-camera projection.
+    arifle: { len: 0.6, th: 3, draw: W => {
+      const { segT, P0, seg, hl, ctx, TOT, col, dark } = W;
+      segT(TOT * -0.36, TOT * -0.14, -0.4, -0.4, 2.2, '#2b2e31'); // collapsible stock
+      segT(TOT * -0.38, TOT * -0.345, -2, -2, 3.6, '#191b1d'); // buttplate
+      segT(TOT * -0.14, TOT * 0.34, 0, 0, 3.4, col); // receiver
+      segT(TOT * -0.14, TOT * 0.42, -2.1, -2.1, 1.5, '#222528'); // top rail
+      segT(TOT * 0.34, TOT * 0.72, 0, 0, 2.9, '#2f3532'); // handguard
+      segT(TOT * 0.34, TOT * 0.72, -2.1, -2.1, 1.3, '#242827'); // handguard rail
+      ctx.fillStyle = '#141719';
+      for (const t of [0.4, 0.5, 0.6]) { const v = P0(TOT * t, -0.8); ctx.fillRect(v[0] - 0.8, v[1] - 0.8, 1.6, 1.6); } // vents
+      segT(TOT * 0.72, TOT * 1.0, 0, 0, 1.6, dark); // barrel
+      segT(TOT * 0.98, TOT * 1.07, 0, 0, 2.4, '#44494c'); // muzzle brake
+      const m0 = P0(TOT * 0.2, 2), m1 = P0(TOT * 0.28, 8.5), m2 = P0(TOT * 0.36, 8);
+      seg(m0[0], m0[1], m1[0], m1[1], 2.8, '#25282a'); seg(m1[0], m1[1], m2[0], m2[1], 2.6, '#25282a'); // curved magazine
+      const g0 = P0(TOT * 0, 1.8), g1 = P0(TOT * -0.05, 6.5);
+      seg(g0[0], g0[1], g1[0], g1[1], 2.7, dark); // pistol grip
+      const t0 = P0(TOT * 0.08, 1.6), t1 = P0(TOT * 0.16, 4.2), t2 = P0(TOT * 0.2, 1.8);
+      seg(t0[0], t0[1], t1[0], t1[1], 1.2, '#15171a'); seg(t1[0], t1[1], t2[0], t2[1], 1.2, '#15171a'); // trigger guard
+      segT(TOT * 0.1, TOT * 0.22, -4.2, -4.2, 2.2, '#15181a'); // reflex sight
+      const dot = P0(TOT * 0.16, -4.2); ctx.fillStyle = 'rgba(210,70,50,0.9)'; ctx.fillRect(dot[0] - 0.7, dot[1] - 0.7, 1.4, 1.4);
+      const fs = P0(TOT * 0.78, -3.1); ctx.fillStyle = '#15171a'; ctx.fillRect(fs[0] - 0.8, fs[1] - 1.6, 1.6, 3.2); // front post
+      const ch = P0(TOT * 0.28, -2.8); ctx.fillStyle = '#555b5d'; ctx.fillRect(ch[0] - 1.2, ch[1] - 0.8, 2.4, 1.6); // charging handle
+      const a0 = P0(TOT * -0.12, -1.2), a1 = P0(TOT * 0.34, -1.2);
+      hl(a0[0], a0[1], a1[0], a1[1], 0.9);
+    } },
     // melee ----------------------------------------------------------------
     knife: { len: 0.34, th: 2.8, draw: W => {
       const { segT, P0, hl, ctx, TOT } = W;

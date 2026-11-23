@@ -23,10 +23,14 @@
   it('shotgun', 'Pump Shotgun', 'gun', { w: 4, h: 2, dmg: 14, pellets: 8, range: 11, rate: 0.9, mag: 6, ammo: 'shell', spread: 0.2, noise: 32, snd: 'gun_shotgun', dur: 150, reload: 2.2, desc: 'Devastating up close.', col: '#5a3c22' });
   it('rifle', 'Hunting Rifle', 'gun', { w: 5, h: 2, dmg: 70, range: 30, rate: 0.95, mag: 5, ammo: 'ammo762', spread: 0.015, noise: 36, snd: 'gun_rifle', dur: 200, reload: 2.4, pierce: 2, desc: 'Accurate and powerful.', col: '#4c3820' });
   it('smg', 'SMG', 'gun', { w: 3, h: 2, dmg: 18, range: 16, rate: 0.085, mag: 30, ammo: 'ammo9', spread: 0.1, noise: 24, snd: 'gun_pistol', auto: true, dur: 120, reload: 1.8, desc: 'High rate of fire.', col: '#333' });
+  // Military-only assault rifle: between the SMG and the hunting rifle. More accurate and
+  // longer-ranged than an SMG, far faster than a bolt-action, but rarer ammo and no piercing.
+  it('arifle', 'Assault Rifle', 'gun', { w: 4, h: 2, dmg: 32, range: 24, rate: 0.14, mag: 30, ammo: 'ammo556', spread: 0.05, noise: 28, snd: 'gun_rifle', auto: true, dur: 220, reload: 2.1, desc: 'Military-issue rifle. Fast, accurate, fed by 5.56 magazines.', col: '#3a4035' });
   // ---- ammo
   it('ammo9', '9mm Rounds', 'ammo', { stack: 40, col: '#c8a040', desc: 'Pistol / SMG ammunition.' });
   it('shell', 'Shotgun Shells', 'ammo', { stack: 20, col: '#c44030', desc: '12 gauge.' });
   it('ammo762', '7.62 Rounds', 'ammo', { stack: 20, col: '#a08038', desc: 'Rifle ammunition.' });
+  it('ammo556', '5.56 Rounds', 'ammo', { stack: 30, col: '#b8a048', desc: 'Assault rifle ammunition. Found at the Military Base.' });
   // ---- food / drink
   it('beans', 'Canned Beans', 'food', { food: 28, water: -2, stack: 1, col: '#c8742c', desc: 'Still good.', eatSnd: 'eat' });
   it('soup', 'Canned Soup', 'food', { food: 22, water: 6, col: '#c43c2c' });
@@ -187,7 +191,7 @@
     armory: { n: [2, 4], t: [['pistol', 3], ['shotgun', 3], ['rifle', 2], ['smg', 1.4], ['ammo9', 8], ['shell', 6], ['ammo762', 5], ['vest', 2.5], ['helmet', 2.5], ['policeshirt', 0.6], ['policepants', 0.6], ['policeboots', 0.6], ['policepack', 0.4], ['medkit', 1]] },
     // The military compound is the natural source of the camo kit. God mode still gives it for
     // free, but outside admin play these are the items that make the plate carrier worth finding.
-    military: { n: [2, 4], t: [['milhelmet', 2.4], ['miltop', 2.2], ['milpants', 2.2], ['milboots', 2.2], ['milvest', 1.6], ['milpack', 1.2], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1.4], ['smg', 1], ['medkit', 1.5], ['mre', 2.5], ['bandage', 2], ['tape', 2], ['flashlight', 1.5]] },
+    military: { n: [2, 4], t: [['milhelmet', 2.4], ['miltop', 2.2], ['milpants', 2.2], ['milboots', 2.2], ['milvest', 1.6], ['milpack', 1.2], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1.4], ['smg', 1], ['arifle', 0.45], ['ammo556', 3], ['medkit', 1.5], ['mre', 2.5], ['bandage', 2], ['tape', 2], ['flashlight', 1.5]] },
     cell: { n: [0, 1], t: [['rags', 4], ['cloth', 3], ['candy', 2]] },
     locker: { n: [0, 2], t: [['jacket', 3], ['flannel', 3], ['leather', 1.5], ['boots', 2], ['flashlight', 3], ['cap', 3], ['battery', 3], ['bandage', 2], ['crowbar', 2], ['mre', 0.8], ['water', 3], ['policepack', 0.2]] },
     office: { n: [0, 2], t: [['tape', 3], ['battery', 3], ['candy', 3], ['soda', 3], ['painkillers', 2], ['keys', 1.2], ['map', 1.5], ['water', 2]] },
@@ -216,7 +220,7 @@
     zombieClothes: { n: [1, 1], t: [['cloth', 4], ['rags', 4], ['cap', 2], ['sneakers', 2], ['jeans', 1.5]] },
     // A military corpse is worth the risk of clearing the compound: one or two pieces of the
     // camo kit, plus the ammo and rations they were carrying when they turned.
-    zombieMilitary: { n: [1, 2], t: [['milhelmet', 2], ['miltop', 2], ['milpants', 2], ['milboots', 2], ['milvest', 1.4], ['milpack', 1], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1], ['medkit', 1.2], ['mre', 2], ['bandage', 2]] },
+    zombieMilitary: { n: [1, 2], t: [['milhelmet', 2], ['miltop', 2], ['milpants', 2], ['milboots', 2], ['milvest', 1.4], ['milpack', 1], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1], ['arifle', 0.4], ['ammo556', 2], ['medkit', 1.2], ['mre', 2], ['bandage', 2]] },
     // The station's dead kept their sidearm and duty gear: a proper uniform drop, not just ammo.
     zombiePolice: { n: [1, 2], t: [['policeshirt', 2.2], ['policepants', 2.2], ['policeboots', 2], ['vest', 1.6], ['helmet', 1.6], ['policepack', 1.1], ['pistol', 1.5], ['smg', 0.7], ['ammo9', 6], ['keys', 2], ['radio', 2], ['flashlight', 2], ['bandage', 2]] },
     // Infected staff still clutching what they took from the ward: the best medical drops in the

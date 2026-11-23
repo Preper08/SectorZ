@@ -26,8 +26,31 @@
     smg: (x, c) => { rr(x, 8, 20, 46, 13, 3, grad(x, 0, 20, 0, 33, '#444', 1.3, 0.7)); poly(x, [[20, 31], [30, 31], [28, 56], [20, 56]], '#2c2c30'); poly(x, [[38, 31], [44, 31], [44, 44], [38, 44]], '#222'); x.fillStyle = '#111'; x.fillRect(52, 24, 8, 4); rr(x, 2, 22, 10, 8, 2, '#333'); },
     shotgun: (x, c) => { capsule(x, 6, 42, 58, 22, 5.5, '#4a4a50'); poly(x, [[2, 38], [24, 36], [28, 46], [4, 54]], grad(x, 2, 38, 28, 54, '#6a4a2a', 1.2, 0.7)); poly(x, [[30, 36], [42, 32], [44, 38], [32, 42]], '#5a3c22'); },
     rifle: (x, c) => { capsule(x, 6, 44, 60, 22, 4.5, '#3a3a40'); poly(x, [[2, 40], [26, 36], [30, 48], [4, 56]], grad(x, 2, 36, 30, 56, '#6a4a2a', 1.2, 0.7)); capsule(x, 26, 30, 44, 24, 5, '#222'); },
+    // Modern assault rifle: collapsible stock, flat-top rail, handguard with vents, long barrel
+    // and muzzle brake, curved magazine, pistol grip and a compact reflex sight.
+    arifle: (x, c) => {
+      const steel = c || '#3a4035';
+      poly(x, [[3, 23], [15, 21], [18, 29], [6, 34]], grad(x, 3, 21, 18, 34, '#25282b', 1.35, 0.7));
+      rr(x, 14, 25, 11, 5, 2, '#2b2e31');
+      rr(x, 19, 19, 27, 13, 2, grad(x, 19, 19, 46, 32, steel, 1.5, 0.65));
+      rr(x, 19, 15, 35, 4, 1, '#222527');
+      x.fillStyle = '#3d4245';
+      for (let i = 0; i < 7; i++) x.fillRect(21 + i * 4, 15, 2, 3);
+      rr(x, 45, 20, 13, 10, 2, grad(x, 45, 20, 58, 30, '#2f3532', 1.3, 0.7));
+      x.fillStyle = '#141719';
+      for (let i = 0; i < 3; i++) x.fillRect(47 + i * 4, 23, 2, 4);
+      capsule(x, 56, 24, 62, 24, 3, '#232629');
+      rr(x, 59, 21, 5, 6, 1, '#4a4f52');
+      poly(x, [[25, 31], [36, 31], [39, 49], [32, 56], [25, 50]], grad(x, 25, 31, 39, 56, '#282c2d', 1.3, 0.6));
+      poly(x, [[19, 31], [27, 31], [24, 46], [17, 44]], '#212426');
+      x.strokeStyle = '#1b1e20'; x.lineWidth = 2; x.beginPath(); x.moveTo(19, 34); x.lineTo(24, 34); x.lineTo(26, 40); x.stroke();
+      rr(x, 27, 8, 9, 7, 2, '#15181a');
+      x.fillStyle = 'rgba(220,70,50,0.8)'; x.fillRect(30, 10, 3, 3);
+      x.strokeStyle = 'rgba(255,255,255,0.22)'; x.lineWidth = 1; x.beginPath(); x.moveTo(6, 24); x.lineTo(56, 22); x.stroke();
+    },
     ammo9: (x, c) => { for (let i = 0; i < 4; i++) { const px = 12 + i * 11; rr(x, px, 24, 8, 26, 2, grad(x, px, 0, px + 8, 0, '#d0a840', 1.3, 0.7)); poly(x, [[px, 24], [px + 8, 24], [px + 6, 14], [px + 2, 14]], '#b87c38'); } },
     ammo762: (x, c) => { for (let i = 0; i < 3; i++) { const px = 14 + i * 14; rr(x, px, 22, 9, 32, 2, grad(x, px, 0, px + 9, 0, '#c0983c', 1.3, 0.7)); poly(x, [[px, 22], [px + 9, 22], [px + 6.5, 8], [px + 2.5, 8]], '#9c6c34'); } },
+    ammo556: (x, c) => { for (let i = 0; i < 3; i++) { const px = 15 + i * 13; rr(x, px, 24, 7, 30, 2, grad(x, px, 0, px + 7, 0, '#b8a048', 1.35, 0.68)); poly(x, [[px, 24], [px + 7, 24], [px + 5, 12], [px + 2, 12]], '#8f8a52'); } },
     shell: (x, c) => { for (let i = 0; i < 3; i++) { const px = 12 + i * 14; rr(x, px, 18, 11, 34, 3, grad(x, px, 0, px + 11, 0, '#d03c30', 1.3, 0.6)); rr(x, px, 44, 11, 8, 2, '#c8a040'); } },
     beans: (x, c) => { rr(x, 16, 16, 32, 40, 3, grad(x, 16, 0, 48, 0, '#aab0b8', 1.3, 0.6)); x.fillStyle = '#c8742c'; x.fillRect(16, 26, 32, 20); x.fillStyle = '#fff'; x.beginPath(); x.ellipse(32, 36, 8, 5, 0, 0, 7); x.fill(); x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(16, 26, 32, 2); },
     soup: (x, c) => { rr(x, 16, 16, 32, 40, 3, grad(x, 16, 0, 48, 0, '#aab0b8', 1.3, 0.6)); x.fillStyle = '#c43c2c'; x.fillRect(16, 26, 32, 20); x.fillStyle = '#e8e0d0'; x.fillRect(22, 30, 20, 3); x.fillRect(22, 36, 14, 3); },
