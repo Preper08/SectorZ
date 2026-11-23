@@ -598,21 +598,21 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   const FOOTWEAR_FIGS = {
     barefoot: (J, cap, pr, skin, shoes, shin, sc) => {
       const s = sc === undefined ? 1 : sc;
-      cap([J.footL[0] - 0.02 * s, J.footL[1], J.footL[2] + 0.04 * s], [J.footL[0] + 0.15 * s, J.footL[1], J.footL[2] + 0.04 * s], 0.055 * s, skin);
-      cap([J.footR[0] - 0.02 * s, J.footR[1], J.footR[2] + 0.04 * s], [J.footR[0] + 0.15 * s, J.footR[1], J.footR[2] + 0.04 * s], 0.055 * s, skin);
+      cap([J.footL[0] - 0.02 * s, J.footL[1], J.footL[2] + 0.035 * s], [J.footL[0] + 0.12 * s, J.footL[1], J.footL[2] + 0.035 * s], 0.048 * s, skin);
+      cap([J.footR[0] - 0.02 * s, J.footR[1], J.footR[2] + 0.035 * s], [J.footR[0] + 0.12 * s, J.footR[1], J.footR[2] + 0.035 * s], 0.048 * s, skin);
     },
     // sneakers: padded grey canvas low-top with a laced instep, rubber toe cap and dark sole
     sneakers: (J, cap, pr, skin, shoes, shin, sc) => {
       const s = sc === undefined ? 1 : sc;
       [[J.footL, shin && shin.L], [J.footR, shin && shin.R]].forEach(([ft, sd]) => {
         const d = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
-        const heel = [ft[0] - 0.05 * s, ft[1], ft[2] + 0.04 * s], toe = [ft[0] + 0.16 * s, ft[1], ft[2] + 0.04 * s];
-        cap(heel, toe, 0.054 * s, shoes, { d }); // padded upper
+        const heel = [ft[0] - 0.045 * s, ft[1], ft[2] + 0.035 * s], toe = [ft[0] + 0.13 * s, ft[1], ft[2] + 0.035 * s];
+        cap(heel, toe, 0.047 * s, shoes, { d }); // padded upper
         const l0 = lerp3(heel, toe, 0.1), l1 = lerp3(heel, toe, 0.45);
-        cap([l0[0], l0[1], l0[2] + 0.022 * s], [l1[0], l1[1], l1[2] + 0.022 * s], 0.038 * s, shoes.map(v => Math.min(255, v * 1.3)), { lace: true, d: d + 0.012 }); // laces
+        cap([l0[0], l0[1], l0[2] + 0.02 * s], [l1[0], l1[1], l1[2] + 0.02 * s], 0.034 * s, shoes.map(v => Math.min(255, v * 1.3)), { lace: true, d: d + 0.012 }); // laces
         const t0 = lerp3(heel, toe, 0.78);
-        cap([t0[0], t0[1], t0[2] + 0.008 * s], [toe[0], toe[1], toe[2] + 0.008 * s], 0.05 * s, shoes.map(v => v * 0.68), { d: d + 0.01 }); // toe cap
-        cap([heel[0], heel[1], heel[2] + 0.005 * s], [toe[0], toe[1], toe[2] + 0.005 * s], 0.05 * s, shoes.map(v => v * 0.5), { sole: true, d: d + 0.006 }); // dark rubber sole
+        cap([t0[0], t0[1], t0[2] + 0.007 * s], [toe[0], toe[1], toe[2] + 0.007 * s], 0.044 * s, shoes.map(v => v * 0.68), { d: d + 0.01 }); // toe cap
+        cap([heel[0], heel[1], heel[2] + 0.004 * s], [toe[0], toe[1], toe[2] + 0.004 * s], 0.043 * s, shoes.map(v => v * 0.5), { sole: true, d: d + 0.006 }); // dark rubber sole
       });
     },
     // running shoes: slim silhouette, bright side stripe, dark heel counter and a white midsole
@@ -620,15 +620,15 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const s = sc === undefined ? 1 : sc;
       [[J.footL, shin && shin.L], [J.footR, shin && shin.R]].forEach(([ft, sd]) => {
         const d = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
-        const heel = [ft[0] - 0.05 * s, ft[1], ft[2] + 0.035 * s], toe = [ft[0] + 0.19 * s, ft[1], ft[2] + 0.035 * s];
-        cap(heel, toe, 0.044 * s, shoes, { d }); // slim upper
+        const heel = [ft[0] - 0.045 * s, ft[1], ft[2] + 0.03 * s], toe = [ft[0] + 0.15 * s, ft[1], ft[2] + 0.03 * s];
+        cap(heel, toe, 0.041 * s, shoes, { d }); // slim upper
         const a = lerp3(heel, toe, 0.18), b = lerp3(heel, toe, 0.85);
         for (const side of [-0.028, 0.028]) { // racing stripe on both sides, visible from any angle
           cap([a[0], a[1] + side * s, a[2] + 0.012 * s], [b[0], b[1] + side * s, b[2] + 0.012 * s], 0.012 * s, [230, 70, 50], { d: d + 0.018 });
         }
         const h0 = lerp3(heel, toe, 0.08), h1 = lerp3(heel, toe, 0.28);
         cap([h0[0], h0[1], h0[2] + 0.014 * s], [h1[0], h1[1], h1[2] + 0.014 * s], 0.04 * s, shoes.map(v => v * 0.55), { d: d + 0.016 }); // heel counter
-        cap([heel[0], heel[1], heel[2] + 0.004 * s], [toe[0], toe[1], toe[2] + 0.004 * s], 0.052 * s, [255, 255, 250], { sole: true, d: d + 0.006 }); // white midsole
+        cap([heel[0], heel[1], heel[2] + 0.004 * s], [toe[0], toe[1], toe[2] + 0.004 * s], 0.045 * s, [255, 255, 250], { sole: true, d: d + 0.006 }); // white midsole
       });
     },
     // boots: shaft + laces + foot + heel + dark sole, both legs
@@ -647,10 +647,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         const l0 = lerp3(kne, ft, J.crouch ? 0.5 : 0.3), l1 = lerp3(kne, ft, J.crouch ? 0.18 : 0.08);
         cap([l0[0], l0[1], l0[2] + 0.012 * s], [l1[0], l1[1], l1[2] + 0.012 * s], 0.026 * s, shoes, { lace: true, d: front + 0.01 });
         // foot: ankle to toe box as one piece, plus a heel block behind
-        cap([ft[0] - 0.07 * s, ft[1], ft[2] + 0.03 * s], [ft[0] + 0.17 * s, ft[1], ft[2] + 0.03 * s], 0.058 * s, shoes, { d: front });
-        cap([ft[0] - 0.075 * s, ft[1], ft[2] + 0.02 * s], [ft[0] - 0.03 * s, ft[1], ft[2] + 0.055 * s], 0.048 * s, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85], { d: front });
+        cap([ft[0] - 0.055 * s, ft[1], ft[2] + 0.025 * s], [ft[0] + 0.135 * s, ft[1], ft[2] + 0.025 * s], 0.05 * s, shoes, { d: front });
+        cap([ft[0] - 0.06 * s, ft[1], ft[2] + 0.018 * s], [ft[0] - 0.025 * s, ft[1], ft[2] + 0.045 * s], 0.042 * s, [shoes[0] * 0.85, shoes[1] * 0.85, shoes[2] * 0.85], { d: front });
         // dark sole line under the whole foot
-        cap([ft[0] - 0.07 * s, ft[1], ft[2] + 0.004 * s], [ft[0] + 0.17 * s, ft[1], ft[2] + 0.004 * s], 0.042 * s, shoes, { sole: true, d: front + 0.01 });
+        cap([ft[0] - 0.055 * s, ft[1], ft[2] + 0.004 * s], [ft[0] + 0.135 * s, ft[1], ft[2] + 0.004 * s], 0.038 * s, shoes, { sole: true, d: front + 0.01 });
       });
     },
     // police duty boots: taller black shaft with a folded cuff, speed-lace bars and a heavy sole.
@@ -669,9 +669,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
           const p = lerp3(kne, ft, t);
           cap([p[0], p[1] - 0.035 * s, p[2] + 0.014 * s], [p[0], p[1] + 0.035 * s, p[2] + 0.014 * s], 0.009 * s, lt, { d: front + 0.02 });
         }
-        cap([ft[0] - 0.07 * s, ft[1], ft[2] + 0.03 * s], [ft[0] + 0.17 * s, ft[1], ft[2] + 0.03 * s], 0.06 * s, shoes, { d: front }); // toe box
-        cap([ft[0] - 0.075 * s, ft[1], ft[2] + 0.02 * s], [ft[0] - 0.03 * s, ft[1], ft[2] + 0.055 * s], 0.05 * s, dk, { d: front }); // heel
-        cap([ft[0] - 0.07 * s, ft[1], ft[2] + 0.004 * s], [ft[0] + 0.17 * s, ft[1], ft[2] + 0.004 * s], 0.044 * s, dk, { sole: true, d: front + 0.01 });
+        cap([ft[0] - 0.055 * s, ft[1], ft[2] + 0.025 * s], [ft[0] + 0.135 * s, ft[1], ft[2] + 0.025 * s], 0.052 * s, shoes, { d: front }); // toe box
+        cap([ft[0] - 0.06 * s, ft[1], ft[2] + 0.018 * s], [ft[0] - 0.025 * s, ft[1], ft[2] + 0.045 * s], 0.044 * s, dk, { d: front }); // heel
+        cap([ft[0] - 0.055 * s, ft[1], ft[2] + 0.004 * s], [ft[0] + 0.135 * s, ft[1], ft[2] + 0.004 * s], 0.04 * s, dk, { sole: true, d: front + 0.01 });
       });
     },
     // military combat boots: coyote-brown shaft, cross laces, padded ankle cuff and a heavy sole
@@ -688,9 +688,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
           const p = lerp3(kne, ft, t);
           cap([p[0], p[1] - 0.04 * s, p[2] + 0.014 * s], [p[0], p[1] + 0.04 * s, p[2] + 0.014 * s], 0.01 * s, lt, { d: front + 0.02 });
         }
-        cap([ft[0] - 0.075 * s, ft[1], ft[2] + 0.03 * s], [ft[0] + 0.18 * s, ft[1], ft[2] + 0.03 * s], 0.064 * s, shoes, { d: front }); // toe box
-        cap([ft[0] - 0.08 * s, ft[1], ft[2] + 0.02 * s], [ft[0] - 0.03 * s, ft[1], ft[2] + 0.055 * s], 0.052 * s, dk, { d: front }); // heel
-        cap([ft[0] - 0.075 * s, ft[1], ft[2] + 0.004 * s], [ft[0] + 0.18 * s, ft[1], ft[2] + 0.004 * s], 0.048 * s, dk, { sole: true, d: front + 0.01 });
+        cap([ft[0] - 0.06 * s, ft[1], ft[2] + 0.025 * s], [ft[0] + 0.14 * s, ft[1], ft[2] + 0.025 * s], 0.055 * s, shoes, { d: front }); // toe box
+        cap([ft[0] - 0.065 * s, ft[1], ft[2] + 0.018 * s], [ft[0] - 0.025 * s, ft[1], ft[2] + 0.045 * s], 0.046 * s, dk, { d: front }); // heel
+        cap([ft[0] - 0.06 * s, ft[1], ft[2] + 0.004 * s], [ft[0] + 0.14 * s, ft[1], ft[2] + 0.004 * s], 0.043 * s, dk, { sole: true, d: front + 0.01 });
       });
     }
   };
@@ -783,14 +783,20 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
           x.beginPath(); x.moveTo(lx - p.w * 0.3, ly - p.w * 0.18); x.lineTo(lx + p.w * 0.3, ly + p.w * 0.18); x.stroke();
         }
       }
-      if (p.sole) { // sole under the foot: dark rubber, but a pale midsole keeps its own colour
-        const y0 = p.pa.y + p.w * 0.25, y1 = p.pb.y + p.w * 0.25;
-        x.strokeStyle = 'rgba(18,14,10,0.85)'; x.lineWidth = p.w * 0.8;
-        x.beginPath(); x.moveTo(p.pa.x, y0); x.lineTo(p.pb.x, y1); x.stroke();
+      if (p.sole) { // sole follows the foot's projected axis; a flat horizontal bar read as a skate deck
+        const ax = p.pa.x, ay = p.pa.y, bx = p.pb.x, by = p.pb.y;
+        const vx = bx - ax, vy = by - ay, vl = Math.hypot(vx, vy) || 1;
+        let nx = -vy / vl, ny = vx / vl;
+        if (ny < 0) { nx = -nx; ny = -ny; } // always offset toward the bottom of the screen
+        const off = p.w * 0.3, trim = 0.16; // keep the sole inside the footprint
+        const saddle = [[ax + vx * trim + nx * off, ay + vy * trim + ny * off], [bx - vx * trim + nx * off, by - vy * trim + ny * off]];
+        x.lineCap = 'round';
+        x.strokeStyle = 'rgba(18,14,10,0.85)'; x.lineWidth = Math.max(1, p.w * 0.5);
+        x.beginPath(); x.moveTo(saddle[0][0], saddle[0][1]); x.lineTo(saddle[1][0], saddle[1][1]); x.stroke();
         const pale = (col[0] + col[1] + col[2]) / 3 > 150;
         if (pale) {
-          x.strokeStyle = 'rgba(245,245,238,0.95)'; x.lineWidth = p.w * 0.55;
-          x.beginPath(); x.moveTo(p.pa.x, y0); x.lineTo(p.pb.x, y1); x.stroke();
+          x.strokeStyle = 'rgba(245,245,238,0.95)'; x.lineWidth = Math.max(1, p.w * 0.28);
+          x.beginPath(); x.moveTo(saddle[0][0], saddle[0][1]); x.lineTo(saddle[1][0], saddle[1][1]); x.stroke();
         }
       }
       if (p.torso && spec.blood) { // gore on torso
