@@ -358,33 +358,40 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         for (const t of [0.25, 0.5, 0.75]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf, -0.1, z], [xf, 0.1, z], 0.011, dk); } // quilting
       }
     },
-    // rain coat: oilskin slicker - high storm collar, smooth waterproof sheen, long hem and
-    // a front placket. Kept visually distinct from the winter coat (no fur) and from the
-    // leather jacket (no zip, brighter and thicker).
+    // rain coat: a slim, straight oilskin slicker with a peaked hood, taped seams and a slick
+    // sheen. No fur, no quilting and no wide hem - the silhouette is clearly not a winter coat.
     raincoat: (J, cap, shirt, covered) => {
-      const lt = [Math.min(255, shirt[0] * 1.35 + 18), Math.min(255, shirt[1] * 1.35 + 18), Math.min(255, shirt[2] * 1.35 + 18)];
-      const dk = [shirt[0] * 0.55, shirt[1] * 0.55, shirt[2] * 0.55];
-      const xf = J.pel[0] + 0.15;
-      cap([J.neck[0] - 0.01, -0.1, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.1, J.neck[2] + 0.01], 0.095, lt); // storm collar
+      const lt = [Math.min(255, shirt[0] * 1.45 + 24), Math.min(255, shirt[1] * 1.45 + 24), Math.min(255, shirt[2] * 1.45 + 24)];
+      const dk = [shirt[0] * 0.52, shirt[1] * 0.52, shirt[2] * 0.52];
+      // hood sits behind the neck and peaks backwards over the shoulders
+      cap([J.neck[0] - 0.02, -0.07, J.neck[2] - 0.02], [J.neck[0] + 0.13, -0.02, J.neck[2] - 0.16], 0.085, shirt);
+      cap([J.neck[0] - 0.01, -0.085, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.085, J.neck[2] + 0.01], 0.07, dk); // narrow storm collar
+      cap([J.pel[0] + 0.01, 0, J.pel[2] + 0.05], [J.neck[0], 0, J.neck[2] - 0.05], 0.13, shirt, { hem: true }); // slim upper body
       if (!covered) {
-        cap([xf, 0, J.pel[2] + 0.07], [xf, 0, J.neck[2] - 0.1], 0.02, dk);                                    // front placket
-        for (const t of [0.3, 0.62]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf - 0.01, -0.06, z], [xf - 0.01, 0.06, z], 0.016, dk); } // pocket flaps
+        const xf = J.pel[0] + 0.135;
+        cap([xf, 0, J.pel[2] + 0.08], [xf, 0, J.neck[2] - 0.08], 0.013, lt); // taped seam / wet sheen
+        for (const t of [0.35, 0.7]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf - 0.01, -0.05, z], [xf - 0.01, 0.05, z], 0.01, dk); } // welded seams
+        cap([J.pel[0] + 0.02, -0.075, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.075, J.pel[2] + 0.02], 0.02, lt); // hem binding
       }
-      cap([J.pel[0] + 0.02, -0.15, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.15, J.pel[2] + 0.02], 0.155, shirt);  // long hem
-      cap([J.pel[0] + 0.02, -0.14, J.pel[2] - 0.12], [J.pel[0] + 0.02, 0.14, J.pel[2] - 0.12], 0.13, shirt);   // skirt past the hips
+      cap([J.pel[0] + 0.01, -0.07, J.pel[2] - 0.06], [J.pel[0] + 0.01, 0.07, J.pel[2] - 0.06], 0.1, shirt); // narrow fall
     },
-    // winter coat: wide fur collar + double-breasted front + long hem over the hips
+    // winter coat: thick padded shoulders and fur collar, quilted chest, but a fitted waist
+    // instead of the old wide hem that made every wearer look broad at the hips.
     wintercoat: (J, cap, shirt, covered) => {
       const fur = [Math.min(255, shirt[0] * 1.4 + 40), Math.min(255, shirt[1] * 1.4 + 40), Math.min(255, shirt[2] * 1.4 + 40)];
       const dk = [shirt[0] * 0.5, shirt[1] * 0.5, shirt[2] * 0.5];
-      cap([J.neck[0] - 0.02, -0.13, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.13, J.neck[2] - 0.02], 0.105, fur); // fur collar
-      cap([J.pel[0] + 0.03, 0, J.pel[2] + 0.08], [J.neck[0], 0, J.neck[2] - 0.08], 0.16, shirt, { hem: true }); // open front
+      const lt = shirt.map(v => Math.min(255, v * 1.25 + 18));
+      cap([J.neck[0] - 0.02, -0.12, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.12, J.neck[2] - 0.02], 0.115, fur); // full fur collar
+      cap([J.shL[0], J.shL[1], J.shL[2] + 0.02], [J.neck[0], J.shL[1] * 0.7, J.neck[2] - 0.02], 0.1, shirt); // padded shoulders
+      cap([J.shR[0], J.shR[1], J.shR[2] + 0.02], [J.neck[0], J.shR[1] * 0.7, J.neck[2] - 0.02], 0.1, shirt);
+      cap([J.pel[0] + 0.02, 0, J.pel[2] + 0.06], [J.neck[0], 0, J.neck[2] - 0.06], 0.155, shirt, { hem: true }); // thick upper body
       if (!covered) {
         const xf = J.pel[0] + 0.15;
-        cap([xf, -0.07, J.pel[2] + 0.1], [xf, -0.07, J.neck[2] - 0.1], 0.013, dk); // button line
+        for (const z of [J.pel[2] + 0.14, J.pel[2] + 0.28]) cap([xf, -0.07, z], [xf, 0.07, z], 0.012, dk); // insulated quilting
+        cap([xf, 0, J.pel[2] + 0.1], [xf, 0, J.neck[2] - 0.1], 0.011, lt); // zip line
       }
-      cap([J.pel[0] + 0.02, -0.15, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.15, J.pel[2] + 0.02], 0.155, shirt); // long hem
-      cap([J.pel[0] + 0.02, -0.14, J.pel[2] - 0.09], [J.pel[0] + 0.02, 0.14, J.pel[2] - 0.09], 0.135, shirt); // hem skirt
+      cap([J.pel[0] + 0.01, -0.09, J.pel[2] - 0.02], [J.pel[0] + 0.01, 0.09, J.pel[2] - 0.02], 0.12, shirt); // fitted waist
+      cap([J.pel[0] + 0.01, -0.07, J.pel[2] - 0.1], [J.pel[0] + 0.01, 0.07, J.pel[2] - 0.1], 0.1, dk); // cinched hem band
     },
     // police duty shirt: sharp collar, shoulder tabs, gold badge and a radio pocket.
     // Navy like the riot helmet and the ballistic vest, so the whole set reads as one uniform.
