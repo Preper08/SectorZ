@@ -9,23 +9,23 @@
 
 
   // ---- melee
-  it('fists', 'Fists', 'melee', { dmg: 8, range: 1.0, rate: 0.45, stam: 4, noise: 4, hidden: true });
-  it('bat', 'Baseball Bat', 'melee', { w: 1, h: 2, dmg: 26, range: 1.5, rate: 0.62, stam: 9, noise: 7, dur: 60, desc: 'Solid wood. Reliable.', col: '#b08848' });
-  it('crowbar', 'Crowbar', 'melee', { w: 1, h: 2, dmg: 22, range: 1.4, rate: 0.5, stam: 7, noise: 7, dur: 90, pry: true, desc: 'Great for opening locked doors.', col: '#7a8088' });
-  it('knife', 'Kitchen Knife', 'melee', { w: 1, h: 2, dmg: 14, range: 1.1, rate: 0.32, stam: 3, noise: 2, dur: 45, desc: 'Fast and quiet.', col: '#c4c8cc' });
-  it('machete', 'Machete', 'melee', { w: 1, h: 2, dmg: 34, range: 1.6, rate: 0.55, stam: 8, noise: 4, dur: 80, desc: 'Cuts through the dead.', col: '#9aa0a4' });
-  it('axe', 'Fire Axe', 'melee', { w: 2, h: 3, dmg: 48, range: 1.5, rate: 0.85, stam: 14, noise: 8, dur: 100, chop: true, pry: true, desc: 'Heavy. Chops wood and skulls.', col: '#c43c30' });
-  it('pipe', 'Lead Pipe', 'melee', { w: 1, h: 2, dmg: 24, range: 1.4, rate: 0.6, stam: 9, noise: 8, dur: 120, desc: 'Heavy and dependable.', col: '#7c828a' });
+  it('fists', 'Fists', 'melee', { dmg: 8, range: 1.0, rate: 0.45, stam: 4, noise: 4, hidden: true, snd: 'swingFists' });
+  it('bat', 'Baseball Bat', 'melee', { w: 1, h: 2, dmg: 26, range: 1.5, rate: 0.62, stam: 9, noise: 7, dur: 60, snd: 'swingBat', desc: 'Solid wood. Reliable.', col: '#b08848' });
+  it('crowbar', 'Crowbar', 'melee', { w: 1, h: 2, dmg: 22, range: 1.4, rate: 0.5, stam: 7, noise: 7, dur: 90, pry: true, snd: 'swingCrowbar', desc: 'Great for opening locked doors.', col: '#7a8088' });
+  it('knife', 'Kitchen Knife', 'melee', { w: 1, h: 2, dmg: 14, range: 1.1, rate: 0.32, stam: 3, noise: 2, dur: 45, snd: 'swingKnife', desc: 'Fast and quiet.', col: '#c4c8cc' });
+  it('machete', 'Machete', 'melee', { w: 1, h: 2, dmg: 34, range: 1.6, rate: 0.55, stam: 8, noise: 4, dur: 80, snd: 'swingMachete', desc: 'Cuts through the dead.', col: '#9aa0a4' });
+  it('axe', 'Fire Axe', 'melee', { w: 2, h: 3, dmg: 48, range: 1.5, rate: 0.85, stam: 14, noise: 8, dur: 100, chop: true, pry: true, snd: 'swingAxe', desc: 'Heavy. Chops wood and skulls.', col: '#c43c30' });
+  it('pipe', 'Lead Pipe', 'melee', { w: 1, h: 2, dmg: 24, range: 1.4, rate: 0.6, stam: 9, noise: 8, dur: 120, snd: 'swingPipe', desc: 'Heavy and dependable.', col: '#7c828a' });
   it('hammer', 'Hammer', 'melee', { w: 1, h: 2, dmg: 16, range: 1.1, rate: 0.45, stam: 5, noise: 6, dur: 100, tool: true, desc: 'Needed to build.', col: '#946a3c' });
-  it('spear', 'Wooden Spear', 'melee', { w: 1, h: 3, dmg: 30, range: 2.0, rate: 0.7, stam: 8, noise: 3, dur: 40, desc: 'Long reach.', col: '#a07c48' });
+  it('spear', 'Wooden Spear', 'melee', { w: 1, h: 3, dmg: 30, range: 2.0, rate: 0.7, stam: 8, noise: 3, dur: 40, snd: 'swingSpear', desc: 'Long reach.', col: '#a07c48' });
   // ---- guns
   it('pistol', '9mm Pistol', 'gun', { w: 2, h: 2, dmg: 28, range: 18, rate: 0.28, mag: 12, ammo: 'ammo9', spread: 0.05, noise: 22, snd: 'gun_pistol', dur: 150, reload: 1.4, desc: 'Standard sidearm.', col: '#444' });
   it('shotgun', 'Pump Shotgun', 'gun', { w: 4, h: 2, dmg: 14, pellets: 8, range: 11, rate: 0.9, mag: 6, ammo: 'shell', spread: 0.2, noise: 32, snd: 'gun_shotgun', dur: 150, reload: 2.2, desc: 'Devastating up close.', col: '#5a3c22' });
   it('rifle', 'Hunting Rifle', 'gun', { w: 5, h: 2, dmg: 70, range: 30, rate: 0.95, mag: 5, ammo: 'ammo762', spread: 0.015, noise: 36, snd: 'gun_rifle', dur: 200, reload: 2.4, pierce: 2, desc: 'Accurate and powerful.', col: '#4c3820' });
-  it('smg', 'SMG', 'gun', { w: 3, h: 2, dmg: 18, range: 16, rate: 0.085, mag: 30, ammo: 'ammo9', spread: 0.1, noise: 24, snd: 'gun_pistol', auto: true, dur: 120, reload: 1.8, desc: 'High rate of fire.', col: '#333' });
+  it('smg', 'SMG', 'gun', { w: 3, h: 2, dmg: 18, range: 16, rate: 0.085, mag: 30, ammo: 'ammo9', spread: 0.1, noise: 24, snd: 'gun_smg', auto: true, dur: 120, reload: 1.8, desc: 'High rate of fire.', col: '#333' });
   // Military-only assault rifle: between the SMG and the hunting rifle. More accurate and
   // longer-ranged than an SMG, far faster than a bolt-action, but rarer ammo and no piercing.
-  it('arifle', 'Assault Rifle', 'gun', { w: 4, h: 2, dmg: 32, range: 24, rate: 0.14, mag: 30, ammo: 'ammo556', spread: 0.05, noise: 28, snd: 'gun_rifle', auto: true, dur: 220, reload: 2.1, desc: 'Military-issue rifle. Fast, accurate, fed by 5.56 magazines.', col: '#3a4035' });
+  it('arifle', 'Assault Rifle', 'gun', { w: 4, h: 2, dmg: 32, range: 24, rate: 0.14, mag: 30, ammo: 'ammo556', spread: 0.05, noise: 28, snd: 'gun_arifle', auto: true, dur: 220, reload: 2.1, desc: 'Military-issue rifle. Fast, accurate, fed by 5.56 magazines.', col: '#3a4035' });
   // ---- ammo
   it('ammo9', '9mm Rounds', 'ammo', { stack: 40, col: '#c8a040', desc: 'Pistol / SMG ammunition.' });
   it('shell', 'Shotgun Shells', 'ammo', { stack: 20, col: '#c44030', desc: '12 gauge.' });

@@ -83,6 +83,19 @@
     gun_pistol: (g, t) => { noise(g, t, 0.28, 5200, 300, 0.5, 'lowpass', 1.4, 0.001); tone(g, t, 0.18, 180, 45, 'triangle', 1.0, 0.001); },
     gun_shotgun: (g, t) => { noise(g, t, 0.6, 4200, 140, 0.5, 'lowpass', 1.8, 0.001); tone(g, t, 0.35, 120, 30, 'triangle', 1.4, 0.001); },
     gun_rifle: (g, t) => { noise(g, t, 0.5, 6200, 200, 0.5, 'lowpass', 1.6, 0.001); tone(g, t, 0.3, 150, 35, 'triangle', 1.2, 0.001); },
+    // SMG: short, bright snap - a fast 9mm burst, not the pistol's heavier report.
+    gun_smg: (g, t) => { noise(g, t, 0.16, 7000, 900, 0.6, 'lowpass', 1.5, 0.001); tone(g, t, 0.09, 260, 90, 'triangle', 0.85, 0.001); },
+    // Assault rifle: sharper, cleaner crack than the bolt-action's long boom, with a short thump.
+    gun_arifle: (g, t) => { noise(g, t, 0.3, 7000, 350, 0.7, 'lowpass', 1.8, 0.001); tone(g, t, 0.2, 210, 55, 'triangle', 1.15, 0.001); tone(g, t + 0.02, 0.12, 90, 40, 'sine', 0.6, 0.001); },
+    // One swing timbre per melee weapon: weight and material are audible, not a shared whoosh.
+    swingFists: (g, t) => noise(g, t, 0.12, 900, 320, 1.0, 'bandpass', 0.5, 0.02),
+    swingKnife: (g, t) => noise(g, t, 0.1, 3200, 1500, 2.2, 'bandpass', 0.6, 0.01),
+    swingMachete: (g, t) => noise(g, t, 0.2, 2400, 700, 1.4, 'bandpass', 0.75, 0.02),
+    swingAxe: (g, t) => { noise(g, t, 0.26, 1100, 280, 0.9, 'bandpass', 0.9, 0.03); tone(g, t + 0.16, 0.1, 180, 70, 'triangle', 0.5); },
+    swingBat: (g, t) => { noise(g, t, 0.2, 1500, 420, 1.1, 'bandpass', 0.8, 0.02); tone(g, t, 0.09, 320, 140, 'sine', 0.25); },
+    swingCrowbar: (g, t) => { noise(g, t, 0.16, 2600, 800, 1.6, 'bandpass', 0.7, 0.01); tone(g, t, 0.12, 620, 380, 'triangle', 0.35, 0.005); },
+    swingPipe: (g, t) => { noise(g, t, 0.18, 2200, 600, 1.4, 'bandpass', 0.75, 0.01); tone(g, t, 0.16, 480, 260, 'triangle', 0.45, 0.005); },
+    swingSpear: (g, t) => noise(g, t, 0.13, 1800, 600, 2.4, 'bandpass', 0.55, 0.01),
     reload: (g, t) => { tone(g, t, 0.05, 900, 400, 'square', 0.25); tone(g, t + 0.25, 0.07, 500, 300, 'square', 0.3); tone(g, t + 0.5, 0.05, 1200, 500, 'square', 0.2); },
     empty: (g, t) => tone(g, t, 0.04, 1500, 700, 'square', 0.3),
     groan: (g, t) => {

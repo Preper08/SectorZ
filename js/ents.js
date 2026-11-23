@@ -414,7 +414,7 @@
   };
   E.melee = function (S, p, def, item) {
     const range = def.range + 0.45, half = 0.95, hit = []; let any = false;
-    A.play('swing', p.x, p.y, 0.8); E.noise(S, p.x, p.y, def.noise);
+    A.play(def.snd || 'swing', p.x, p.y, 0.8); E.noise(S, p.x, p.y, def.noise);
     for (const z of S.zombies) {
       if (z.dead) continue; const dx = z.x - p.x, dy = z.y - p.y, d = Math.hypot(dx, dy); if (d > range + z.r) continue;
       if (Math.abs(U.angDiff(p.aimAng, Math.atan2(dy, dx))) > half && d > 0.8) continue; if (!W.los(p.x, p.y, z.x, z.y)) continue;
