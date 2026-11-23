@@ -6,7 +6,7 @@
   DSZ.C = {
     TW: 64, TH: 32,          // iso tile size in px (zoom 1) = 1 world unit
     WH: 92,                  // wall/door height in px (objects use their own px scale)
-    W: 176, H: 176,          // world size in tiles
+    W: 212, H: 212,          // world size in tiles (6 street centres: 16 + 5*36 + 16)
     CH: 8,                   // chunk size in tiles
     STREET0: 16, SP: 36,     // first street centre, spacing between streets
     ROAD: 6, SIDE: 2,        // road width, sidewalk width

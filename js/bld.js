@@ -296,7 +296,7 @@
       else { const s = y1 - Math.max(4, Math.round(o.h * 0.68)); sales = { x0: inner.x0, y0: s + 1, x1: inner.x1, y1: inner.y1 }; back = { x0: inner.x0, y0: inner.y0, x1: inner.x1, y1: s - 1 }; for (let x = inner.x0; x <= inner.x1; x++) wall(x, s, b, b.imat, b.imat, rng); const px = inner.x0 + 1 + ((rng() * (o.w - 4)) | 0); W.setObj(px, s, { t: O.DOOR, mat: b.imat, imat: b.imat, v: 3, b: id, open: false, locked: false, inner: true }); b.doors.push([px, s]); }
       b.sales = sales; b.back = back;
       rooms = [sales, back]; sales.type = 'sales'; back.type = 'back';
-    } else if (kind === 'police' || kind === 'hospital') {
+    } else if (kind === 'police' || kind === 'hospital' || kind === 'military') {
       split(b, inner, rng, 3, 4, rooms);
     } else if (kind === 'warehouse') {
       rooms = [inner]; inner.type = 'warehouse';
@@ -440,6 +440,25 @@
           if (bed) { bed.t = O.SINK; delete bed.loot; delete bed.grid; delete bed.searched; W.refresh(bed.x, bed.y); }
         }
       });
+    } else if (kind === 'military') {
+      rooms.forEach(r => r.area = (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1));
+      const sorted = rooms.slice().sort((a, c) => c.area - a.area);
+      sorted.forEach((r, i) => { r.type = i === 0 ? 'command' : (i === 1 ? 'armory' : 'barracks'); });
+      for (const r of rooms) {
+        floorRect(r, r.type === 'command' ? G.LINO : G.CONC_IN);
+        if (r.type === 'command') {
+          put(b, r, rng, O.COMPUTERDESK, { loot: 'office' }); put(b, r, rng, O.DESK, { loot: 'office' });
+          put(b, r, rng, O.LOCKER, { loot: 'military' }); putFree(b, r, rng, O.CHAIR);
+        } else if (r.type === 'armory') {
+          for (let i = 0; i < 4; i++) put(b, r, rng, O.LOCKER, { loot: 'military' });
+          for (let i = 0; i < 2; i++) put(b, r, rng, O.CRATE, { loot: 'military' });
+          put(b, r, rng, O.WORKBENCH, { loot: 'tools' });
+        } else {
+          put(b, r, rng, O.BED, { loot: 'military' });
+          put(b, r, rng, O.WARDROBE, { loot: 'military' });
+          put(b, r, rng, O.LOCKER, { loot: 'military' });
+        }
+      }
     } else if (kind === 'hospital') {
       rooms.forEach(r => r.area = (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1));
       const sorted = rooms.slice().sort((a, c) => c.area - a.area);

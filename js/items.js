@@ -185,6 +185,9 @@
     guns: { n: [1, 3], t: [['pistol', 3], ['shotgun', 1.8], ['rifle', 1.2], ['ammo9', 6], ['shell', 4], ['ammo762', 3], ['knife', 3], ['machete', 2], ['vest', 0.8], ['policeshirt', 0.3], ['policepants', 0.3]] },
     police: { n: [1, 3], t: [['pistol', 4], ['ammo9', 8], ['vest', 1.5], ['flashlight', 3], ['bandage', 3], ['keys', 1.5], ['radio', 1], ['helmet', 1], ['policeshirt', 0.8], ['policepants', 0.8], ['policeboots', 0.8], ['policepack', 0.6], ['smg', 0.4]] },
     armory: { n: [2, 4], t: [['pistol', 3], ['shotgun', 3], ['rifle', 2], ['smg', 1.4], ['ammo9', 8], ['shell', 6], ['ammo762', 5], ['vest', 2.5], ['helmet', 2.5], ['policeshirt', 0.6], ['policepants', 0.6], ['policeboots', 0.6], ['policepack', 0.4], ['medkit', 1]] },
+    // The military compound is the natural source of the camo kit. God mode still gives it for
+    // free, but outside admin play these are the items that make the plate carrier worth finding.
+    military: { n: [2, 4], t: [['milhelmet', 2.4], ['miltop', 2.2], ['milpants', 2.2], ['milboots', 2.2], ['milvest', 1.6], ['milpack', 1.2], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1.4], ['smg', 1], ['medkit', 1.5], ['mre', 2.5], ['bandage', 2], ['tape', 2], ['flashlight', 1.5]] },
     cell: { n: [0, 1], t: [['rags', 4], ['cloth', 3], ['candy', 2]] },
     locker: { n: [0, 2], t: [['jacket', 3], ['flannel', 3], ['leather', 1.5], ['boots', 2], ['flashlight', 3], ['cap', 3], ['battery', 3], ['bandage', 2], ['crowbar', 2], ['mre', 0.8], ['water', 3], ['policepack', 0.2]] },
     office: { n: [0, 2], t: [['tape', 3], ['battery', 3], ['candy', 3], ['soda', 3], ['painkillers', 2], ['keys', 1.2], ['map', 1.5], ['water', 2]] },

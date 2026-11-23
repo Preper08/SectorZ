@@ -39,7 +39,7 @@
   function terrain() {
     const x0 = 11, x1 = C.W - 11;
     for (let y = 0; y < C.H; y++) for (let x = 0; x < C.W; x++) W.ground[W.idx(x, y)] = (x < x0 || y < x0 || x >= x1 || y >= x1) ? G.FOREST : G.GRASS;
-    const cs = []; for (let i = 0; i < 5; i++) cs.push(C.STREET0 + i * C.SP);
+    const cs = []; for (let i = 0; i < 6; i++) cs.push(C.STREET0 + i * C.SP);
     Gen.centers = cs;
     const ya = 4, yb = C.H - 4;
     for (const c of cs) {
@@ -258,6 +258,35 @@
     Gen.poi.push({ name: 'Gas Station', x: b.x + b.w / 2, y: b.y + b.h / 2 });
   }
 
+  // Military compound: barracks with an armory, a fenced yard full of supply crates, tents and
+  // olive pickups. This is the natural source of the military kit, which was admin-only before.
+  function milBlock(bx, by) {
+    fill(bx, by, 26, 26, G.CONCRETE);
+    fill(bx + 2, by + 18, 22, 7, G.PARKING);
+    const b = Bld.make({ x: bx + 2, y: by + 2, w: 22, h: 15, kind: 'military', door: 'S', rng, floor: G.CONC_IN, name: 'Military Base', mat: 'block', imat: 'int_conc', roof: '#3b4234', locked: false });
+    b.flat = true; b.big = true;
+    for (let i = 0; i < 8; i++) { const p = Bld.randomInterior(b, rng); if (p) addZ(p[0], p[1]); }
+    // perimeter fence with a gated front
+    for (let x = bx; x < bx + 26; x++) if (x < bx + 11 || x > bx + 14) put(x, by + 25, O.FENCE_CL, { f: 0 });
+    for (let y = by; y < by + 25; y++) { put(bx, y, O.FENCE_CL, { f: 3 }); put(bx + 25, y, O.FENCE_CL, { f: 3 }); }
+    put(bx + 11, by + 25, O.BARRIER); put(bx + 14, by + 25, O.BARRIER);
+    // Tents against the barracks, supplies along the back fence. The middle lane stays clear:
+    // world generation drops cars whose ±2 tile footprint overlaps a solid object.
+    for (const [x, y] of [[bx + 3, by + 17], [bx + 6, by + 17], [bx + 18, by + 17], [bx + 21, by + 17]]) put(x, y, O.TENT, { f: R(4) });
+    for (const x of [bx + 2, bx + 3, bx + 9, bx + 10, bx + 16, bx + 17, bx + 23]) {
+      put(x, by + 23 + R(2), rng() < 0.5 ? O.CRATE : O.LOCKER, { loot: 'military' });
+    }
+    put(bx + 2, by + 24, O.BARRIER);
+    // vehicles: one drivable olive pickup and a pair of wrecks in the clear lane
+    const truck = Gen.addCar(bx + 13, by + 21.5, Math.PI / 2, 'ok', 'pickup'); if (truck) truck.color = 5;
+    for (const x of [bx + 6, bx + 20]) { const w = Gen.addCar(x, by + 21.5, Math.PI / 2, 'wreck', 'pickup'); if (w) w.color = 5; }
+    lampAt(bx + 5, by + 18, true, [210, 225, 255]); lampAt(bx + 20, by + 18, rng() < 0.7, [210, 225, 255]);
+    put(bx + 2, by + 19, O.WRECKFIRE, {});
+    const wf = W.getObj(bx + 2, by + 19); if (wf) wf.light = W.addLight({ x: bx + 2.5, y: by + 19.5, r: 7, col: [255, 140, 50], a: 1, kind: 'fire', flick: 2, seed: rng() * 100, h: 1 });
+    for (let i = 0; i < 10; i++) addZ(bx + 2 + rng() * 22, by + 17 + rng() * 8);
+    Gen.poi.push({ name: 'Military Base', x: b.x + b.w / 2, y: b.y + b.h / 2 });
+  }
+
   // ---------------------------------------------------------------- streets: props & cars
   function streets() {
     const cs = Gen.centers, ya = 6, yb = C.H - 6;
@@ -307,16 +336,18 @@
     terrain();
     // blocks: [row][col] types
     const layout = [
-      ['res', 'res', 'comm', 'res'],
-      ['res', 'police', 'comm', 'park'],
-      ['ind', 'comm', 'super', 'res'],
-      ['gas', 'church', 'res', 'hospital']
+      ['res', 'res', 'comm', 'res', 'res'],
+      ['res', 'police', 'comm', 'park', 'res'],
+      ['ind', 'comm', 'super', 'res', 'res'],
+      ['gas', 'church', 'res', 'hospital', 'res'],
+      ['res', 'res', 'res', 'res', 'mil']
     ];
     Gen.blocks = [];
     let startHouse = null, commN = 0;
-    for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) {
       const bx = Gen.centers[i] + 5, by = Gen.centers[j] + 5, t = layout[j][i];
       Gen.blocks.push({ x: bx, y: by, type: t });
+      if (t === 'mil') continue; // built after the town with its own RNG stream
       if (t === 'res') { const hs = resBlock(bx, by); if (!startHouse && i === 0 && j === 0) startHouse = hs[0]; }
       else if (t === 'comm') commBlock(bx, by, SHOP_ROTATIONS[commN++]);
       else if (t === 'super') superBlock(bx, by);
@@ -347,6 +378,14 @@
     for (const b of W.blds) if (b && b.kind === 'diner') landmark(b, 'Diner');
     streets();
     forest();
+    // The compound uses its own RNG stream, so adding it cannot reshuffle the existing town's
+    // props, zombies or cars - a given seed still produces the same world it did before.
+    {
+      const townRng = rng;
+      rng = U.mulberry32((seed ^ 0x5eed1234) >>> 0);
+      milBlock(Gen.centers[4] + 5, Gen.centers[4] + 5);
+      rng = townRng;
+    }
     // A door must lead somewhere. Interior partitions are handled per building (Bld.repairDoors),
     // but street/yard props (trash cans, hydrants, etc) are placed after the buildings and can
     // still end up blocking a door. Clear any non-wall object that leaves a door boxed in, so no
