@@ -203,14 +203,14 @@
     mail: { n: [0, 1], t: [['candy', 2], ['map', 1], ['keys', 0.6]] },
     register: { n: [0, 1], t: [['candy', 3], ['keys', 1], ['lighter', 3], ['map', 1]] },
     church: { n: [0, 2], t: [['candy', 2], ['bread', 3], ['water', 3], ['cloth', 3], ['rags', 3], ['lantern', 1.2], ['medkit', 0.5]] },
-    zombie: { n: [0, 2], t: [['rags', 5], ['candy', 3], ['cloth', 3], ['keys', 0.8], ['lighter', 1], ['bandage', 1.5], ['ammo9', 1], ['water', 1.5], ['beans', 1]], none: 0.55 },
+    zombie: { n: [1, 2], t: [['rags', 5], ['candy', 3], ['cloth', 3], ['keys', 0.8], ['lighter', 1], ['bandage', 1.5], ['ammo9', 1], ['water', 1.5], ['beans', 1], ['cap', 1.5], ['sneakers', 1], ['boots', 0.8]], none: 0.42 },
     // Corpse loot by zombie type. A walker has whatever was in their pockets when they turned;
     // a runner was fleeing and dropped most of it; a brute still carries the tools and supplies
     // that made them heavy; a crawler lost nearly everything. Weights, not new items, so the
     // loot stays in the existing item set.
-    zombieRunner: { n: [0, 1], t: [['candy', 5], ['water', 4], ['rags', 4], ['keys', 2], ['lighter', 3], ['bandage', 2], ['soda', 3]], none: 0.45 },
+    zombieRunner: { n: [1, 1], t: [['candy', 5], ['water', 4], ['rags', 4], ['keys', 2], ['lighter', 3], ['bandage', 2], ['soda', 3], ['runners', 1.2]], none: 0.4 },
     zombieBrute: { n: [1, 3], t: [['rags', 4], ['scrap', 5], ['nails', 4], ['pipe', 4], ['tape', 3], ['beans', 3], ['bandage', 2], ['painkillers', 2], ['ammo9', 2], ['hammer', 1.5], ['wire', 3], ['machete', 0.6]], none: 0.2 },
-    zombieCrawler: { n: [0, 1], t: [['rags', 6], ['cloth', 4], ['candy', 2], ['keys', 1], ['bandage', 1.5]], none: 0.5 },
+    zombieCrawler: { n: [1, 1], t: [['rags', 6], ['cloth', 4], ['candy', 2], ['keys', 1], ['bandage', 1.5]], none: 0.45 },
     // One guaranteed roll for a body searched inside a themed building: the place they died in
     // is what they were carrying. Used at 50% so corpses still differ from the shelves.
     zombieMedical: { n: [1, 1], t: [['bandage', 6], ['painkillers', 5], ['antibiotics', 2], ['splint', 2], ['rags', 4]] },

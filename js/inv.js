@@ -271,11 +271,22 @@
   Inv.fillContainer = function (o, rng) {
     const d = DSZ.OBJDEF[o.t].cont; if (!d) return null;
     if (o.grid) return o.grid;
-    const g = Inv.grid(d.w, d.h); o.grid = g;
+    let w = d.w, h = d.h, g;
     if (d.loot || o.loot) {
-      const list = DSZ.rollLoot(rng, o.loot || d.loot, 0);
-      for (const r of list) { const it = Inv.make(r.id, r.q, r); Inv.addTo(g, it); }
-    }
+      const list = DSZ.rollLoot(rng, o.loot || d.loot, 0).slice()
+        .sort((a, b) => I[b.id].w * I[b.id].h - I[a.id].w * I[a.id].h);
+      // A locker is 4x4 but the armory rolls 5x2 rifles and several other items; anything that
+      // does not fit was silently dropped. Pack biggest first and grow the grid a column at a
+      // time, refilling it, the same way corpse loot is handled, so rare drops are never lost.
+      for (;;) {
+        g = Inv.grid(w, h);
+        let full = false;
+        for (const r of list) { if (Inv.addTo(g, Inv.make(r.id, r.q, r)) !== 0) { full = true; break; } }
+        if (!full || w >= 24) break;
+        w++;
+      }
+    } else g = Inv.grid(w, h);
+    o.grid = g;
     return g;
   };
 
