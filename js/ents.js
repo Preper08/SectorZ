@@ -8,7 +8,10 @@
     walker: { speed: 1.25, hp: 60, dmg: 12, r: 0.3, sc: 1, rate: 1.1 },
     runner: { speed: 3.9, hp: 42, dmg: 9, r: 0.3, sc: 1, rate: 0.8 },
     brute: { speed: 1.05, hp: 240, dmg: 26, r: 0.42, sc: 1.2, rate: 1.5 },
-    crawler: { speed: 0.7, hp: 38, dmg: 8, r: 0.27, sc: 1, rate: 1.1 }
+    crawler: { speed: 0.7, hp: 38, dmg: 8, r: 0.27, sc: 1, rate: 1.1 },
+    // Ex-soldiers still holding their kit: tougher and more dangerous than a walker, but no
+    // match for a brute in a straight fight. Found around the military compound.
+    military: { speed: 1.55, hp: 130, dmg: 18, r: 0.32, sc: 1.05, rate: 1 }
   };
   E.ZT = ZT;
 

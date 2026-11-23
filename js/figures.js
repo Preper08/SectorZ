@@ -833,6 +833,16 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (type === 'brute') { spec.shirt = sh.map(v => v * 0.8); spec.armR = 0.09; spec.skin = [dead[0] * 0.95, dead[1] * 0.95, dead[2] * 0.95]; }
     if (type === 'runner') { spec.skin = [dead[0] + 14, dead[1] - 4, dead[2] - 4]; }
     if (r() < 0.22) spec.hat = [r() * 90 | 0, r() * 90 | 0, r() * 90 | 0];
+    if (type === 'military') {
+      // The compound's dead still wear their camo, plate carrier, helmet and pack.
+      const camo = [107 + ((r() * 14) | 0), 112 + ((r() * 14) | 0), 72 + ((r() * 10) | 0)];
+      spec.shirt = camo; spec.pants = camo.map(v => v * 0.66);
+      spec.shoes = [122, 98, 70]; spec.armR = 0.075;
+      spec.hat = [74, 80, 54]; spec.headId = 'milhelmet';
+      spec.vestId = 'milvest'; spec.vestCol = [75, 81, 54];
+      spec.bagId = 'milpack'; spec.bagCol = [74, 80, 54];
+      spec.blood = 4 + ((r() * 6) | 0);
+    }
     return spec;
   };
   Fig.SKIN = SKIN;

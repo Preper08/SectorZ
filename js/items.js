@@ -214,11 +214,14 @@
     zombieFood: { n: [1, 1], t: [['beans', 4], ['water', 4], ['candy', 4], ['chips', 4], ['bread', 3], ['soda', 4]] },
     zombieTools: { n: [1, 1], t: [['nails', 4], ['scrap', 4], ['tape', 3], ['wire', 3], ['crowbar', 1.5], ['hammer', 1.5], ['rags', 3]] },
     zombieClothes: { n: [1, 1], t: [['cloth', 4], ['rags', 4], ['cap', 2], ['sneakers', 2], ['jeans', 1.5]] },
+    // A military corpse is worth the risk of clearing the compound: one or two pieces of the
+    // camo kit, plus the ammo and rations they were carrying when they turned.
+    zombieMilitary: { n: [1, 2], t: [['milhelmet', 2], ['miltop', 2], ['milpants', 2], ['milboots', 2], ['milvest', 1.4], ['milpack', 1], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1], ['medkit', 1.2], ['mre', 2], ['bandage', 2]] },
     car: { n: [0, 2], t: [['rags', 3], ['gascan', 2], ['tape', 2], ['battery', 2], ['flashlight', 1.2], ['soda', 2], ['crowbar', 1.2], ['tire', 1.5], ['map', 2], ['keys', 0.7], ['policeboots', 0.25], ['policepack', 0.15]] },
     cartrunk: { n: [0, 3], t: [['scrap', 3], ['tire', 2], ['gascan', 2.5], ['wire', 2], ['rags', 3], ['tape', 2], ['water', 2], ['beans', 2], ['backpack', 0.8], ['crowbar', 1.5], ['policeboots', 0.4], ['policepack', 0.35]] }
   };
   // Which corpse table a zombie type rolls. game.js uses this when a body is searched.
-  DSZ.ZOMBIE_LOOT = { walker: 'zombie', runner: 'zombieRunner', brute: 'zombieBrute', crawler: 'zombieCrawler' };
+  DSZ.ZOMBIE_LOOT = { walker: 'zombie', runner: 'zombieRunner', brute: 'zombieBrute', crawler: 'zombieCrawler', military: 'zombieMilitary' };
   // One roll of a stackable item. Ammo and nails come by the handful, everything else that
   // stacks by the one-to-three. The item's own stack limit caps it, so a roll can never ask
   // for more than one legal stack no matter what a table lists.

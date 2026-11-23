@@ -265,7 +265,7 @@
     fill(bx + 2, by + 18, 22, 7, G.PARKING);
     const b = Bld.make({ x: bx + 2, y: by + 2, w: 22, h: 15, kind: 'military', door: 'S', rng, floor: G.CONC_IN, name: 'Military Base', mat: 'block', imat: 'int_conc', roof: '#3b4234', locked: false });
     b.flat = true; b.big = true;
-    for (let i = 0; i < 8; i++) { const p = Bld.randomInterior(b, rng); if (p) addZ(p[0], p[1]); }
+    for (let i = 0; i < 8; i++) { const p = Bld.randomInterior(b, rng); if (p) addZ(p[0], p[1], 'military'); }
     // perimeter fence with a gated front
     for (let x = bx; x < bx + 26; x++) if (x < bx + 11 || x > bx + 14) put(x, by + 25, O.FENCE_CL, { f: 0 });
     for (let y = by; y < by + 25; y++) { put(bx, y, O.FENCE_CL, { f: 3 }); put(bx + 25, y, O.FENCE_CL, { f: 3 }); }
@@ -283,7 +283,8 @@
     lampAt(bx + 5, by + 18, true, [210, 225, 255]); lampAt(bx + 20, by + 18, rng() < 0.7, [210, 225, 255]);
     put(bx + 2, by + 19, O.WRECKFIRE, {});
     const wf = W.getObj(bx + 2, by + 19); if (wf) wf.light = W.addLight({ x: bx + 2.5, y: by + 19.5, r: 7, col: [255, 140, 50], a: 1, kind: 'fire', flick: 2, seed: rng() * 100, h: 1 });
-    for (let i = 0; i < 10; i++) addZ(bx + 2 + rng() * 22, by + 17 + rng() * 8);
+    for (let i = 0; i < 10; i++) addZ(bx + 2 + rng() * 22, by + 17 + rng() * 8, 'military');
+    for (const [x, y] of [[bx + 6, by + 15], [bx + 19, by + 15], [bx + 11, by + 14], [bx + 14, by + 14]]) addZ(x, y, 'military');
     Gen.poi.push({ name: 'Military Base', x: b.x + b.w / 2, y: b.y + b.h / 2 });
   }
 
