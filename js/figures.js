@@ -57,7 +57,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       lean = 0.03 + arc * 0.42;                            // fold over the sill
     }
     const crouch = (P.crouch && legs !== 'dead' && legs !== 'crawl') ? 1 : 0;
-    if (crouch) { pz -= 0.37; lean += 0.36; }
+    if (crouch) { pz -= 0.33; lean += 0.36; }
     if (moving) pz -= Math.abs(Math.sin(ph)) * 0.025 * (run ? 2 : 1);
     if (arms === 'zatk') lean += 0.1 + 0.12 * Math.sin(af / 4 * Math.PI);
     if (arms === 'swing') lean += 0.04;
@@ -85,7 +85,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       fR = [0.30 + 0.30 * arc, 0.12, base + 0.10 * arc];
     }
     // crouch: feet move slightly forward and keep their ground contact, so the knees bend
-    if (crouch) { fL = [fL[0] * 0.55 + 0.17, fL[1] - 0.03, Math.max(fL[2], 0.02)]; fR = [fR[0] * 0.55 + 0.17, fR[1] + 0.03, Math.max(fR[2], 0.02)]; }
+    if (crouch) { fL = [fL[0] * 0.5 + 0.08, fL[1] - 0.02, Math.max(fL[2], 0.02)]; fR = [fR[0] * 0.5 + 0.08, fR[1] + 0.02, Math.max(fR[2], 0.02)]; }
     let kL = ik(J.hipL, fL, 0.47, 0.47, [1, 0, 0.1]), kR = ik(J.hipR, fR, 0.47, 0.47, [1, 0, 0.1]);
     J.kneeL = kL.knee; J.footL = kL.end; J.kneeR = kR.knee; J.footR = kR.end;
     // arms
@@ -169,12 +169,15 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     // Crouch folds the legs into about half their standing height. Keeping the standing radii
     // and boot length made the shoes look like oversized blocks on the bent shins, so narrow the
     // legwear and scale the footwear around the ankle in that pose.
-    const s = J.crouch ? 0.78 : 1;
-    const legR = (FOOTWEAR_FIGS[spec.feetId] ? 0.095 : 0.085) * (J.crouch ? 0.88 : 1);
+    const s = J.crouch ? 0.85 : 1;
+    // Scale every radius the garment draws, not just the one passed as legR: several entries
+    // use fixed radii for the shin, cuffs and pockets, and a crouched leg is much shorter.
+    const lcap = (a, b, r, c, o) => cap(a, b, r * s, c, o);
+    const legR = FOOTWEAR_FIGS[spec.feetId] ? 0.095 : 0.085;
     const lg = LEGS_FIGS[spec.legsId] || LEGS_FIGS.shorts;
-    lg(J, cap, pr, skin, pants, legR);
+    lg(J, lcap, pr, skin, pants, legR);
     const fw = FOOTWEAR_FIGS[spec.feetId] || FOOTWEAR_FIGS.barefoot;
-    fw(J, cap, pr, skin, shoes, shinDepth(spec, J, pr), s);
+    fw(J, cap, pr, skin, shoes, shinDepth(spec, J, pr), J.crouch ? 0.8 : 1);
   }
 
   // torso: pelvis-to-neck capsule + shoulder line + shorts hip piece, plus the clothing
@@ -540,9 +543,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       cap(J.hipL, J.kneeL, legR, col); cap(J.kneeL, J.footL, 0.075, col);
       cap(J.hipR, J.kneeR, legR, col); cap(J.kneeR, J.footR, 0.075, col);
       const dk = col.map(v => v * 0.75);
-      const pL = lerp3(J.hipL, J.kneeL, 0.45), pR = lerp3(J.hipR, J.kneeR, 0.45);
-      cap([pL[0] + 0.02, pL[1] - 0.06, pL[2]], [pL[0] + 0.02, pL[1] - 0.06, pL[2] - 0.14], 0.045, dk);
-      cap([pR[0] + 0.02, pR[1] + 0.06, pR[2]], [pR[0] + 0.02, pR[1] + 0.06, pR[2] - 0.14], 0.045, dk);
+      const pL = lerp3(J.hipL, J.kneeL, 0.45), pL2 = lerp3(J.hipL, J.kneeL, 0.62);
+      const pR = lerp3(J.hipR, J.kneeR, 0.45), pR2 = lerp3(J.hipR, J.kneeR, 0.62);
+      cap([pL[0] + 0.02, pL[1] - 0.06, pL[2]], [pL2[0] + 0.02, pL2[1] - 0.06, pL2[2]], 0.045, dk);
+      cap([pR[0] + 0.02, pR[1] + 0.06, pR[2]], [pR2[0] + 0.02, pR2[1] + 0.06, pR2[2]], 0.045, dk);
     },
     // police duty trousers: navy, pressed creases, reinforced knees, cargo thigh pockets
     policepants: (J, cap, pr, skin, col, legR) => {
@@ -554,12 +558,14 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       cap(J.kneeL, J.footL, 0.012, lt, { d: (pr(J.kneeL).d + pr(J.footL).d) / 2 + 0.012 });
       cap(J.hipR, J.kneeR, 0.012, lt, { d: (pr(J.hipR).d + pr(J.kneeR).d) / 2 + 0.012 });
       cap(J.kneeR, J.footR, 0.012, lt, { d: (pr(J.kneeR).d + pr(J.footR).d) / 2 + 0.012 });
-      const kL = lerp3(J.kneeL, J.footL, 0.16), kR = lerp3(J.kneeR, J.footR, 0.16);
-      cap([kL[0] + 0.02, kL[1], kL[2]], [kL[0] + 0.02, kL[1], kL[2] - 0.14], 0.085, dk); // knee panels
-      cap([kR[0] + 0.02, kR[1], kR[2]], [kR[0] + 0.02, kR[1], kR[2] - 0.14], 0.085, dk);
-      const pL = lerp3(J.hipL, J.kneeL, 0.45), pR = lerp3(J.hipR, J.kneeR, 0.45);
-      cap([pL[0] + 0.025, pL[1] - 0.06, pL[2]], [pL[0] + 0.025, pL[1] - 0.06, pL[2] - 0.16], 0.05, dk); // duty pockets
-      cap([pR[0] + 0.025, pR[1] + 0.06, pR[2]], [pR[0] + 0.025, pR[1] + 0.06, pR[2] - 0.16], 0.05, dk);
+      const kL = lerp3(J.kneeL, J.footL, 0.16), kL2 = lerp3(J.kneeL, J.footL, 0.34);
+      const kR = lerp3(J.kneeR, J.footR, 0.16), kR2 = lerp3(J.kneeR, J.footR, 0.34);
+      cap([kL[0] + 0.02, kL[1], kL[2]], [kL2[0] + 0.02, kL2[1], kL2[2]], 0.085, dk); // knee panels follow the shin
+      cap([kR[0] + 0.02, kR[1], kR[2]], [kR2[0] + 0.02, kR2[1], kR2[2]], 0.085, dk);
+      const pL = lerp3(J.hipL, J.kneeL, 0.45), pL2 = lerp3(J.hipL, J.kneeL, 0.63);
+      const pR = lerp3(J.hipR, J.kneeR, 0.45), pR2 = lerp3(J.hipR, J.kneeR, 0.63);
+      cap([pL[0] + 0.025, pL[1] - 0.06, pL[2]], [pL2[0] + 0.025, pL2[1] - 0.06, pL2[2]], 0.05, dk); // duty pockets
+      cap([pR[0] + 0.025, pR[1] + 0.06, pR[2]], [pR2[0] + 0.025, pR2[1] + 0.06, pR2[2]], 0.05, dk);
     },
     // military camo trousers: olive base, two-tone camo patches, big knee pads and cargo pockets
     milpants: (J, cap, pr, skin, col, legR) => {
@@ -573,12 +579,14 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
           cap([a[0] + 0.03, a[1] + side, a[2]], [b[0] + 0.03, b[1] + side, b[2]], 0.035, c);
         }
       }
-      const kL = lerp3(J.kneeL, J.footL, 0.16), kR = lerp3(J.kneeR, J.footR, 0.16);
-      cap([kL[0] + 0.02, kL[1], kL[2]], [kL[0] + 0.02, kL[1], kL[2] - 0.14], 0.09, dk); // knee pads
-      cap([kR[0] + 0.02, kR[1], kR[2]], [kR[0] + 0.02, kR[1], kR[2] - 0.14], 0.09, dk);
-      const pL = lerp3(J.hipL, J.kneeL, 0.45), pR = lerp3(J.hipR, J.kneeR, 0.45);
-      cap([pL[0] + 0.03, pL[1] - 0.06, pL[2]], [pL[0] + 0.03, pL[1] - 0.06, pL[2] - 0.17], 0.055, tan); // cargo pockets
-      cap([pR[0] + 0.03, pR[1] + 0.06, pR[2]], [pR[0] + 0.03, pR[1] + 0.06, pR[2] - 0.17], 0.055, tan);
+      const kL = lerp3(J.kneeL, J.footL, 0.16), kL2 = lerp3(J.kneeL, J.footL, 0.34);
+      const kR = lerp3(J.kneeR, J.footR, 0.16), kR2 = lerp3(J.kneeR, J.footR, 0.34);
+      cap([kL[0] + 0.02, kL[1], kL[2]], [kL2[0] + 0.02, kL2[1], kL2[2]], 0.09, dk); // knee pads follow the shin
+      cap([kR[0] + 0.02, kR[1], kR[2]], [kR2[0] + 0.02, kR2[1], kR2[2]], 0.09, dk);
+      const pL = lerp3(J.hipL, J.kneeL, 0.45), pL2 = lerp3(J.hipL, J.kneeL, 0.63);
+      const pR = lerp3(J.hipR, J.kneeR, 0.45), pR2 = lerp3(J.hipR, J.kneeR, 0.63);
+      cap([pL[0] + 0.03, pL[1] - 0.06, pL[2]], [pL2[0] + 0.03, pL2[1] - 0.06, pL2[2]], 0.055, tan); // cargo pockets
+      cap([pR[0] + 0.03, pR[1] + 0.06, pR[2]], [pR2[0] + 0.03, pR2[1] + 0.06, pR2[2]], 0.055, tan);
     }
   };
   // footwear: shaft / laces / foot / heel / sole per item; barefoot is the default
