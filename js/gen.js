@@ -190,7 +190,11 @@
     fill(bx, by + 17, 26, 9, G.PARKING);
     // Retag this block's bodies as officers without changing how many random draws addZ makes -
     // other buildings later in the stream must keep their exact shapes and populations.
-    const zAdd = (x, y) => { addZ(x, y); if (kind === 'police') Gen.zombieSpawns[Gen.zombieSpawns.length - 1][2] = 'police'; };
+    const zAdd = (x, y) => {
+      addZ(x, y);
+      if (kind === 'police') Gen.zombieSpawns[Gen.zombieSpawns.length - 1][2] = 'police';
+      else if (kind === 'hospital') Gen.zombieSpawns[Gen.zombieSpawns.length - 1][2] = 'doctor';
+    };
     const big = kind === 'hospital';
     const b = Bld.make({ x: bx + 2, y: by + 2, w: big ? 22 : 20, h: big ? 15 : 13, kind, door: 'S', rng, floor: G.LINO, name: kind === 'police' ? 'Police Station' : 'Hospital', mat: kind === 'police' ? 'brick_b' : 'stucco', imat: 'int_blue', roof: '#44484e', locked: false });
     b.flat = true; b.big = true; b.name = kind === 'police' ? 'Police Station' : 'General Hospital';

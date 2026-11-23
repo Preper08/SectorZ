@@ -833,6 +833,15 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (type === 'brute') { spec.shirt = sh.map(v => v * 0.8); spec.armR = 0.09; spec.skin = [dead[0] * 0.95, dead[1] * 0.95, dead[2] * 0.95]; }
     if (type === 'runner') { spec.skin = [dead[0] + 14, dead[1] - 4, dead[2] - 4]; }
     if (r() < 0.22) spec.hat = [r() * 90 | 0, r() * 90 | 0, r() * 90 | 0];
+    if (type === 'doctor') {
+      // A stained white coat over scrubs, surgical cap and no armour - the staff the ward turned.
+      const dirt = 0.72 + r() * 0.16;
+      spec.shirt = [214, 216, 210].map(v => v * dirt);
+      spec.pants = [120, 150, 170].map(v => v * 0.72);
+      spec.shoes = [60, 64, 70]; spec.armR = 0.058;
+      spec.hat = [220, 222, 215].map(v => v * dirt); spec.headId = 'cap';
+      spec.blood = 6 + ((r() * 6) | 0);
+    }
     if (type === 'police') {
       // Navy duty uniform, ballistic vest, riot helmet and duty pack, straight from the station.
       spec.shirt = [32 + ((r() * 10) | 0), 49 + ((r() * 10) | 0), 84 + ((r() * 12) | 0)];

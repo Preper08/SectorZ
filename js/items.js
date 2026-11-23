@@ -219,11 +219,14 @@
     zombieMilitary: { n: [1, 2], t: [['milhelmet', 2], ['miltop', 2], ['milpants', 2], ['milboots', 2], ['milvest', 1.4], ['milpack', 1], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1], ['medkit', 1.2], ['mre', 2], ['bandage', 2]] },
     // The station's dead kept their sidearm and duty gear: a proper uniform drop, not just ammo.
     zombiePolice: { n: [1, 2], t: [['policeshirt', 2.2], ['policepants', 2.2], ['policeboots', 2], ['vest', 1.6], ['helmet', 1.6], ['policepack', 1.1], ['pistol', 1.5], ['smg', 0.7], ['ammo9', 6], ['keys', 2], ['radio', 2], ['flashlight', 2], ['bandage', 2]] },
+    // Infected staff still clutching what they took from the ward: the best medical drops in the
+    // game outside the hospital shelves themselves.
+    zombieDoctor: { n: [1, 2], t: [['bandage', 8], ['painkillers', 7], ['antibiotics', 4.5], ['medkit', 3], ['splint', 2.5], ['rags', 3], ['water', 2], ['flashlight', 1.2]] },
     car: { n: [0, 2], t: [['rags', 3], ['gascan', 2], ['tape', 2], ['battery', 2], ['flashlight', 1.2], ['soda', 2], ['crowbar', 1.2], ['tire', 1.5], ['map', 2], ['keys', 0.7], ['policeboots', 0.25], ['policepack', 0.15]] },
     cartrunk: { n: [0, 3], t: [['scrap', 3], ['tire', 2], ['gascan', 2.5], ['wire', 2], ['rags', 3], ['tape', 2], ['water', 2], ['beans', 2], ['backpack', 0.8], ['crowbar', 1.5], ['policeboots', 0.4], ['policepack', 0.35]] }
   };
   // Which corpse table a zombie type rolls. game.js uses this when a body is searched.
-  DSZ.ZOMBIE_LOOT = { walker: 'zombie', runner: 'zombieRunner', brute: 'zombieBrute', crawler: 'zombieCrawler', military: 'zombieMilitary', police: 'zombiePolice' };
+  DSZ.ZOMBIE_LOOT = { walker: 'zombie', runner: 'zombieRunner', brute: 'zombieBrute', crawler: 'zombieCrawler', military: 'zombieMilitary', police: 'zombiePolice', doctor: 'zombieDoctor' };
   // One roll of a stackable item. Ammo and nails come by the handful, everything else that
   // stacks by the one-to-three. The item's own stack limit caps it, so a roll can never ask
   // for more than one legal stack no matter what a table lists.

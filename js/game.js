@@ -730,7 +730,7 @@
   // themed building has a 50% chance of one extra item from that building's stock, so a
   // hospital corpse can hold bandages and a gun-shop corpse a handful of rounds. fillLootGrid
   // starts from a per-type grid and widens it if the rolls do not fit.
-  const CORPSE_GRID = { walker: [4, 3], runner: [4, 3], brute: [5, 3], crawler: [3, 2], military: [5, 3], police: [5, 3] };
+  const CORPSE_GRID = { walker: [4, 3], runner: [4, 3], brute: [5, 3], crawler: [3, 2], military: [5, 3], police: [5, 3], doctor: [4, 3] };
   function corpseTheme(z) {
     const b = W.buildingAt(Math.floor(z.x), Math.floor(z.y)); if (!b) return null;
     if (b.kind === 'military') return 'zombieMilitary';
