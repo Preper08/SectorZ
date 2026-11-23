@@ -276,14 +276,18 @@
       const list = DSZ.rollLoot(rng, o.loot || d.loot, 0).slice()
         .sort((a, b) => I[b.id].w * I[b.id].h - I[a.id].w * I[a.id].h);
       // A locker is 4x4 but the armory rolls 5x2 rifles and several other items; anything that
-      // does not fit was silently dropped. Pack biggest first and grow the grid a column at a
-      // time, refilling it, the same way corpse loot is handled, so rare drops are never lost.
+      // does not fit was silently dropped. Pack biggest first, then grow the grid like corpse
+      // loot does. Grow HEIGHT first (addTo rotates long items), so a locker becomes taller,
+      // not an implausible 11-column-wide shelf; width only grows after that limit.
+      const baseH = h, maxH = 12, maxW = Math.max(12, d.w);
       for (;;) {
         g = Inv.grid(w, h);
         let full = false;
         for (const r of list) { if (Inv.addTo(g, Inv.make(r.id, r.q, r)) !== 0) { full = true; break; } }
-        if (!full || w >= 24) break;
-        w++;
+        if (!full) break;
+        if (h < maxH) h++;
+        else if (w < maxW) { w++; h = baseH; }
+        else break;
       }
     } else g = Inv.grid(w, h);
     o.grid = g;
