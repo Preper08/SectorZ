@@ -173,7 +173,7 @@
     kitchen: { n: [1, 3], t: [['beans', 8], ['soup', 7], ['bread', 5], ['chips', 4], ['cereal', 5], ['water', 5], ['soda', 5], ['knife', 4], ['matches', 3], ['lighter', 1.5], ['rags', 3], ['bottle', 3], ['juice', 3]] },
     fridge: { n: [0, 3], t: [['meat', 5], ['soda', 8], ['juice', 6], ['apple', 6], ['water', 6], ['candy', 4]] },
     bedroom: { n: [0, 2], t: [['rags', 5], ['cloth', 4], ['painkillers', 3], ['candy', 2], ['flashlight', 1.2], ['battery', 3], ['cap', 2], ['sneakers', 1.5], ['bandage', 2], ['radio', 1]] },
-    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['flannel', 5], ['sweater', 3], ['leather', 1.8], ['raincoat', 1.6], ['cap', 4], ['boots', 3], ['sneakers', 3], ['jeans', 5], ['trousers', 3], ['tracksuit', 2], ['cargopants', 1.5], ['policeshirt', 0.25], ['policepants', 0.25], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
+    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['flannel', 5], ['sweater', 3], ['leather', 1.8], ['raincoat', 1.6], ['wintercoat', 0.7], ['cap', 4], ['boots', 3], ['sneakers', 3], ['jeans', 5], ['trousers', 3], ['tracksuit', 2], ['cargopants', 1.5], ['policeshirt', 0.25], ['policepants', 0.25], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
     living: { n: [0, 2], t: [['battery', 4], ['rags', 3], ['candy', 3], ['chips', 3], ['soda', 3], ['radio', 1], ['lighter', 2], ['tape', 1]] },
     books: { n: [0, 1], t: [['rags', 3], ['map', 2], ['matches', 3], ['candy', 1]] },
     medical: { n: [0, 3], t: [['bandage', 9], ['painkillers', 6], ['antibiotics', 2.5], ['splint', 1.5], ['medkit', 1.2], ['rags', 3]] },

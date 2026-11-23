@@ -779,7 +779,8 @@
         for (const id of worn) {
           if (added >= 2) break;
           if (!I[id] || rows.some(r => r.id === id)) continue;
-          if (rnd() < 0.25) {
+          // A worn torso garment survives the turn a little better than trousers or shoes.
+          if (rnd() < (id === o.spec.bodyId ? 0.35 : 0.25)) {
             const row = { id, q: 1 };
             if (I[id].dur) row.dur = Math.max(1, Math.round(I[id].dur * (0.3 + rnd() * 0.4)));
             rows.push(row); added++;
