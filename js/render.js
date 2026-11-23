@@ -844,7 +844,7 @@
     // Modern assault rifle: collapsible stock, flat-top rail, vented handguard, muzzle brake,
     // curved magazine, pistol grip and a small reflex sight. Drawn in weapon space like the
     // other guns, so it follows the same aim/animation and iso-camera projection.
-    arifle: { len: 0.6, th: 3, draw: W => {
+    arifle: { len: 0.5, th: 3, draw: W => {
       const { segT, P0, seg, hl, ctx, TOT, col, dark } = W;
       segT(TOT * -0.36, TOT * -0.14, -0.4, -0.4, 2.2, '#2b2e31'); // collapsible stock
       segT(TOT * -0.38, TOT * -0.345, -2, -2, 3.6, '#191b1d'); // buttplate
