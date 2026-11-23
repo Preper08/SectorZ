@@ -175,8 +175,17 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     const lcap = (a, b, r, c, o) => cap(a, b, r * s, c, o);
     const legR = FOOTWEAR_FIGS[spec.feetId] ? 0.095 : 0.085;
     const lg = LEGS_FIGS[spec.legsId] || LEGS_FIGS.shorts;
-    lg(J, lcap, pr, skin, pants, legR);
-    const fw = FOOTWEAR_FIGS[spec.feetId] || FOOTWEAR_FIGS.barefoot;
+    // Trouser legs used to end exactly at the ankle joint, so the shin capsule poked through the
+    // top of a low shoe. Tuck the last stretch inside the footwear: deep boots hide more of it,
+    // low shoes just a little. Bare feet keep the full leg.
+    const id = spec.feetId;
+    const tuck = (id === 'boots' || id === 'policeboots' || id === 'milboots') ? 0.86
+      : (id === 'sneakers' || id === 'runners') ? 0.92 : 1;
+    const legJ = tuck < 1 ? Object.assign({}, J, {
+      footL: lerp3(J.kneeL, J.footL, tuck), footR: lerp3(J.kneeR, J.footR, tuck)
+    }) : J;
+    lg(legJ, lcap, pr, skin, pants, legR);
+    const fw = FOOTWEAR_FIGS[id] || FOOTWEAR_FIGS.barefoot;
     fw(J, cap, pr, skin, shoes, shinDepth(spec, J, pr), J.crouch ? 0.8 : 1);
   }
 
