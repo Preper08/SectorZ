@@ -601,22 +601,34 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       cap([J.footL[0] - 0.02 * s, J.footL[1], J.footL[2] + 0.04 * s], [J.footL[0] + 0.15 * s, J.footL[1], J.footL[2] + 0.04 * s], 0.055 * s, skin);
       cap([J.footR[0] - 0.02 * s, J.footR[1], J.footR[2] + 0.04 * s], [J.footR[0] + 0.15 * s, J.footR[1], J.footR[2] + 0.04 * s], 0.055 * s, skin);
     },
-    // sneakers: low shoe over the foot + light-coloured sole strip, slimmer than boots
+    // sneakers: padded grey canvas low-top with a laced instep, rubber toe cap and dark sole
     sneakers: (J, cap, pr, skin, shoes, shin, sc) => {
       const s = sc === undefined ? 1 : sc;
       [[J.footL, shin && shin.L], [J.footR, shin && shin.R]].forEach(([ft, sd]) => {
         const d = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
-        cap([ft[0] - 0.05 * s, ft[1], ft[2] + 0.035 * s], [ft[0] + 0.16 * s, ft[1], ft[2] + 0.035 * s], 0.052 * s, shoes, { d });
-        cap([ft[0] - 0.05 * s, ft[1], ft[2] + 0.006 * s], [ft[0] + 0.16 * s, ft[1], ft[2] + 0.006 * s], 0.045 * s, [shoes[0] * 1.35, shoes[1] * 1.35, shoes[2] * 1.35], { sole: true, d: d + 0.005 });
+        const heel = [ft[0] - 0.05 * s, ft[1], ft[2] + 0.04 * s], toe = [ft[0] + 0.16 * s, ft[1], ft[2] + 0.04 * s];
+        cap(heel, toe, 0.054 * s, shoes, { d }); // padded upper
+        const l0 = lerp3(heel, toe, 0.1), l1 = lerp3(heel, toe, 0.45);
+        cap([l0[0], l0[1], l0[2] + 0.022 * s], [l1[0], l1[1], l1[2] + 0.022 * s], 0.038 * s, shoes.map(v => Math.min(255, v * 1.3)), { lace: true, d: d + 0.012 }); // laces
+        const t0 = lerp3(heel, toe, 0.78);
+        cap([t0[0], t0[1], t0[2] + 0.008 * s], [toe[0], toe[1], toe[2] + 0.008 * s], 0.05 * s, shoes.map(v => v * 0.68), { d: d + 0.01 }); // toe cap
+        cap([heel[0], heel[1], heel[2] + 0.005 * s], [toe[0], toe[1], toe[2] + 0.005 * s], 0.05 * s, shoes.map(v => v * 0.5), { sole: true, d: d + 0.006 }); // dark rubber sole
       });
     },
-    // running shoes: slimmer low profile with a white stripe, lighter colour
+    // running shoes: slim silhouette, bright side stripe, dark heel counter and a white midsole
     runners: (J, cap, pr, skin, shoes, shin, sc) => {
       const s = sc === undefined ? 1 : sc;
       [[J.footL, shin && shin.L], [J.footR, shin && shin.R]].forEach(([ft, sd]) => {
         const d = Math.max(pr(ft).d, sd || -Infinity) + 0.03;
-        cap([ft[0] - 0.04 * s, ft[1], ft[2] + 0.035 * s], [ft[0] + 0.17 * s, ft[1], ft[2] + 0.035 * s], 0.046 * s, shoes, { d });
-        cap([ft[0] - 0.04 * s, ft[1], ft[2] + 0.005 * s], [ft[0] + 0.17 * s, ft[1], ft[2] + 0.005 * s], 0.042 * s, [255, 255, 255], { sole: true, d: d + 0.005 }); // white sole
+        const heel = [ft[0] - 0.05 * s, ft[1], ft[2] + 0.035 * s], toe = [ft[0] + 0.19 * s, ft[1], ft[2] + 0.035 * s];
+        cap(heel, toe, 0.044 * s, shoes, { d }); // slim upper
+        const a = lerp3(heel, toe, 0.18), b = lerp3(heel, toe, 0.85);
+        for (const side of [-0.028, 0.028]) { // racing stripe on both sides, visible from any angle
+          cap([a[0], a[1] + side * s, a[2] + 0.012 * s], [b[0], b[1] + side * s, b[2] + 0.012 * s], 0.012 * s, [230, 70, 50], { d: d + 0.018 });
+        }
+        const h0 = lerp3(heel, toe, 0.08), h1 = lerp3(heel, toe, 0.28);
+        cap([h0[0], h0[1], h0[2] + 0.014 * s], [h1[0], h1[1], h1[2] + 0.014 * s], 0.04 * s, shoes.map(v => v * 0.55), { d: d + 0.016 }); // heel counter
+        cap([heel[0], heel[1], heel[2] + 0.004 * s], [toe[0], toe[1], toe[2] + 0.004 * s], 0.052 * s, [255, 255, 250], { sole: true, d: d + 0.006 }); // white midsole
       });
     },
     // boots: shaft + laces + foot + heel + dark sole, both legs
@@ -771,9 +783,15 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
           x.beginPath(); x.moveTo(lx - p.w * 0.3, ly - p.w * 0.18); x.lineTo(lx + p.w * 0.3, ly + p.w * 0.18); x.stroke();
         }
       }
-      if (p.sole) { // boot sole: solid dark strip under the foot
-        x.strokeStyle = 'rgba(18,14,10,0.85)'; x.lineWidth = p.w * 0.7;
-        x.beginPath(); x.moveTo(p.pa.x, p.pa.y + p.w * 0.25); x.lineTo(p.pb.x, p.pb.y + p.w * 0.25); x.stroke();
+      if (p.sole) { // sole under the foot: dark rubber, but a pale midsole keeps its own colour
+        const y0 = p.pa.y + p.w * 0.25, y1 = p.pb.y + p.w * 0.25;
+        x.strokeStyle = 'rgba(18,14,10,0.85)'; x.lineWidth = p.w * 0.8;
+        x.beginPath(); x.moveTo(p.pa.x, y0); x.lineTo(p.pb.x, y1); x.stroke();
+        const pale = (col[0] + col[1] + col[2]) / 3 > 150;
+        if (pale) {
+          x.strokeStyle = 'rgba(245,245,238,0.95)'; x.lineWidth = p.w * 0.55;
+          x.beginPath(); x.moveTo(p.pa.x, y0); x.lineTo(p.pb.x, y1); x.stroke();
+        }
       }
       if (p.torso && spec.blood) { // gore on torso
         const r = U.mulberry32(spec.seed | 0);
