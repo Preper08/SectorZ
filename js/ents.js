@@ -11,7 +11,9 @@
     crawler: { speed: 0.7, hp: 38, dmg: 8, r: 0.27, sc: 1, rate: 1.1 },
     // Ex-soldiers still holding their kit: tougher and more dangerous than a walker, but no
     // match for a brute in a straight fight. Found around the military compound.
-    military: { speed: 1.55, hp: 130, dmg: 18, r: 0.32, sc: 1.05, rate: 1 }
+    military: { speed: 1.55, hp: 130, dmg: 18, r: 0.32, sc: 1.05, rate: 1 },
+    // Officers who never left the station: fit, armed and still in uniform.
+    police: { speed: 1.7, hp: 95, dmg: 15, r: 0.3, sc: 1.02, rate: 0.95 }
   };
   E.ZT = ZT;
 

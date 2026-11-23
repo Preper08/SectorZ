@@ -188,10 +188,13 @@
   function civicBlock(bx, by, kind) {
     fill(bx, by, 26, 26, G.CONCRETE);
     fill(bx, by + 17, 26, 9, G.PARKING);
+    // Retag this block's bodies as officers without changing how many random draws addZ makes -
+    // other buildings later in the stream must keep their exact shapes and populations.
+    const zAdd = (x, y) => { addZ(x, y); if (kind === 'police') Gen.zombieSpawns[Gen.zombieSpawns.length - 1][2] = 'police'; };
     const big = kind === 'hospital';
     const b = Bld.make({ x: bx + 2, y: by + 2, w: big ? 22 : 20, h: big ? 15 : 13, kind, door: 'S', rng, floor: G.LINO, name: kind === 'police' ? 'Police Station' : 'Hospital', mat: kind === 'police' ? 'brick_b' : 'stucco', imat: 'int_blue', roof: '#44484e', locked: false });
     b.flat = true; b.big = true; b.name = kind === 'police' ? 'Police Station' : 'General Hospital';
-    for (let i = 0; i < 10; i++) { const p = Bld.randomInterior(b, rng); if (p) addZ(p[0], p[1]); }
+    for (let i = 0; i < 10; i++) { const p = Bld.randomInterior(b, rng); if (p) zAdd(p[0], p[1]); }
     for (let x = bx + 2; x < bx + 24; x += 4) {
       mark(x, by + 19, 0.08, 4, '#d8d8d0', 0.6);
       // the first bay of a police lot is a drivable police car, parked in front of the station
@@ -202,7 +205,7 @@
     }
     for (let i = 0; i < 6; i++) tree(bx + R(26), by + R(2) + 24);
     lampAt(bx + 4, by + 18, true, [200, 220, 255]); lampAt(bx + 22, by + 18, true, [200, 220, 255]);
-    for (let i = 0; i < 9; i++) addZ(bx + 2 + rng() * 22, by + 18 + rng() * 7);
+    for (let i = 0; i < 9; i++) zAdd(bx + 2 + rng() * 22, by + 18 + rng() * 7);
     if (kind === 'police') { put(bx + 12, by + 16, O.BARRIER); put(bx + 14, by + 16, O.BARRIER); }
     Gen.poi.push({ name: b.name, x: b.x + b.w / 2, y: b.y + b.h / 2 });
   }
