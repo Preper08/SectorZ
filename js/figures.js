@@ -858,7 +858,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     }
     if (!headDone) drawHead();
     const ha = pr(J.handR), hb = pr(J.handL);
-    return { c, ox, oy, hand: [ha.x, ha.y], hand2: [hb.x, hb.y], head: [hp.x, hp.y] };
+    return { c, ox, oy, hand: [ha.x, ha.y], hand2: [hb.x, hb.y], handD: ha.d, bodyD: pr(J.pel).d, head: [hp.x, hp.y] };
   }
 
   const cache = new Map();

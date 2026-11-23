@@ -785,13 +785,19 @@
     const lift = p.pose && p.pose.legs === 'vault'
       ? Math.sin(U.clamp((p.pose.af || 0) / 8, 0, 1) * Math.PI) * DSZ.VAULT_LIFT * ZU * CH_SCALE
       : 0;
-    ctx.save(); ctx.translate(i[0], i[1] - lift); ctx.scale(CH_SCALE, CH_SCALE); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
-    // held item (hand anchor scaled with the sprite)
+    // Held item (hand anchor scaled with the sprite). When the holding hand is on the far side
+    // of the body, draw the item first so the torso covers it as the player rotates; the near
+    // hand keeps drawing on top. Without this, weapons passed straight through the figure.
     const it = p.heldDef;
-    if (it) {
+    const farHand = !!it && s.handD < s.bodyD;
+    const drawHeldItem = () => {
+      if (!it) return;
       const hx = i[0] + s.hand[0] * CH_SCALE, hy = i[1] - lift + s.hand[1] * CH_SCALE;
       drawHeld(it, p, hx, hy, S, spec.skin);
-    }
+    };
+    if (farHand) drawHeldItem();
+    ctx.save(); ctx.translate(i[0], i[1] - lift); ctx.scale(CH_SCALE, CH_SCALE); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
+    if (it && !farHand) drawHeldItem();
     if (p.flash > 0) { ctx.globalAlpha = p.flash * 0.35; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - lift - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
     if (p.hurt > 0) { ctx.globalAlpha = Math.min(0.5, p.hurt); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#f00'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - lift - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
   }
@@ -903,9 +909,9 @@
       ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
       const e0 = tip(2.8, 6.8), e1 = tip(-2.2, 6.8);
       seg(e0[0], e0[1], e1[0], e1[1], 1.4, '#d8d6cf'); // ground cutting edge
-      const pick0 = tip(-0.2, -2), pick1 = tip(-0.4, -6.2), pick2 = tip(-0.5, -8);
-      seg(pick0[0], pick0[1], pick1[0], pick1[1], 1.8, '#8a9096'); // fire-axe pick
-      seg(pick1[0], pick1[1], pick2[0], pick2[1], 0.9, '#b0b6ba');
+      const pick0 = tip(-0.2, -2), pick1 = tip(-0.4, -4.2), pick2 = tip(-0.5, -5.4);
+      seg(pick0[0], pick0[1], pick1[0], pick1[1], 1.6, '#8a9096'); // short fire-axe pick
+      seg(pick1[0], pick1[1], pick2[0], pick2[1], 0.8, '#b0b6ba');
       const eye0 = tip(1.4, 0), eye1 = tip(-1.4, 0);
       seg(eye0[0], eye0[1], eye1[0], eye1[1], 1.2, '#3d4145'); // head eye around the haft
       hl(P0(TOT * 0.05, -0.6)[0], P0(TOT * 0.05, -0.6)[1], P0(TOT * 0.5, -0.6)[0], P0(TOT * 0.5, -0.6)[1], 0.7);
