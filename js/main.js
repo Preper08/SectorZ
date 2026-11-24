@@ -88,7 +88,9 @@
     const ms = workMs || dtMs;
     ft += (ms - ft) * 0.08; scaleCool -= dtMs / 1000;
     if (scaleCool > 0) return;
-    if (ft > 26 && R.scale > 0.5) { R.setScale(Math.max(0.5, +(R.scale - 0.08).toFixed(2))); scaleCool = 2; }
+    // Scale is a pure pixel-density knob now (the FOV no longer depends on it), so react faster
+    // when frames are slow, but keep recovering slowly to avoid oscillation.
+    if (ft > 26 && R.scale > 0.5) { R.setScale(Math.max(0.5, +(R.scale - 0.1).toFixed(2))); scaleCool = 1; }
     else if (ft < 14.5 && R.scale < 1) { R.setScale(Math.min(1, +(R.scale + 0.05).toFixed(2))); scaleCool = 6; }
   }
 

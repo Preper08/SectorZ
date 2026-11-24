@@ -3,10 +3,13 @@
 (function () {
   'use strict';
   const DSZ = window.DSZ, U = DSZ.U, C = DSZ.C, W = DSZ.World, O = DSZ.O, D = DSZ.OBJDEF, G = DSZ.G;
-  const R = DSZ.Render = { zoom: 1, VW: 0, VH: 0, scale: 1, stats: { items: 0, lights: 0, chunks: 0 } };
+  const R = DSZ.Render = { zoom: 1, VW: 0, VH: 0, DW: 0, DH: 0, scale: 1, stats: { items: 0, lights: 0, chunks: 0 } };
   const CH = C.CH, ZU = 39.2, SC = 45.25;
   let cv, ctx, lm, lctx, LW = 0, LH = 0, tmp, tctx;
   let camIx = 0, camIy = 0, zoom = 1, T = 0;
+  // Distance past which micro-detail (shadows, decorative props, drops) is skipped when zoomed
+  // out. At that zoom a 30px prop becomes a few pixels, so the draw calls are pure overhead.
+  let lodFar = Infinity;
   let displayGain = -1;
   const chunks = new Map();
   let roofStrips = new WeakMap(), roofFrame = 0, roofBakeBudget = 0;
@@ -22,7 +25,11 @@
     makeFx();
   };
   R.resize = function () {
-    const s = R.scale, w = Math.max(320, Math.floor(window.innerWidth * s)), h = Math.max(240, Math.floor(window.innerHeight * s));
+    // DW/DH is the logical viewport in CSS pixels; VW/VH is the internal pixel buffer. Keeping
+    // them separate makes render scale a pure quality knob - lowering it must NOT narrow the
+    // field of view (which used to zoom the camera back in and undo the player's zoom-out).
+    R.DW = Math.max(320, Math.floor(window.innerWidth)); R.DH = Math.max(240, Math.floor(window.innerHeight));
+    const s = R.scale, w = Math.max(320, Math.floor(R.DW * s)), h = Math.max(240, Math.floor(R.DH * s));
     cv.width = w; cv.height = h; R.VW = w; R.VH = h;
     cv.style.width = '100%'; cv.style.height = '100%';
     const ls = DSZ.settings.lightRes;
@@ -173,11 +180,13 @@
 
   // ---------------------------------------------------------------- helpers
   const iso = (wx, wy) => [(wx - wy) * 32, (wx + wy) * 16];
-  R.toScreen = function (wx, wy, z) { const i = iso(wx, wy); return [(i[0] - camIx) * zoom + R.VW / 2, (i[1] - (z || 0) * ZU - camIy) * zoom + R.VH / 2]; };
+  // world-iso px -> internal canvas px. Includes the render scale so the FOV stays constant.
+  const zsx = () => zoom * R.VW / (R.DW || R.VW), zsy = () => zoom * R.VH / (R.DH || R.VH);
+  R.toScreen = function (wx, wy, z) { const i = iso(wx, wy); return [(i[0] - camIx) * zsx() + R.VW / 2, (i[1] - (z || 0) * ZU - camIy) * zsy() + R.VH / 2]; };
   R.toScreenCss = function (wx, wy, z) { const p = R.toScreen(wx, wy, z); const k = cv.clientWidth / R.VW; return [p[0] * k, p[1] * k]; };
   R.screenToWorld = function (sx, sy) { // sx, sy in CSS px
     const k = R.VW / (cv.clientWidth || R.VW), px = sx * k, py = sy * k;
-    const ix = (px - R.VW / 2) / zoom + camIx, iy = (py - R.VH / 2) / zoom + camIy;
+    const ix = (px - R.VW / 2) / zsx() + camIx, iy = (py - R.VH / 2) / zsy() + camIy;
     return U.fromIso(ix, iy);
   };
   function pushItem(k, t, a, b, c) { let it = pool[np]; if (!it) it = pool[np] = {}; np++; it.k = k; it.t = t; it.a = a; it.b = b; it.c = c; order.push(it); }
@@ -188,22 +197,23 @@
     tvGlowN = 0;
     R.stats.roofTiles = 0; R.stats.roofDraws = 0; R.stats.wallDraws = 0;
     T = S.time; zoom = S.cam.zoom * (R.zoomBoost || 1);
+    lodFar = zoom < 0.8 ? 13 : Infinity;
     const shake = S.cam.shake || 0, sxk = shake ? (Math.random() - 0.5) * shake * 6 : 0, syk = shake ? (Math.random() - 0.5) * shake * 6 : 0;
     const ci = iso(S.cam.x, S.cam.y); camIx = ci[0] + sxk; camIy = ci[1] + syk;
-    const VW = R.VW, VH = R.VH;
-    // exact screen-space culling bounds (iso pixels), with margins for tall/wide sprites
+    const VW = R.VW, VH = R.VH, DW = R.DW, DH = R.DH, sx = zsx(), sy = zsy();
+    // exact screen-space culling bounds (iso pixels), derived from the LOGICAL viewport
     const iz = 1 / zoom;
-    const svx0 = camIx - VW / 2 * iz, svx1 = camIx + VW / 2 * iz;
-    const svy0 = camIy - VH / 2 * iz, svy1 = camIy + VH / 2 * iz;
+    const svx0 = camIx - DW / 2 * iz, svx1 = camIx + DW / 2 * iz;
+    const svy0 = camIy - DH / 2 * iz, svy1 = camIy + DH / 2 * iz;
     const MX = 160, MT = 280, MB = 60;
     const amb = R.ambient(S.hour), dl = R.daylight(S.hour), sun = sunShadow(S), p = S.player;
     applyDisplayBrightness(dl);
     const pb = W.buildingAt(Math.floor(p.x), Math.floor(p.y));
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#07080a'; ctx.fillRect(0, 0, VW, VH);
-    ctx.setTransform(zoom, 0, 0, zoom, VW / 2 - camIx * zoom, VH / 2 - camIy * zoom);
+    ctx.setTransform(sx, 0, 0, sy, VW / 2 - camIx * sx, VH / 2 - camIy * sy);
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'low';
     // view bounds (iso space)
-    const vx0 = camIx - VW / 2 / zoom - 80, vx1 = camIx + VW / 2 / zoom + 80, vy0 = camIy - VH / 2 / zoom - 40, vy1 = camIy + VH / 2 / zoom + 240;
+    const vx0 = camIx - DW / 2 / zoom - 80, vx1 = camIx + DW / 2 / zoom + 80, vy0 = camIy - DH / 2 / zoom - 40, vy1 = camIy + DH / 2 / zoom + 240;
     // world bbox
     const cs = [U.fromIso(vx0, vy0), U.fromIso(vx1, vy0), U.fromIso(vx0, vy1), U.fromIso(vx1, vy1)];
     let tx0 = 1e9, ty0 = 1e9, tx1 = -1e9, ty1 = -1e9; for (const c of cs) { tx0 = Math.min(tx0, c[0]); tx1 = Math.max(tx1, c[0]); ty0 = Math.min(ty0, c[1]); ty1 = Math.max(ty1, c[1]); }
@@ -214,8 +224,8 @@
     for (let cy = Math.floor(ty0 / CH); cy <= Math.floor(ty1 / CH); cy++) for (let cx = Math.floor(tx0 / CH); cx <= Math.floor(tx1 / CH); cx++) {
       if (cx < 0 || cy < 0 || cx * CH >= C.W || cy * CH >= C.H) continue;
       const rc = chunkRect(cx, cy);
-      const csx = (rc.ox - camIx) * zoom + VW / 2, csy = (rc.oy - camIy) * zoom + VH / 2;
-      const cw = rc.w * zoom, chh = rc.h * zoom;
+      const csx = (rc.ox - camIx) * sx + VW / 2, csy = (rc.oy - camIy) * sy + VH / 2;
+      const cw = rc.w * sx, chh = rc.h * sy;
       const onScreen = !(csx >= VW || csx + cw <= 0 || csy >= VH || csy + chh <= 0);
       // only bake chunks that are on (or just outside) the screen - no wasted bakes far off-view
       const near = !(csx >= VW + 260 || csx + cw <= -260 || csy >= VH + 260 || csy + chh <= -260);
@@ -304,9 +314,10 @@
         if (rb && W.blds[rb].roofA > 0.02) {
           const b = W.blds[rb], depth = tx + ty;
           R.stats.roofTiles++;
-          const strip = b.roofA === 1 ? roofStrip(b, depth) : null;
+          // Batched strips work for faded roofs too - fading was forcing one drawImage per tile.
+          const strip = roofStrip(b, depth);
           if (strip) {
-            if (strip.frame !== roofFrame) { strip.frame = roofFrame; pushItem(depth + 1.02, 7, strip); }
+            if (strip.frame !== roofFrame) { strip.frame = roofFrame; pushItem(depth + 1.02, 7, strip, null, b); }
           } else pushItem(depth + 1.02, 1, b, tx, ty);
         }
       }
@@ -315,12 +326,12 @@
     const entOn = (ex, ey, mx, my) => { const ex2 = (ex - ey) * 32, ey2 = (ex + ey) * 16; return ex2 > svx0 - mx && ex2 < svx1 + mx && ey2 > svy0 - my && ey2 < svy1 + MB; };
     for (const z of S.zombies) { if (z.x < tx0 - 3 || z.x > tx1 + 3 || z.y < ty0 - 3 || z.y > ty1 + 3) continue; if (!entOn(z.x, z.y, 170, 260)) continue; pushItem(z.dead ? z.x + z.y - 0.6 : z.x + z.y, 2, z); }
     for (const c of S.cars) { if (c.x < tx0 - 4 || c.x > tx1 + 4 || c.y < ty0 - 4 || c.y > ty1 + 4) continue; if (!entOn(c.x, c.y, 200, 240)) continue; pushItem(c.x + c.y + 0.0, 3, c); }
-    for (const d of S.drops) { if (d.x < tx0 - 2 || d.x > tx1 + 2 || d.y < ty0 - 2 || d.y > ty1 + 2) continue; if (!entOn(d.x, d.y, 90, 90)) continue; pushItem(d.x + d.y - 0.5, 4, d); }
+    for (const d of S.drops) { if (d.x < tx0 - 2 || d.x > tx1 + 2 || d.y < ty0 - 2 || d.y > ty1 + 2) continue; if (Math.abs(d.x - px) + Math.abs(d.y - py) > lodFar) continue; if (!entOn(d.x, d.y, 90, 90)) continue; pushItem(d.x + d.y - 0.5, 4, d); }
     if (!p.driving) pushItem(p.x + p.y + 0.01, 5, p);
     // the dog sorts by its own ground position, and sits just in front of the player's depth so
     // the two never fight for the same sort key when it is standing at the heel
     if (S.dog) pushItem(S.dog.x + S.dog.y - 0.02, 8, S.dog);
-    for (const pt of S.particles) { if (pt.x < tx0 - 2 || pt.x > tx1 + 2 || pt.y < ty0 - 2 || pt.y > ty1 + 2) continue; if (!entOn(pt.x, pt.y, 120, 160)) continue; pushItem(pt.x + pt.y + 0.5, 6, pt); }
+    for (const pt of S.particles) { if (pt.x < tx0 - 2 || pt.x > tx1 + 2 || pt.y < ty0 - 2 || pt.y > ty1 + 2) continue; if (Math.abs(pt.x - px) + Math.abs(pt.y - py) > lodFar) continue; if (!entOn(pt.x, pt.y, 120, 160)) continue; pushItem(pt.x + pt.y + 0.5, 6, pt); }
     // ---- shadows (ground pass)
     drawShadows(S, sun, tx0, ty0, tx1, ty1);
     // ---- sorted draw
@@ -336,7 +347,7 @@
         case 4: drawDrop(it.a, S); break;
         case 5: drawPlayer(S); break;
         case 6: drawParticle(it.a, S); break;
-        case 7: ctx.drawImage(it.a.c, it.a.x, it.a.y); R.stats.roofDraws++; break;
+        case 7: ctx.globalAlpha = it.c.roofA; ctx.drawImage(it.a.c, it.a.x, it.a.y); ctx.globalAlpha = 1; R.stats.roofDraws++; break;
         case 8: DSZ.Dog.setContext(ctx); DSZ.Dog.draw(S); break;
       }
     }
@@ -354,7 +365,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     drawLighting(S, amb, dl, pb, tx0, ty0, tx1, ty1);
     // ---- emissive glows (lamps/fire flares) in world space
-    ctx.setTransform(zoom, 0, 0, zoom, VW / 2 - camIx * zoom, VH / 2 - camIy * zoom);
+    ctx.setTransform(sx, 0, 0, sy, VW / 2 - camIx * sx, VH / 2 - camIy * sy);
     drawFlares(S, dl);
     drawTvGlows(dl, px, py, insideB);      // after the lightmap, so night cannot multiply it away
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -416,18 +427,22 @@
       const hull = convexHull(pts);
       ctx.fillStyle = 'rgba(4,6,14,' + (str * 0.95) + ')'; ctx.beginPath(); hull.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.fill();
     }
+    const plx = S.player.x, ply = S.player.y;
     for (const it of order) {
       if (it.t === 0) {
         const o = it.a, d = D[o.t]; if (d.wall || d.low && d.h < 40 || d.thin && d.h < 100 || d.h < 24 || !d.solid && !d.tree) continue;
+        if (Math.abs(it.b - plx) + Math.abs(it.c - ply) > lodFar) continue;
         // props hidden under an opaque roof are not visible, so their shadow is not either
         if (o.b) { const b = W.blds[o.b]; if (b && b.roofA > 0.98 && (d.h || 30) < C.WH) continue; }
         const s = DSZ.Props.get(o), tx = it.b, ty = it.c;
         shadowSprite(s, (tx - ty) * 32, (tx + ty + 1) * 16, sun, str * 0.9, d.tree ? 0.9 : 0.75);
       } else if (it.t === 2) {
-        const z = it.a; if (z.dead && z.deadT > 0) continue; const s = z.sprite; if (!s) continue; const i = iso(z.x, z.y);
+        const z = it.a; if (z.dead && z.deadT > 0) continue; const s = z.sprite; if (!s) continue;
+        if (Math.abs(z.x - plx) + Math.abs(z.y - ply) > lodFar) continue; const i = iso(z.x, z.y);
         shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.7 * (z.sc || 1), z.alpha === undefined ? 1 : z.alpha);
       } else if (it.t === 3) {
-        const c = it.a, s = DSZ.CarArt.get(c.kind, c.color, c.state, c.ang), i = iso(c.x, c.y);
+        const c = it.a; if (Math.abs(c.x - plx) + Math.abs(c.y - ply) > lodFar) continue;
+        const s = DSZ.CarArt.get(c.kind, c.color, c.state, c.ang), i = iso(c.x, c.y);
         shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.9 * DSZ.CarArt.SCALE);
       } else if (it.t === 5) {
         const s = S.player.sprite; if (s) { const i = iso(S.player.x, S.player.y); shadowSprite(s, i[0], i[1], sun, str * 0.9, 0.75); }
@@ -440,6 +455,7 @@
     for (const it of order) {
       if (it.t !== 2 && it.t !== 5 && it.t !== 8) continue;
       const e = it.t === 5 ? S.player : it.a; if (!e.sprite || e.dead && e.deadT > 0) continue;
+      if (e !== S.player && Math.abs(e.x - plx) + Math.abs(e.y - ply) > lodFar) continue;
       const ls = entityLamp(e); if (!ls) continue;
       const i = iso(e.x, e.y);
       shadowSprite(e.sprite, i[0], i[1], ls, ls.intensity * 0.55 * (1 - sun.dl * 0.7), it.t === 8 ? 0.62 : 0.7);
@@ -451,7 +467,8 @@
     const sl = sil(s);
     ctx.globalAlpha = Math.min(0.7, alpha) * (extra === undefined ? 1 : extra);
     // local coords (u,v) with anchor at s.ox,s.oy ; height = -v
-    ctx.setTransform(zoom, 0, -sun.sx * hscale * zoom, -sun.sy * hscale * zoom, zoom * ax + R.VW / 2 - camIx * zoom, zoom * ay + R.VH / 2 - camIy * zoom);
+    const zx = zsx(), zy = zsy();
+    ctx.setTransform(zx, 0, -sun.sx * hscale * zx, -sun.sy * hscale * zy, zx * ax + R.VW / 2 - camIx * zx, zy * ay + R.VH / 2 - camIy * zy);
     ctx.drawImage(sl, -s.ox, -s.oy);
   }
   function convexHull(pts) {
@@ -504,6 +521,8 @@
 
   function drawObj(o, tx, ty, S) {
     const d = D[o.t], a = o.fa === undefined ? 1 : o.fa;
+    if (lodFar < Infinity && (o.t === O.BUSH || o.t === O.ROCK || (!d.solid && !d.cont && !d.wall && (d.h || 0) < 30))
+        && Math.abs(tx - S.player.x) + Math.abs(ty - S.player.y) > lodFar) return;
     if (d.wall) { drawWall(o, d, tx, ty, a); return; }
     const s = DSZ.Props.get(o), cx = (tx - ty) * 32, cy = (tx + ty + 1) * 16;
     if (a < 0.99) ctx.globalAlpha = a;
@@ -1099,7 +1118,7 @@
   }
 
   // ---------------------------------------------------------------- lighting
-  function lmPos(wx, wy) { const ls = DSZ.settings.lightRes; return [(((wx - wy) * 32 - camIx) * zoom + R.VW / 2) * ls, (((wx + wy) * 16 - camIy) * zoom + R.VH / 2) * ls]; }
+  function lmPos(wx, wy) { const ls = DSZ.settings.lightRes; return [(((wx - wy) * 32 - camIx) * zsx() + R.VW / 2) * ls, (((wx + wy) * 16 - camIy) * zsy() + R.VH / 2) * ls]; }
   const rays = new Float32Array(260);
   const visibleLights = [];
   const fanCache = new WeakMap();
@@ -1117,7 +1136,7 @@
   }
   // draw one light into the lightmap; a0,a1 = angular limits (null = full circle)
   function castLight(x, y, r, col, inten, a0, a1, nrays, ext, shadowed, owner) {
-    const ls = DSZ.settings.lightRes, rx = r * SC * zoom * ls, ry = r * SC * 0.5 * zoom * ls;
+    const ls = DSZ.settings.lightRes, rx = r * SC * zsx() * ls, ry = r * SC * 0.5 * zsy() * ls;
     const c = lmPos(x, y);
     if (c[0] + rx < 0 || c[0] - rx > LW || c[1] + ry < 0 || c[1] - ry > LH) return;
     const bw = Math.ceil(rx * 2) + 4, bh = Math.ceil(ry * 2) + 4;
@@ -1174,7 +1193,7 @@
     for (const b of W.blds) {
       if (!b || b.x > tx1 + 4 || b.y > ty1 + 4 || b.x + b.w < tx0 - 4 || b.y + b.h < ty0 - 4) continue;
       const cs = [lmPos(b.x, b.y), lmPos(b.x + b.w, b.y), lmPos(b.x + b.w, b.y + b.h), lmPos(b.x, b.y + b.h)];
-      const wh = C.WH * zoom * ls;
+      const wh = C.WH * zsy() * ls;
       lctx.fillStyle = 'rgb(' + indoor[0] * (1 - 0 | 0) + ',' + (indoor[1] | 0) + ',' + (indoor[2] | 0) + ')';
       lctx.beginPath(); lctx.moveTo(cs[0][0], cs[0][1]); for (let i = 1; i < 4; i++) lctx.lineTo(cs[i][0], cs[i][1]); lctx.closePath(); lctx.fill();
       // the roof/wall block above the footprint takes the interior tone too (so roofs & inner wall faces read dark)
@@ -1247,7 +1266,7 @@
     // ---- composite
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'low';
     ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lm, 0, 0, LW, LH, 0, 0, R.VW, R.VH);
-    if (DSZ.settings.bloom) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.11 + night * 0.05; ctx.drawImage(lm, 0, 0, LW, LH, 0, 0, R.VW, R.VH); ctx.globalAlpha = 1; }
+    if (DSZ.settings.bloom && zoom >= 0.8) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.11 + night * 0.05; ctx.drawImage(lm, 0, 0, LW, LH, 0, 0, R.VW, R.VH); ctx.globalAlpha = 1; }
     ctx.globalCompositeOperation = 'source-over';
   }
   function drawFlares(S, dl) {
