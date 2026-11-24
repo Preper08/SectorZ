@@ -325,8 +325,19 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     },
     // hoodie: hood bump behind the neck + drawstring
     hoodie: (J, cap, shirt) => {
-      cap([J.neck[0] - 0.01, 0, J.neck[2] - 0.01], [J.neck[0] + 0.1, 0, J.neck[2] - 0.14], 0.09, shirt); // hood bump behind the neck
-      cap([J.pel[0] + 0.04, 0, J.pel[2] + 0.05], [J.pel[0] + 0.04, 0, J.pel[2] + 0.18], 0.03, shirt); // drawstring
+      const dk = shirt.map(v => v * 0.62), lt = shirt.map(v => Math.min(255, v * 1.2));
+      // Hood: a rounded bump behind the neck with a darker, wider opening rim.
+      cap([J.neck[0] - 0.01, 0, J.neck[2] - 0.01], [J.neck[0] + 0.12, 0, J.neck[2] - 0.16], 0.1, shirt);
+      cap([J.neck[0] + 0.12, -0.07, J.neck[2] - 0.16], [J.neck[0] + 0.12, 0.07, J.neck[2] - 0.16], 0.11, dk);
+      // Kangaroo pocket with a seam and two drawstrings ending in tips.
+      const z = J.pel[2] + (J.neck[2] - J.pel[2]) * 0.22, xf = J.pel[0] + 0.15;
+      cap([xf, -0.1, z], [xf, 0.1, z], 0.09, dk);
+      cap([xf + 0.008, -0.09, z + 0.03], [xf + 0.008, 0.09, z + 0.03], 0.055, lt);
+      for (const side of [-0.07, 0.07]) {
+        cap([J.neck[0], side, J.neck[2] + 0.02], [J.pel[0] + 0.05, side, J.pel[2] + 0.12], 0.018, lt);
+        cap([J.pel[0] + 0.05, side, J.pel[2] + 0.11], [J.pel[0] + 0.05, side, J.pel[2] + 0.07], 0.024, dk);
+      }
+      cap([J.pel[0] - 0.02, -0.14, J.pel[2] + 0.05], [J.pel[0] - 0.02, 0.14, J.pel[2] + 0.05], 0.03, dk); // ribbed hem
     },
     // flannel shirt: open collar + a plaid grid (dark bands) on the chest front
     flannel: (J, cap, shirt, covered) => {
@@ -923,7 +934,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     // character looked dressed in blue. Slots that are empty now use the skin colour, and the
     // legs use the bare entry; sleeves follow the shirt, which is also skin when the torso is bare.
     const skin = SKIN[1], pants = eq.legsCol || skin;
-    const fullSleeve = eq.bodyId === 'wintercoat' || eq.bodyId === 'raincoat' || eq.bodyId === 'jacket';
+    const fullSleeve = eq.bodyId === 'wintercoat' || eq.bodyId === 'raincoat' || eq.bodyId === 'jacket' || eq.bodyId === 'hoodie';
     return { id: 'P' + (eq.bodyId || 0) + (eq.vestId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0) + (eq.legsId || 0), skin, hair: HAIR[1], shirt: eq.bodyCol || skin, pants, sleeve: null, fullSleeve, shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, legsId: eq.legsId || 'bare', legsCol: eq.legsCol || null, vestId: eq.vestId || null, vestCol: eq.vestCol || null, eye: 'rgba(14,10,10,0.9)' };
   };
   Fig.zombieSpec = function (seed, type) {
@@ -1007,7 +1018,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (type !== 'police' && type !== 'military' && type !== 'doctor') {
       const body = U.weighted(r, [['tshirt', 5], ['flannel', 4], ['hoodie', 3], ['sweater', 3], ['jacket', 3], ['leather', 1.2], ['raincoat', 1], ['padded', 0.7], ['wintercoat', 0.6]]);
       spec.bodyId = body;
-      spec.fullSleeve = body === 'wintercoat' || body === 'raincoat' || body === 'jacket';
+      spec.fullSleeve = body === 'wintercoat' || body === 'raincoat' || body === 'jacket' || body === 'hoodie';
       const col = hexRgb(DSZ.ITEMS[body] && DSZ.ITEMS[body].col, 0.5 + r() * 0.28);
       if (col) spec.shirt = col;
       spec.worn = [body];
