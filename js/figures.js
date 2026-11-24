@@ -1009,7 +1009,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         else if (ft < 0.8) { spec.feetId = 'boots'; spec.shoes = [70, 54, 40]; }
         else { spec.feetId = 'runners'; spec.shoes = [90, 100, 120]; }
       } else if (lv < 0.85) { // shorts, with shoes more often than not
-        spec.legsId = 'shorts'; spec.pants = [125, 118, 98].map(v => v * (0.62 + r() * 0.25));
+        spec.legsId = 'shorts';
+        const shades = DSZ.CLOTH_TINTS && DSZ.CLOTH_TINTS.shorts;
+        const picked = shades ? hexRgb(shades[(r() * shades.length) | 0], 0.68 + r() * 0.2) : null;
+        spec.pants = picked || [125, 118, 98].map(v => v * (0.62 + r() * 0.25));
         if (r() < 0.7) { spec.feetId = 'sneakers'; spec.shoes = [190, 188, 175]; }
         else { spec.feetId = 'barefoot'; }
       } else { // ragged, bare legs
