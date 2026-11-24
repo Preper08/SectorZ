@@ -200,16 +200,17 @@
   };
 
   // ---------------------------------------------------------------- equipment visuals
+  const hexRgb = h => { const m = /^#([0-9a-f]{6})$/i.exec(h || ''); return m ? [1, 3, 5].map(i => parseInt(m[1].slice(i - 1, i + 1), 16)) : null; };
   const CLOTH_COL = { jacket: [74, 90, 106], hoodie: [106, 74, 74], flannel: [156, 58, 52], sweater: [184, 134, 46], leather: [62, 46, 38], padded: [56, 65, 78], raincoat: [200, 168, 40], wintercoat: [165, 96, 44], vest: [44, 56, 82], helmet: [32, 48, 82], policeshirt: [32, 49, 84], policepants: [28, 42, 74], policeboots: [20, 26, 43], milhelmet: [74, 80, 54], miltop: [107, 112, 72], milpants: [107, 112, 72], milboots: [122, 98, 70], milvest: [75, 81, 54], milpack: [74, 80, 54], cap: [74, 106, 138], boots: [90, 64, 40], backpack: [92, 106, 70], bigpack: [138, 74, 48], policepack: [20, 28, 48], fannypack: [74, 74, 82], tshirt: [232, 232, 232], shorts: [200, 180, 138], jeans: [58, 90, 140], trousers: [138, 143, 150], tracksuit: [60, 90, 72], cargopants: [90, 98, 72], sneakers: [138, 138, 138] };
   // p.look carries only what the figure renderer consumes: an id per equipment slot
   // (selects the draw entry in CLOTHING/VEST/HEADWEAR/FOOTWEAR/LEGS_FIGS) and its colour
   Game.refreshEquipVisuals = function (S) {
     const p = S.player, e = p.inv.equip, L = {};
-    if (e.body) { L.bodyId = e.body.id; L.bodyCol = CLOTH_COL[e.body.id] || [90, 90, 90]; }
+    if (e.body) { L.bodyId = e.body.id; L.bodyCol = (e.body.tint && hexRgb(e.body.tint)) || CLOTH_COL[e.body.id] || [90, 90, 90]; }
     if (e.vest) { L.vestId = e.vest.id; L.vestCol = CLOTH_COL[e.vest.id] || [58, 64, 70]; }
     if (e.head) { L.headId = e.head.id; L.headCol = CLOTH_COL[e.head.id] || [80, 80, 80]; }
     if (e.feet) { L.feetId = e.feet.id; L.feetCol = CLOTH_COL[e.feet.id]; }
-    if (e.legs) { L.legsId = e.legs.id; L.legsCol = CLOTH_COL[e.legs.id] || [84, 98, 126]; }
+    if (e.legs) { L.legsId = e.legs.id; L.legsCol = (e.legs.tint && hexRgb(e.legs.tint)) || CLOTH_COL[e.legs.id] || [84, 98, 126]; }
     if (e.bag) { L.bagId = e.bag.id; L.bagCol = CLOTH_COL[e.bag.id]; }
     p.look = L;
     const lt = e.light; p.lightDef = lt ? Object.assign({}, I[lt.id], { id: lt.id }) : null;

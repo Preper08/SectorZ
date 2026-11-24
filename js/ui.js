@@ -13,7 +13,7 @@
   let vitalNodes = [];
   let S = null, els = {}, imgCache = {}, craftTab = 'Survival', craftSel = null, hudT = 0, hotSig = '', toastSig = '', hovered = null, mmCanvas = null, mapRendered = null;
 
-  const img = id => { let u = imgCache[id]; if (!u) u = imgCache[id] = DSZ.Icons.get(id).toDataURL(); return u; };
+  const img = (id, tint) => { const key = tint ? id + '|' + tint : id; let u = imgCache[key]; if (!u) u = imgCache[key] = DSZ.Icons.get(id, tint).toDataURL(); return u; };
   UI.img = img;
   UI.blockMouse = () => UI.open.win || UI.open.map || UI.open.menu || UI.open.settings || UI.open.controls || UI.open.title || UI.open.death || UI.open.tv;
   UI.blockKeys = () => UI.open.menu || UI.open.settings || UI.open.controls || UI.open.title || UI.open.death || UI.open.tv;
@@ -311,7 +311,7 @@
   function itemEl(it, name) {
     const d = I[it.id], [w, h] = Inv.size(it), e = document.createElement('div'); e.className = 'gi';
     e.style.cssText = 'left:' + (it.x * CELL) + 'px;top:' + (it.y * CELL) + 'px;width:' + (w * CELL) + 'px;height:' + (h * CELL) + 'px';
-    let html = '<img src="' + img(it.id) + '"' + (it.rot ? ' style="transform:rotate(90deg);width:' + (h * 88 / w) + '%;height:' + (w * 88 / h) + '%"' : '') + '>';
+    let html = '<img src="' + img(it.id, it.tint) + '"' + (it.rot ? ' style="transform:rotate(90deg);width:' + (h * 88 / w) + '%;height:' + (w * 88 / h) + '%"' : '') + '>';
     if (it.q > 1) html += '<span class="q">' + it.q + '</span>';
     if (d.type === 'gun') html += '<span class="q" style="left:3px;right:auto">' + it.mag + '</span>';
     if (it.dur !== undefined && d.dur) { const f = U.clamp(it.dur / d.dur, 0, 1); html += '<div class="dur"><i style="width:' + (f * 100) + '%;background:' + (f < 0.3 ? 'var(--bad)' : f < 0.6 ? 'var(--accent)' : 'var(--good)') + '"></i></div>'; }
@@ -406,7 +406,7 @@
     for (const [k, lab] of EQ) {
       const s = document.createElement('div'); s.className = 'eqslot'; s.dataset.eq = k; s.innerHTML = '<span class="lbl">' + lab + '</span>';
       const it = P.equip[k];
-      if (it) { const im = document.createElement('img'); im.src = img(it.id); im.draggable = false; im.addEventListener('mousedown', e => { if (e.button === 0) startDrag(e, it, { type: 'equip', slot: k }); }); im.addEventListener('contextmenu', e => { e.preventDefault(); quick(it, 'equip'); }); s.addEventListener('mouseenter', () => { hovered = it; showTip(it, s); }); s.addEventListener('mouseleave', hideTip); s.appendChild(im); }
+      if (it) { const im = document.createElement('img'); im.src = img(it.id, it.tint); im.draggable = false; im.addEventListener('mousedown', e => { if (e.button === 0) startDrag(e, it, { type: 'equip', slot: k }); }); im.addEventListener('contextmenu', e => { e.preventDefault(); quick(it, 'equip'); }); s.addEventListener('mouseenter', () => { hovered = it; showTip(it, s); }); s.addEventListener('mouseleave', hideTip); s.appendChild(im); }
       els.equip.appendChild(s);
     }
     const hint = document.createElement('div'); hint.style.cssText = 'font-size:12px;color:var(--dim);margin-top:4px;width:276px'; hint.textContent = 'Drag items between grids or from the hotbar. Right-click to use / equip / move; with the inventory open, right-click a hotbar item to store it. R rotates while dragging. Weapons go on the hotbar.'; els.equip.appendChild(hint);
@@ -490,7 +490,7 @@
       const it = P.hot[i]; d.classList.toggle('sel', P.sel === i);
       d.querySelectorAll('img,.q,.dur').forEach(n => n.remove());
       if (it) {
-        const def = I[it.id], im = document.createElement('img'); im.src = img(it.id); im.draggable = false; d.appendChild(im);
+        const def = I[it.id], im = document.createElement('img'); im.src = img(it.id, it.tint); im.draggable = false; d.appendChild(im);
         let q = ''; if (def.type === 'gun') q = it.mag + '/' + Inv.count(P, def.ammo); else if (it.q > 1) q = it.q;
         if (q !== '') { const s = document.createElement('span'); s.className = 'q'; s.textContent = q; d.appendChild(s); }
         if (it.dur !== undefined && def.dur) { const f = U.clamp(it.dur / def.dur, 0, 1), b = document.createElement('div'); b.className = 'dur'; b.innerHTML = '<i style="width:' + f * 100 + '%"></i>'; d.appendChild(b); }
@@ -537,7 +537,7 @@
     els.hud.classList.toggle('win-open', UI.open.win);
     fitHud();
   }
-  function sizeGhost() { const d = UI.drag; if (!d) return; const [w, h] = Inv.size(d.it), g = els.dragghost; g.style.width = w * CELL + 'px'; g.style.height = h * CELL + 'px'; g.innerHTML = '<img src="' + img(d.it.id) + '"' + (d.it.rot ? ' style="transform:rotate(90deg)"' : '') + '>'; }
+  function sizeGhost() { const d = UI.drag; if (!d) return; const [w, h] = Inv.size(d.it), g = els.dragghost; g.style.width = w * CELL + 'px'; g.style.height = h * CELL + 'px'; g.innerHTML = '<img src="' + img(d.it.id, d.it.tint) + '"' + (d.it.rot ? ' style="transform:rotate(90deg)"' : '') + '>'; }
   function clearHL() { document.querySelectorAll('.cellhl').forEach(n => n.remove()); document.querySelectorAll('.eqslot.hl').forEach(n => n.classList.remove('hl')); }
   function target(e) {
     const t = document.elementFromPoint(e.clientX, e.clientY); if (!t) return null;

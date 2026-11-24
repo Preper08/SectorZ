@@ -166,6 +166,15 @@
   // well short of the hiking pack. The extra capacity is paid for by rarity, not by being best.
   it('policepack', 'Tactical Police Backpack', 'bag', { w: 2, h: 3, slot: 'bag', cols: 9, rows: 5, col: '#141c30', desc: '+ storage · MOLLE webbing' });
   it('fannypack', 'Fanny Pack', 'bag', { slot: 'bag', cols: 5, rows: 2, col: '#4a4a52' });
+  // Optional colour ways for common civilian clothes. The chosen tint lives on the item instance,
+  // never in the definition, so item ids, stats, loot tables and old saves are all unchanged.
+  DSZ.CLOTH_TINTS = {
+    jacket: ['#4a5a6a', '#5a4a6a', '#6a5a4a', '#3a5a54', '#6a3a3a', '#3a4a6a'],
+    tshirt: ['#e8e8e8', '#c8cbd0', '#5a7a9a', '#9a5a5a', '#5a9a6a', '#c8a040'],
+    flannel: ['#9c3a34', '#3a5a8c', '#4a7a4a', '#8a6a2a', '#6a3a6a', '#8a8a8a'],
+    tracksuit: ['#3c5a48', '#3c4a6a', '#6a3c4a', '#4a4a52', '#6a5a3c']
+  };
+  DSZ.iconColor = (id, c) => c || I[id].col;
 
   // ----------------------------------------------------------------- loot tables
   // [id, weight, minQty, maxQty]

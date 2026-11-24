@@ -7,6 +7,8 @@
   Inv.make = function (id, q, extra) {
     const d = I[id]; if (!d) throw new Error('unknown item ' + id);
     const it = { id, q: q || 1, uid: ++Inv.uid };
+    const tints = DSZ.CLOTH_TINTS && DSZ.CLOTH_TINTS[id];
+    if (tints) it.tint = tints[(Math.random() * tints.length) | 0];
     if (d.dur) it.dur = d.dur;
     if (d.type === 'gun') it.mag = 0;
     if (id === 'gascan') it.fuel = 0;
