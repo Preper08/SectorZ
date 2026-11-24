@@ -936,7 +936,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     // legs use the bare entry; sleeves follow the shirt, which is also skin when the torso is bare.
     const skin = SKIN[1], pants = eq.legsCol || skin;
     const fullSleeve = eq.bodyId === 'wintercoat' || eq.bodyId === 'raincoat' || eq.bodyId === 'jacket' || eq.bodyId === 'hoodie';
-    return { id: 'P' + (eq.bodyId || 0) + (eq.vestId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0) + (eq.legsId || 0), skin, hair: HAIR[1], shirt: eq.bodyCol || skin, pants, sleeve: null, fullSleeve, shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, legsId: eq.legsId || 'bare', legsCol: eq.legsCol || null, vestId: eq.vestId || null, vestCol: eq.vestCol || null, eye: 'rgba(14,10,10,0.9)' };
+    // Colours are part of the sprite's identity. Without them, two tints of the same item share
+    // a cache key and the rendered colour appears to change whenever the pose or angle changes.
+    const ck = c => c ? c.join(',') : '-';
+    const id = 'P' + (eq.bodyId || 0) + (eq.vestId || 0) + (eq.headId || 0) + (eq.bagId || 0) + (eq.feetId || 0) + (eq.legsId || 0)
+      + '|' + ck(eq.bodyCol) + '|' + ck(eq.legsCol) + '|' + ck(eq.feetCol) + '|' + ck(eq.headCol) + '|' + ck(eq.bagCol) + '|' + ck(eq.vestCol);
+    return { id, skin, hair: HAIR[1], shirt: eq.bodyCol || skin, pants, sleeve: null, fullSleeve, shoes: eq.feetCol || [40, 34, 30], hat: eq.headCol || null, bag: eq.bagCol || null, bodyId: eq.bodyId || null, headId: eq.headId || null, feetId: eq.feetId || null, bagId: eq.bagId || null, legsId: eq.legsId || 'bare', legsCol: eq.legsCol || null, vestId: eq.vestId || null, vestCol: eq.vestCol || null, eye: 'rgba(14,10,10,0.9)' };
   };
   Fig.zombieSpec = function (seed, type) {
     const r = U.mulberry32(seed * 7919 + 13);
