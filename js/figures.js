@@ -326,9 +326,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     // hoodie: hood bump behind the neck + drawstring
     hoodie: (J, cap, shirt) => {
       const dk = shirt.map(v => v * 0.62), lt = shirt.map(v => Math.min(255, v * 1.2));
-      // Hood: a rounded bump behind the neck with a darker, wider opening rim.
-      cap([J.neck[0] - 0.01, 0, J.neck[2] - 0.01], [J.neck[0] + 0.12, 0, J.neck[2] - 0.16], 0.1, shirt);
-      cap([J.neck[0] + 0.12, -0.07, J.neck[2] - 0.16], [J.neck[0] + 0.12, 0.07, J.neck[2] - 0.16], 0.11, dk);
+      // Hood sits BEHIND the neck (negative local x). That keeps its sort depth lower than the
+      // vest plate, so an equipped vest covers it instead of the hood painting over the chest.
+      cap([J.neck[0] - 0.06, 0, J.neck[2] - 0.04], [J.neck[0] - 0.22, 0, J.neck[2] - 0.12], 0.1, shirt);
+      cap([J.neck[0] - 0.22, -0.07, J.neck[2] - 0.12], [J.neck[0] - 0.22, 0.07, J.neck[2] - 0.12], 0.11, dk);
       // Kangaroo pocket with a seam and two drawstrings ending in tips.
       const z = J.pel[2] + (J.neck[2] - J.pel[2]) * 0.22, xf = J.pel[0] + 0.15;
       cap([xf, -0.1, z], [xf, 0.1, z], 0.09, dk);
