@@ -390,8 +390,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     raincoat: (J, cap, shirt, covered) => {
       const lt = [Math.min(255, shirt[0] * 1.45 + 24), Math.min(255, shirt[1] * 1.45 + 24), Math.min(255, shirt[2] * 1.45 + 24)];
       const dk = [shirt[0] * 0.52, shirt[1] * 0.52, shirt[2] * 0.52];
-      // hood sits behind the neck and peaks backwards over the shoulders
-      cap([J.neck[0] - 0.02, -0.07, J.neck[2] - 0.02], [J.neck[0] + 0.13, -0.02, J.neck[2] - 0.16], 0.085, shirt);
+      // Hood peaks BACKWARDS (negative local x) like a real raincoat hood; a forward point gave
+      // it a high sort depth and painted it over the chest / any equipped vest.
+      cap([J.neck[0] - 0.06, -0.06, J.neck[2] - 0.02], [J.neck[0] - 0.24, -0.02, J.neck[2] - 0.14], 0.085, shirt);
       cap([J.neck[0] - 0.01, -0.085, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.085, J.neck[2] + 0.01], 0.07, dk); // narrow storm collar
       cap([J.pel[0] + 0.01, 0, J.pel[2] + 0.05], [J.neck[0], 0, J.neck[2] - 0.05], 0.13, shirt, { hem: true }); // slim upper body
       if (!covered) {
