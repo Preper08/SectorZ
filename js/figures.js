@@ -540,41 +540,62 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       }
       x.strokeStyle = 'rgba(24,28,20,0.7)'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(hp.x - hr * 0.7, hp.y + hr * 0.45); x.lineTo(hp.x - hr * 0.5, hp.y + hr * 0.95); x.stroke();
     },
-    // cap: flat dome + front brim + top button
+    // cap: rounded crown that follows the skull + a forward visor + top button.
     cap: (x, spec, hp, ht, hr, rgb, pr, J) => {
-      // Crown covers the whole top of the skull down past the hairline, not just a thin rim.
-      x.fillStyle = rgb(spec.hat, 0.95); x.beginPath();
-      x.ellipse(hp.x, hp.y + hr * 0.1, hr * 1.08, hr * 1.38, 0, Math.PI, 2 * Math.PI);
-      x.closePath(); x.fill();
-      // Sweatband across the forehead and a forward brim.
-      x.strokeStyle = rgb(spec.hat, 0.78); x.lineWidth = 2.2;
-      x.beginPath(); x.ellipse(hp.x, hp.y + hr * 0.18, hr * 1.08, hr * 0.3, 0, Math.PI, 2 * Math.PI); x.stroke();
-      const br = pr([J.head[0] + 0.17, J.head[1], J.head[2] + 0.045]);
-      x.fillStyle = rgb(spec.hat, 0.85); x.beginPath();
-      x.moveTo(hp.x + hr * 0.35, hp.y + hr * 0.18);
-      x.lineTo(br.x, br.y); x.lineTo(br.x, br.y + 2.6);
-      x.lineTo(hp.x + hr * 0.35, hp.y + hr * 0.18 + 2.6); x.closePath(); x.fill();
-      x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(hp.x, hp.y - hr * 1.28, 1.5, 0, 7); x.fill();
+      // A near-circular dome (like the helmet shell, only softer) keeps the natural head shape
+      // instead of the tall pointed cone an over-stretched ellipse produced.
+      // The band sits ABOVE the brows: the old +0.28*hr baseline pushed the hat onto the eyes.
+      const base = hp.y + hr * 0.06, r = hr * 1.04, cy = hp.y - 1 - hr * 0.06;
+      x.fillStyle = rgb(spec.hat, 1); x.beginPath();
+      x.arc(hp.x, cy, r, Math.PI, 2 * Math.PI);
+      x.lineTo(hp.x + r, base); x.lineTo(hp.x - r, base); x.closePath(); x.fill();
+      // six soft panel seams and the sweatband give the cap its own identity
+      x.strokeStyle = rgb(spec.hat, 0.72); x.lineWidth = 1;
+      for (const k of [-0.55, -0.2, 0.2, 0.55]) {
+        x.beginPath(); x.moveTo(hp.x + k * hr, cy - r + 1); x.lineTo(hp.x + k * r, base); x.stroke();
+      }
+      x.strokeStyle = rgb(spec.hat, 0.66); x.lineWidth = 2.4;
+      x.beginPath(); x.ellipse(hp.x, base - hr * 0.05, r * 0.96, hr * 0.22, 0, Math.PI, 2 * Math.PI); x.stroke();
+      // Visor: a short rounded brim projecting from the brow, visible from front AND profile.
+      const fv = pr([1, 0, 0]).d;
+      if (fv > -0.05) {
+        const P = (dx, dy, dz) => pr([J.head[0] + dx, J.head[1] + dy, J.head[2] + dz]);
+        const bl = P(0.075, -0.09, 0.046), br = P(0.075, 0.09, 0.046);
+        const tl = P(0.19, -0.12, 0.036), tr = P(0.19, 0.12, 0.036);
+        x.globalAlpha = Math.min(1, Math.max(0.25, fv * 2.2));
+        // shaded underside
+        x.fillStyle = rgb(spec.hat, 0.74); x.beginPath();
+        x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y + 1.2); x.lineTo(tl.x, tl.y + 1.2); x.closePath(); x.fill();
+        // top of the brim with a gently curved front edge
+        x.fillStyle = rgb(spec.hat, 1.05); x.beginPath();
+        x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y);
+        x.quadraticCurveTo((tl.x + tr.x) / 2, tl.y + 1.6, tl.x, tl.y); x.closePath(); x.fill();
+        x.strokeStyle = rgb(spec.hat, 1.35); x.lineWidth = 1.3;
+        x.beginPath(); x.moveTo(tl.x, tl.y); x.quadraticCurveTo((tl.x + tr.x) / 2, tl.y + 1.6, tr.x, tr.y); x.stroke();
+        x.globalAlpha = 1;
+      }
+      x.fillStyle = rgb(spec.hat, 1.3); x.beginPath(); x.arc(hp.x, cy - r + 1, 1.4, 0, 7); x.fill();
     },
-    // beanie: knitted wool hat, no brim - rounded crown and a folded ribbed cuff over the brow.
+    // beanie: knitted wool hat - soft round crown, vertical ribs and a folded cuff, no visor.
     beanie: (x, spec, hp, ht, hr, rgb) => {
       const dk = [spec.hat[0] * 0.72, spec.hat[1] * 0.72, spec.hat[2] * 0.72];
       const lt = [Math.min(255, spec.hat[0] * 1.22), Math.min(255, spec.hat[1] * 1.22), Math.min(255, spec.hat[2] * 1.22)];
+      const base = hp.y + hr * 0.34, r = hr * 1.09;
       x.fillStyle = rgb(spec.hat, 1); x.beginPath();
-      x.ellipse(hp.x, hp.y + hr * 0.08, hr * 1.1, hr * 1.44, 0, Math.PI, 2 * Math.PI);
-      x.closePath(); x.fill();
-      // folded cuff sits lower than a cap band and covers the hairline all around
-      x.strokeStyle = rgb(dk, 1); x.lineWidth = 3.2;
-      x.beginPath(); x.ellipse(hp.x, hp.y + hr * 0.12, hr * 1.06, hr * 0.34, 0, Math.PI, 2 * Math.PI); x.stroke();
-      x.strokeStyle = rgb(lt, 1); x.lineWidth = 1.1;
-      const n = 4;
-      for (const side of [-1, 1]) {
-        x.beginPath();
-        x.moveTo(hp.x + side * hr * 0.28, hp.y - hr * 0.72);
-        x.lineTo(hp.x + side * hr * 0.28, hp.y - hr * 0.22);
-        x.stroke();
+      x.arc(hp.x, hp.y - 1, r, Math.PI, 2 * Math.PI);
+      x.lineTo(hp.x + r, base); x.lineTo(hp.x - r, base); x.closePath(); x.fill();
+      // knitting ribs follow the dome
+      x.strokeStyle = rgb(dk, 1); x.lineWidth = 1;
+      for (const k of [-0.62, -0.31, 0, 0.31, 0.62]) {
+        x.beginPath(); x.moveTo(hp.x + k * hr, hp.y - 1 - r + 1); x.lineTo(hp.x + k * r, base); x.stroke();
       }
-      x.fillStyle = rgb(lt, 1); x.beginPath(); x.arc(hp.x, hp.y - hr * 1.36, 1.5, 0, 7); x.fill(); // knitted top
+      // folded ribbed cuff
+      x.strokeStyle = rgb(dk, 1); x.lineWidth = 3.4;
+      x.beginPath(); x.ellipse(hp.x, base - hr * 0.14, r * 0.98, hr * 0.3, 0, Math.PI, 2 * Math.PI); x.stroke();
+      x.strokeStyle = rgb(lt, 1); x.lineWidth = 1;
+      for (let i = -3; i <= 3; i++) {
+        x.beginPath(); x.moveTo(hp.x + i * hr * 0.27, base - hr * 0.36); x.lineTo(hp.x + i * hr * 0.27, base + hr * 0.06); x.stroke();
+      }
     }
   };
 
