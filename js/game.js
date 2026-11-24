@@ -179,19 +179,8 @@
     for (const id of ['milhelmet', 'miltop', 'milpants', 'milboots', 'milvest', 'milpack']) ensure(id, 1);
     // Give the player a hammer so they can build structures.
     ensure('hammer', 1);
-    // Place a workbench building near the player so they can immediately craft.
-    const W = DSZ.World;
-    const player = S.player;
-    const benchDef = DSZ.BUILD.find(d => d.obj === O.BWORKBENCH);
-    if (!benchDef) return;
-    // pick a random offset tile around the player (avoid placing on top of the player)
-    const ox = Math.random() > 0.5 ? 1 : -1;
-    const oy = Math.random() > 0.5 ? 1 : -1;
-    const tx = Math.floor(player.x) + ox;
-    const ty = Math.floor(player.y) + oy;
-    if (W.inb(tx, ty) && !W.getObj(tx, ty) && (DSZ.G ? DSZ.G.FOREST !== W.groundAt(tx, ty) : true)) {
-      Game.placeBase(S, benchDef, tx, ty, 0);
-    }
+    // Workbenches are placed from the inventory like any other structure; god mode no longer
+    // spawns one in the world (that was only a testing shortcut).
     ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40); ensure('ammo556', 90);
     ensure('map', 1); // full town map on the admin kit, ready for the M key
     // The worn set changed, so the figure has to be told.
