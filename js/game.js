@@ -208,7 +208,7 @@
     const p = S.player, e = p.inv.equip, L = {};
     if (e.body) { L.bodyId = e.body.id; L.bodyCol = (e.body.tint && hexRgb(e.body.tint)) || CLOTH_COL[e.body.id] || [90, 90, 90]; }
     if (e.vest) { L.vestId = e.vest.id; L.vestCol = CLOTH_COL[e.vest.id] || [58, 64, 70]; }
-    if (e.head) { L.headId = e.head.id; L.headCol = CLOTH_COL[e.head.id] || [80, 80, 80]; }
+    if (e.head) { L.headId = e.head.id; L.headCol = (e.head.tint && hexRgb(e.head.tint)) || CLOTH_COL[e.head.id] || [80, 80, 80]; }
     if (e.feet) { L.feetId = e.feet.id; L.feetCol = CLOTH_COL[e.feet.id]; }
     if (e.legs) { L.legsId = e.legs.id; L.legsCol = (e.legs.tint && hexRgb(e.legs.tint)) || CLOTH_COL[e.legs.id] || [84, 98, 126]; }
     if (e.bag) { L.bagId = e.bag.id; L.bagCol = CLOTH_COL[e.bag.id]; }

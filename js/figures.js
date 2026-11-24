@@ -952,7 +952,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (type === 'brute') { spec.shirt = sh.map(v => v * 0.8); spec.armR = 0.09; spec.skin = [dead[0] * 0.95, dead[1] * 0.95, dead[2] * 0.95]; }
     if (type === 'runner') { spec.skin = [dead[0] + 14, dead[1] - 4, dead[2] - 4]; }
     if (r() < 0.22) { // a real player cap, dirtied rather than a random invisible colour
-      const capCol = hexRgb(DSZ.ITEMS.cap && DSZ.ITEMS.cap.col, 0.6 + r() * 0.35);
+      const capShades = DSZ.CLOTH_TINTS && DSZ.CLOTH_TINTS.cap;
+      const capCol = capShades ? hexRgb(capShades[(r() * capShades.length) | 0], 0.6 + r() * 0.35)
+        : hexRgb(DSZ.ITEMS.cap && DSZ.ITEMS.cap.col, 0.6 + r() * 0.35);
       spec.hat = capCol || [r() * 90 | 0, r() * 90 | 0, r() * 90 | 0];
       if (capCol) spec.headId = 'cap';
     }
