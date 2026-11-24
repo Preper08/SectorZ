@@ -555,6 +555,26 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       x.lineTo(br.x, br.y); x.lineTo(br.x, br.y + 2.6);
       x.lineTo(hp.x + hr * 0.35, hp.y + hr * 0.18 + 2.6); x.closePath(); x.fill();
       x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(hp.x, hp.y - hr * 0.95, 1.5, 0, 7); x.fill();
+    },
+    // beanie: knitted wool hat, no brim - rounded crown and a folded ribbed cuff over the brow.
+    beanie: (x, spec, hp, ht, hr, rgb) => {
+      const dk = [spec.hat[0] * 0.72, spec.hat[1] * 0.72, spec.hat[2] * 0.72];
+      const lt = [Math.min(255, spec.hat[0] * 1.22), Math.min(255, spec.hat[1] * 1.22), Math.min(255, spec.hat[2] * 1.22)];
+      x.fillStyle = rgb(spec.hat, 1); x.beginPath();
+      x.ellipse(hp.x, hp.y + hr * 0.1, hr * 1.09, hr * 1.2, 0, Math.PI, 2 * Math.PI);
+      x.closePath(); x.fill();
+      // folded cuff sits lower than a cap band and covers the hairline all around
+      x.strokeStyle = rgb(dk, 1); x.lineWidth = 3.2;
+      x.beginPath(); x.ellipse(hp.x, hp.y + hr * 0.12, hr * 1.06, hr * 0.34, 0, Math.PI, 2 * Math.PI); x.stroke();
+      x.strokeStyle = rgb(lt, 1); x.lineWidth = 1.1;
+      const n = 4;
+      for (const side of [-1, 1]) {
+        x.beginPath();
+        x.moveTo(hp.x + side * hr * 0.28, hp.y - hr * 0.72);
+        x.lineTo(hp.x + side * hr * 0.28, hp.y - hr * 0.22);
+        x.stroke();
+      }
+      x.fillStyle = rgb(lt, 1); x.beginPath(); x.arc(hp.x, hp.y - hr * 1.1, 1.5, 0, 7); x.fill(); // knitted top
     }
   };
 
@@ -966,11 +986,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (type === 'brute') { spec.shirt = sh.map(v => v * 0.8); spec.armR = 0.09; spec.skin = [dead[0] * 0.95, dead[1] * 0.95, dead[2] * 0.95]; }
     if (type === 'runner') { spec.skin = [dead[0] + 14, dead[1] - 4, dead[2] - 4]; }
     if (r() < 0.22) { // a real player cap, dirtied rather than a random invisible colour
-      const capShades = DSZ.CLOTH_TINTS && DSZ.CLOTH_TINTS.cap;
-      const capCol = capShades ? hexRgb(capShades[(r() * capShades.length) | 0], 0.6 + r() * 0.35)
-        : hexRgb(DSZ.ITEMS.cap && DSZ.ITEMS.cap.col, 0.6 + r() * 0.35);
-      spec.hat = capCol || [r() * 90 | 0, r() * 90 | 0, r() * 90 | 0];
-      if (capCol) spec.headId = 'cap';
+      const hatId = r() < 0.5 ? 'cap' : 'beanie';
+      const shades = DSZ.CLOTH_TINTS && DSZ.CLOTH_TINTS[hatId];
+      const hatCol = shades ? hexRgb(shades[(r() * shades.length) | 0], 0.6 + r() * 0.35)
+        : hexRgb(DSZ.ITEMS[hatId] && DSZ.ITEMS[hatId].col, 0.6 + r() * 0.35);
+      spec.hat = hatCol || [r() * 90 | 0, r() * 90 | 0, r() * 90 | 0];
+      if (hatCol) spec.headId = hatId;
     }
     if (type === 'doctor') {
       // A stained white coat over scrubs, surgical cap and no armour - the staff the ward turned.
