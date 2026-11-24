@@ -544,7 +544,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     cap: (x, spec, hp, ht, hr, rgb, pr, J) => {
       // Crown covers the whole top of the skull down past the hairline, not just a thin rim.
       x.fillStyle = rgb(spec.hat, 0.95); x.beginPath();
-      x.ellipse(hp.x, hp.y + hr * 0.18, hr * 1.08, hr * 1.18, 0, Math.PI, 2 * Math.PI);
+      x.ellipse(hp.x, hp.y + hr * 0.18, hr * 1.16, hr * 1.24, 0, Math.PI, 2 * Math.PI);
       x.closePath(); x.fill();
       // Sweatband across the forehead and a forward brim.
       x.strokeStyle = rgb(spec.hat, 0.78); x.lineWidth = 2.2;
@@ -561,7 +561,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const dk = [spec.hat[0] * 0.72, spec.hat[1] * 0.72, spec.hat[2] * 0.72];
       const lt = [Math.min(255, spec.hat[0] * 1.22), Math.min(255, spec.hat[1] * 1.22), Math.min(255, spec.hat[2] * 1.22)];
       x.fillStyle = rgb(spec.hat, 1); x.beginPath();
-      x.ellipse(hp.x, hp.y + hr * 0.1, hr * 1.09, hr * 1.2, 0, Math.PI, 2 * Math.PI);
+      x.ellipse(hp.x, hp.y + hr * 0.14, hr * 1.16, hr * 1.26, 0, Math.PI, 2 * Math.PI);
       x.closePath(); x.fill();
       // folded cuff sits lower than a cap band and covers the hairline all around
       x.strokeStyle = rgb(dk, 1); x.lineWidth = 3.2;
@@ -840,15 +840,38 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const hs = pr([J.head[0] - 0.045, J.head[1], J.head[2] + 0.035]);
       const hairShift = pr([J.head[0] - 0.05 * 1.6, J.head[1], J.head[2] + 0.03]);
       if (!spec.bald) {
+        // The hair circle sits slightly behind and ABOVE the skull, so its crown pokes through
+        // a cap or beanie. Clip only the hair fill below the hat's lower edge; the hat is drawn
+        // on top afterwards and the face/eyes below are painted as usual. Helmets keep their
+        // existing rendering untouched.
+        const softHat = spec.headId === 'cap' || spec.headId === 'beanie';
+        if (softHat) {
+          x.save();
+          // below the hat's lower edge...
+          x.beginPath(); x.rect(-2000, hp.y + hr * 0.22, 4000, 4000); x.clip();
+          // ...and only on the BACK half of the head. Hair on the face side was what read as
+          // the skull showing through the hat when the character turned while walking.
+          const fx = (ca - sa) * 32, fy = (ca + sa) * 16, fl = Math.hypot(fx, fy) || 1;
+          const ux = fx / fl, uy = fy / fl, px2 = -uy, py2 = ux, B = 2000;
+          x.beginPath();
+          x.moveTo(hp.x + px2 * B - ux * B, hp.y + py2 * B - uy * B);
+          x.lineTo(hp.x - px2 * B - ux * B, hp.y - py2 * B - uy * B);
+          x.lineTo(hp.x - px2 * B, hp.y - py2 * B);
+          x.lineTo(hp.x + px2 * B, hp.y + py2 * B);
+          x.closePath(); x.clip();
+        }
         x.fillStyle = rgb(spec.hair, 1); x.beginPath();
         x.arc(hs.x, hs.y - 0.5, hr * 0.98, 0, 7); x.fill();
+        if (softHat) x.restore();
         // clip hair off the face when the face is toward the camera
         if (fv > 0.02) {
           const fx = pr([J.head[0] + 0.08, J.head[1], J.head[2] - 0.04]);
           x.save(); x.beginPath(); x.arc(hp.x, hp.y, hr, 0, 7); x.clip();
           const g2 = x.createRadialGradient(fx.x, fx.y + 1, 1, fx.x, fx.y + 1, hr * 0.78);
           g2.addColorStop(0, rgb(skin, 1.12)); g2.addColorStop(0.8, rgb(skin, 0.95)); g2.addColorStop(1, rgb(skin, 0));
-          x.globalAlpha = Math.min(1, fv * 2.2); x.fillStyle = g2; x.beginPath(); x.arc(fx.x, fx.y + 1, hr * 0.8, 0, 7); x.fill(); x.globalAlpha = 1;
+          // A translucent face let hair show through at oblique headings; under a cap or beanie
+          // the face must be opaque so no hair pixels bleed across it during the walk cycle.
+          x.globalAlpha = softHat ? 1 : Math.min(1, fv * 2.2); x.fillStyle = g2; x.beginPath(); x.arc(fx.x, fx.y + 1, hr * 0.8, 0, 7); x.fill(); x.globalAlpha = 1;
           // eyes
           const e1 = pr([J.head[0] + 0.115, J.head[1] - 0.045, J.head[2] + 0.01]), e2 = pr([J.head[0] + 0.115, J.head[1] + 0.045, J.head[2] + 0.01]);
           x.fillStyle = spec.eye || 'rgba(14,10,10,0.9)'; x.globalAlpha = Math.min(1, fv * 2.5);
@@ -863,7 +886,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         const ht = pr([J.head[0] + 0.01, J.head[1], J.head[2] + 0.06]);
         const hw = HEADWEAR_FIGS[spec.headId];
         if (hw) hw(x, spec, hp, ht, hr, rgb, pr, J);
-        x.fillStyle = 'rgba(255,255,255,0.18)'; x.beginPath(); x.arc(ht.x - 1.5, ht.y - 3, hr * 0.6, Math.PI * 1.1, Math.PI * 1.7); x.stroke();
+        // The extra shine arc floated above soft crowns and read as a horn; helmets keep their
+        // original highlight, while cap/beanie carry their own details on the hat itself.
+        if (spec.headId === 'helmet' || spec.headId === 'milhelmet') {
+          x.fillStyle = 'rgba(255,255,255,0.18)'; x.beginPath();
+          x.arc(ht.x - 1.5, ht.y - 3, hr * 0.6, Math.PI * 1.1, Math.PI * 1.7); x.stroke();
+        }
       }
       // With a cap on, only outline the exposed lower half of the face. A full circle here drew
       // the skull contour over the crown and made the head look like it showed through the cap.
