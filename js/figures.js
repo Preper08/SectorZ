@@ -542,10 +542,19 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     },
     // cap: flat dome + front brim + top button
     cap: (x, spec, hp, ht, hr, rgb, pr, J) => {
-      x.fillStyle = rgb(spec.hat, 1); x.beginPath(); x.arc(ht.x, ht.y - 1.2, hr * 1.02, Math.PI * 1.02, Math.PI * 1.98); x.lineTo(ht.x + hr, ht.y); x.fill();
+      // Crown covers the whole top of the skull down past the hairline, not just a thin rim.
+      x.fillStyle = rgb(spec.hat, 0.95); x.beginPath();
+      x.ellipse(hp.x, hp.y + hr * 0.18, hr * 1.08, hr * 1.18, 0, Math.PI, 2 * Math.PI);
+      x.closePath(); x.fill();
+      // Sweatband across the forehead and a forward brim.
+      x.strokeStyle = rgb(spec.hat, 0.78); x.lineWidth = 2.2;
+      x.beginPath(); x.ellipse(hp.x, hp.y + hr * 0.18, hr * 1.08, hr * 0.3, 0, Math.PI, 2 * Math.PI); x.stroke();
       const br = pr([J.head[0] + 0.17, J.head[1], J.head[2] + 0.045]);
-      x.strokeStyle = rgb(spec.hat, 0.8); x.lineWidth = 3.4; x.lineCap = 'round'; x.beginPath(); x.moveTo(ht.x + hr * 0.55, ht.y - 1.5); x.lineTo(br.x, br.y); x.stroke();
-      x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(ht.x, ht.y - hr * 0.98, 1.6, 0, 7); x.fill();
+      x.fillStyle = rgb(spec.hat, 0.85); x.beginPath();
+      x.moveTo(hp.x + hr * 0.35, hp.y + hr * 0.18);
+      x.lineTo(br.x, br.y); x.lineTo(br.x, br.y + 2.6);
+      x.lineTo(hp.x + hr * 0.35, hp.y + hr * 0.18 + 2.6); x.closePath(); x.fill();
+      x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(hp.x, hp.y - hr * 0.95, 1.5, 0, 7); x.fill();
     }
   };
 
@@ -836,7 +845,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         if (hw) hw(x, spec, hp, ht, hr, rgb, pr, J);
         x.fillStyle = 'rgba(255,255,255,0.18)'; x.beginPath(); x.arc(ht.x - 1.5, ht.y - 3, hr * 0.6, Math.PI * 1.1, Math.PI * 1.7); x.stroke();
       }
-      x.strokeStyle = 'rgba(0,0,0,0.35)'; x.lineWidth = 0.8; x.beginPath(); x.arc(hp.x, hp.y, hr, 0, 7); x.stroke();
+      // With a cap on, only outline the exposed lower half of the face. A full circle here drew
+      // the skull contour over the crown and made the head look like it showed through the cap.
+      x.strokeStyle = 'rgba(0,0,0,0.35)'; x.lineWidth = 0.8; x.beginPath();
+      if (spec.hat) x.arc(hp.x, hp.y, hr, 0.08, Math.PI - 0.08);
+      else x.arc(hp.x, hp.y, hr, 0, 7);
+      x.stroke();
     };
     let headDone = false; const hd = pr(J.head).d;
     for (const p of parts) {
