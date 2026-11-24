@@ -544,7 +544,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     cap: (x, spec, hp, ht, hr, rgb, pr, J) => {
       // Crown covers the whole top of the skull down past the hairline, not just a thin rim.
       x.fillStyle = rgb(spec.hat, 0.95); x.beginPath();
-      x.ellipse(hp.x, hp.y + hr * 0.18, hr * 1.16, hr * 1.24, 0, Math.PI, 2 * Math.PI);
+      x.ellipse(hp.x, hp.y + hr * 0.1, hr * 1.08, hr * 1.38, 0, Math.PI, 2 * Math.PI);
       x.closePath(); x.fill();
       // Sweatband across the forehead and a forward brim.
       x.strokeStyle = rgb(spec.hat, 0.78); x.lineWidth = 2.2;
@@ -554,14 +554,14 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       x.moveTo(hp.x + hr * 0.35, hp.y + hr * 0.18);
       x.lineTo(br.x, br.y); x.lineTo(br.x, br.y + 2.6);
       x.lineTo(hp.x + hr * 0.35, hp.y + hr * 0.18 + 2.6); x.closePath(); x.fill();
-      x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(hp.x, hp.y - hr * 0.95, 1.5, 0, 7); x.fill();
+      x.fillStyle = rgb(spec.hat, 1.25); x.beginPath(); x.arc(hp.x, hp.y - hr * 1.28, 1.5, 0, 7); x.fill();
     },
     // beanie: knitted wool hat, no brim - rounded crown and a folded ribbed cuff over the brow.
     beanie: (x, spec, hp, ht, hr, rgb) => {
       const dk = [spec.hat[0] * 0.72, spec.hat[1] * 0.72, spec.hat[2] * 0.72];
       const lt = [Math.min(255, spec.hat[0] * 1.22), Math.min(255, spec.hat[1] * 1.22), Math.min(255, spec.hat[2] * 1.22)];
       x.fillStyle = rgb(spec.hat, 1); x.beginPath();
-      x.ellipse(hp.x, hp.y + hr * 0.14, hr * 1.16, hr * 1.26, 0, Math.PI, 2 * Math.PI);
+      x.ellipse(hp.x, hp.y + hr * 0.08, hr * 1.1, hr * 1.44, 0, Math.PI, 2 * Math.PI);
       x.closePath(); x.fill();
       // folded cuff sits lower than a cap band and covers the hairline all around
       x.strokeStyle = rgb(dk, 1); x.lineWidth = 3.2;
@@ -574,7 +574,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         x.lineTo(hp.x + side * hr * 0.28, hp.y - hr * 0.22);
         x.stroke();
       }
-      x.fillStyle = rgb(lt, 1); x.beginPath(); x.arc(hp.x, hp.y - hr * 1.1, 1.5, 0, 7); x.fill(); // knitted top
+      x.fillStyle = rgb(lt, 1); x.beginPath(); x.arc(hp.x, hp.y - hr * 1.36, 1.5, 0, 7); x.fill(); // knitted top
     }
   };
 
