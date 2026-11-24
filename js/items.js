@@ -171,6 +171,8 @@
   DSZ.CLOTH_TINTS = {
     jacket: ['#4a5a6a', '#5a4a6a', '#6a5a4a', '#3a5a54', '#6a3a3a', '#3a4a6a'],
     hoodie: ['#6a4a4a', '#3a5a6a', '#4a6a4a', '#6a5a3a', '#5a3a5a', '#3a3a44', '#8a8a8c'],
+    sweater: ['#b8862e', '#8a3a3a', '#3a5a7a', '#4a7a5a', '#6a4a7a', '#8a8a86'],
+    padded: ['#38414e', '#3a4a3a', '#5a3a3a', '#4a4a5a', '#6a5a3a'],
     tshirt: ['#e8e8e8', '#c8cbd0', '#5a7a9a', '#9a5a5a', '#5a9a6a', '#c8a040'],
     flannel: ['#9c3a34', '#3a5a8c', '#4a7a4a', '#8a6a2a', '#6a3a6a', '#8a8a8a'],
     tracksuit: ['#3c5a48', '#3c4a6a', '#6a3c4a', '#4a4a52', '#6a5a3c']

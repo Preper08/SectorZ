@@ -935,7 +935,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     // character looked dressed in blue. Slots that are empty now use the skin colour, and the
     // legs use the bare entry; sleeves follow the shirt, which is also skin when the torso is bare.
     const skin = SKIN[1], pants = eq.legsCol || skin;
-    const fullSleeve = eq.bodyId === 'wintercoat' || eq.bodyId === 'raincoat' || eq.bodyId === 'jacket' || eq.bodyId === 'hoodie';
+    const fullSleeve = ['wintercoat', 'raincoat', 'jacket', 'hoodie', 'sweater', 'padded'].indexOf(eq.bodyId) >= 0;
     // Colours are part of the sprite's identity. Without them, two tints of the same item share
     // a cache key and the rendered colour appears to change whenever the pose or angle changes.
     const ck = c => c ? c.join(',') : '-';
@@ -1024,7 +1024,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (type !== 'police' && type !== 'military' && type !== 'doctor') {
       const body = U.weighted(r, [['tshirt', 5], ['flannel', 4], ['hoodie', 3], ['sweater', 3], ['jacket', 3], ['leather', 1.2], ['raincoat', 1], ['padded', 0.7], ['wintercoat', 0.6]]);
       spec.bodyId = body;
-      spec.fullSleeve = body === 'wintercoat' || body === 'raincoat' || body === 'jacket' || body === 'hoodie';
+      spec.fullSleeve = ['wintercoat', 'raincoat', 'jacket', 'hoodie', 'sweater', 'padded'].indexOf(body) >= 0;
       const col = hexRgb(DSZ.ITEMS[body] && DSZ.ITEMS[body].col, 0.5 + r() * 0.28);
       if (col) spec.shirt = col;
       spec.worn = [body];
