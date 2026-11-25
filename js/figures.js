@@ -841,12 +841,13 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         // A crouched shin bends toward the camera, so its average depth can exceed the ankle's;
         // sort the shaft in front of the WHOLE shin or bare skin shows through the boot.
         const front = Math.max(pr(ft).d, pr(kne).d, sd || -Infinity) + 0.05;
-        // shaft: from below the knee to the ankle. In a crouch the knee is folded forward, so a
-        // full-length shaft would cover most of the short bent leg - start it higher up the shin.
-        const t0 = lerp3(kne, ft, J.crouch ? 0.06 : 0.02), t1 = ft;
+        // shaft: from below the knee to the ankle. In a crouch the knee folds forward and the
+        // lower leg becomes very short, so a full-length shaft covered almost all of it and the
+        // boots read as knee-high wellingtons over the trousers. Leave the upper shin visible.
+        const t0 = lerp3(kne, ft, J.crouch ? 0.3 : 0.02), t1 = ft;
         cap([t0[0], t0[1], t0[2] + 0.01 * s], [t1[0], t1[1], t1[2] + 0.015 * s], 0.079 * s, shoes, { d: front });
-        // laces: cross stitches down the front of the shaft
-        const l0 = lerp3(kne, ft, J.crouch ? 0.5 : 0.3), l1 = lerp3(kne, ft, J.crouch ? 0.18 : 0.08);
+        // laces: cross stitches down the front of the shaft (kept inside the shorter crouch shaft)
+        const l0 = lerp3(kne, ft, J.crouch ? 0.52 : 0.3), l1 = lerp3(kne, ft, J.crouch ? 0.24 : 0.08);
         cap([l0[0], l0[1], l0[2] + 0.012 * s], [l1[0], l1[1], l1[2] + 0.012 * s], 0.026 * s, shoes, { lace: true, d: front + 0.01 });
         // foot: ankle to toe box as one piece, plus a heel block behind
         cap([ft[0] - 0.055 * s, ft[1], ft[2] + 0.025 * s], [ft[0] + 0.135 * s, ft[1], ft[2] + 0.025 * s], 0.05 * s, shoes, { d: front });
