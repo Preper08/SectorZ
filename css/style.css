@@ -150,6 +150,13 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 .eqslot.hl { border-color: var(--good); } .eqslot .lbl { position: absolute; left: 4px; top: 1px; font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
 .eqslot img { max-width: 52px; max-height: 52px; cursor: grab; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); }
 #equip { width: 276px; }
+/* character screen: paper doll, a second view of the equipment slots, appearance swatches */
+#char-preview { width: 220px; height: 320px; background: rgba(0,0,0,0.28); border: 1px solid var(--line); image-rendering: pixelated; }
+.charbtns { display: flex; gap: 8px; margin-top: 8px; } .charbtns .btn { padding: 6px 10px; font-size: 12px; }
+#charequip { width: 276px; } .charhint { font-size: 12px; color: var(--dim); margin-top: 4px; width: 276px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.swatch { width: 28px; height: 28px; padding: 0; border: 2px solid var(--line); border-radius: 2px; cursor: pointer; }
+.swatch.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .cond { display: grid; grid-template-columns: 1fr auto; gap: 3px 14px; font-size: 14px; min-width: 200px; } .cond span:nth-child(odd) { color: var(--dim); }
 .btn { background: rgba(255,255,255,0.06); border: 1px solid var(--line-hi); color: var(--text); font: inherit; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 16px; cursor: pointer; border-radius: 2px; }
 .btn:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent); }

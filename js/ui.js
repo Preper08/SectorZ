@@ -21,7 +21,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'carsirenrow', 'carsiren', 'tvttl']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-char', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'char-preview', 'charequip', 'skin-sw', 'hair-sw', 'char-bald', 'char-rot', 'char-pose', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'carsirenrow', 'carsiren', 'tvttl']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.eqcol = $('eqcol');
@@ -30,6 +30,9 @@
   els.pcx.onclick = () => UI.closePC(); els.pcclose.onclick = () => UI.closePC();
     // tabs
     document.querySelectorAll('#win .tabs button').forEach(b => b.addEventListener('click', () => UI.showTab(b.dataset.tab)));
+    els['char-rot'].onclick = () => { charAng += Math.PI / 8; renderChar(); A.play('click'); };
+    els['char-pose'].onclick = () => { charPose = !charPose; els['char-pose'].textContent = 'Pose: ' + (charPose ? 'Walk' : 'Idle'); renderChar(); A.play('click'); };
+    els['char-bald'].onclick = () => { if (!S) return; const ap = S.player.appearance || {}; DSZ.Game.setAppearance(S, 'bald', !ap.bald); renderChar(); A.play('click'); };
     $('winx').onclick = () => UI.closeWin(); $('mapx').onclick = () => UI.closeMap();
     $('takeall').onclick = takeAll;
     $('m-resume').onclick = () => UI.toggleMenu(false);
@@ -53,7 +56,7 @@
     window.addEventListener('mouseup', dragUp);
     // Re-fit the inventory when the window is resized, so an open container never drifts
     // off screen after the player resizes the game.
-    window.addEventListener('resize', () => { fitHud(); if (UI.open.win && UI.open.tab === 'inv') renderInv(); if (UI.open.pc) UI.resizePC(); });
+    window.addEventListener('resize', () => { fitHud(); if (UI.open.win && (UI.open.tab === 'inv' || UI.open.tab === 'char')) { renderInv(); if (UI.open.tab === 'char') renderChar(); } if (UI.open.pc) UI.resizePC(); });
     els.cursor.classList.remove('hidden');
     buildSettings(); buildControls();
     DSZ.on('death', s => UI.showDeath(s));
@@ -64,8 +67,8 @@
   UI.showTab = function (t) {
     UI.open.tab = t; document.querySelectorAll('#win .tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
     els['tab-admin-btn'].classList.toggle('hidden', !DSZ.settings.godmode); // admin tab exists only in god mode
-    els['tab-inv'].classList.toggle('hidden', t !== 'inv'); els['tab-craft'].classList.toggle('hidden', t !== 'craft'); els['tab-admin'].classList.toggle('hidden', t !== 'admin');
-    if (t === 'craft') renderCraft(); else if (t === 'admin') renderAdmin(); else renderInv();
+    els['tab-inv'].classList.toggle('hidden', t !== 'inv'); els['tab-craft'].classList.toggle('hidden', t !== 'craft'); els['tab-char'].classList.toggle('hidden', t !== 'char'); els['tab-admin'].classList.toggle('hidden', t !== 'admin');
+    if (t === 'craft') renderCraft(); else if (t === 'admin') renderAdmin(); else if (t === 'char') renderChar(); else renderInv();
   };
   UI.openWin = function (tab) { UI.open.win = true; els.win.classList.remove('hidden'); hotbarLift(); UI.showTab(tab || UI.open.tab || 'inv'); A.play('click', null, null, 0.4); };
   UI.closeWin = function () { cancelDrag(); UI.open.win = false; UI.loot = null; els.win.classList.add('hidden'); hideTip(); els.lootcol.classList.add('hidden'); hotbarLift(); };
@@ -401,14 +404,21 @@
     for (const it of g.items) el.appendChild(itemEl(it, name));
   }
   const EQ = [['head', 'Head'], ['body', 'Body'], ['vest', 'Vest'], ['legs', 'Legs'], ['feet', 'Feet'], ['bag', 'Bag'], ['light', 'Light']];
-  function renderEquip() {
-    const P = S.player.inv; els.equip.innerHTML = '';
+  const SKIN_SW = ['#d6a680', '#f0d2b8', '#ecc4a4', '#a87856', '#78543c', '#583e2e'];
+  const HAIR_SW = ['#462e1c', '#1e1814', '#966c3c', '#c4aa64', '#6e6e70', '#141416'];
+  let charAng = 1, charPose = false;
+  function paintEquip(el) {
+    const P = S.player.inv; el.innerHTML = '';
     for (const [k, lab] of EQ) {
       const s = document.createElement('div'); s.className = 'eqslot'; s.dataset.eq = k; s.innerHTML = '<span class="lbl">' + lab + '</span>';
       const it = P.equip[k];
       if (it) { const im = document.createElement('img'); im.src = img(it.id, it.tint); im.draggable = false; im.addEventListener('mousedown', e => { if (e.button === 0) startDrag(e, it, { type: 'equip', slot: k }); }); im.addEventListener('contextmenu', e => { e.preventDefault(); quick(it, 'equip'); }); s.addEventListener('mouseenter', () => { hovered = it; showTip(it, s); }); s.addEventListener('mouseleave', hideTip); s.appendChild(im); }
-      els.equip.appendChild(s);
+      el.appendChild(s);
     }
+  }
+  function renderEquip() {
+    paintEquip(els.equip);
+    if (els.charequip) paintEquip(els.charequip);
     const hint = document.createElement('div'); hint.style.cssText = 'font-size:12px;color:var(--dim);margin-top:4px;width:276px'; hint.textContent = 'Drag items between grids or from the hotbar. Right-click to use / equip / move; with the inventory open, right-click a hotbar item to store it. R rotates while dragging. Weapons go on the hotbar.'; els.equip.appendChild(hint);
   }
   function renderCondition() {
@@ -433,6 +443,32 @@
     renderGrid('bag'); renderGrid('legs'); renderGrid('body'); renderGrid('vest');
     if (UI.loot) { els.lootcol.classList.remove('hidden'); els.loottitle.textContent = UI.loot.title; renderGrid('loot'); } else els.lootcol.classList.add('hidden');
     renderHot(true);
+  }
+
+  // -------------------------------------------------- character screen
+  function paintSwatches(el, colors, current, key) {
+    el.innerHTML = '';
+    for (const col of colors) {
+      const b = document.createElement('button'); b.className = 'swatch' + (String(current || '').toLowerCase() === col ? ' on' : '');
+      b.style.background = col; b.title = col;
+      b.onclick = () => { DSZ.Game.setAppearance(S, key, col); renderChar(); A.play('click'); };
+      el.appendChild(b);
+    }
+  }
+  function renderChar() {
+    if (!S || !els['char-preview']) return;
+    renderEquip();
+    const cv = els['char-preview'], x = cv.getContext('2d');
+    x.clearRect(0, 0, cv.width, cv.height);
+    const sp = DSZ.Fig.get(DSZ.Fig.playerSpec(S.player.look), charAng,
+      { arms: charPose ? 'walk' : 'idleEmpty', af: 2, legs: charPose ? 'walk' : 'idle', lf: 2, face: true });
+    const sc = Math.min((cv.width - 16) / sp.c.width, (cv.height - 16) / sp.c.height);
+    x.imageSmoothingEnabled = false;
+    x.drawImage(sp.c, Math.round((cv.width - sp.c.width * sc) / 2), Math.round((cv.height - sp.c.height * sc) / 2), sp.c.width * sc, sp.c.height * sc);
+    const ap = S.player.appearance || {};
+    paintSwatches(els['skin-sw'], SKIN_SW, ap.skin, 'skin');
+    paintSwatches(els['hair-sw'], HAIR_SW, ap.hair, 'hair');
+    els['char-bald'].textContent = 'Bald: ' + (ap.bald ? 'On' : 'Off');
   }
 
   // -------------------------------------------------- admin backpack (god mode only)
@@ -480,7 +516,7 @@
     else { A.play('pickup'); DSZ.Game.toast(S, 'Admin: +' + d.name); }
     UI.refresh();
   }
-  UI.refresh = () => { hotbarLift(); if (UI.open.win) { if (UI.open.tab === 'inv') renderInv(); else renderCraft(); } renderHot(true); };
+  UI.refresh = () => { hotbarLift(); if (UI.open.win) { if (UI.open.tab === 'inv' || UI.open.tab === 'char') { renderInv(); if (UI.open.tab === 'char') renderChar(); } else renderCraft(); } renderHot(true); };
   UI.markCraftDirty = () => { UI._csig = null; };
   function renderHot(force) {
     if (!S) return; const P = S.player.inv, p = S.player;
@@ -833,6 +869,7 @@
         else if (!UI.open.menu) {
           if (In.pressed('Tab') || In.pressed('KeyI')) UI.toggleWin('inv');
           if (In.pressed('KeyC')) UI.toggleWin('craft');
+          if (In.pressed('KeyP')) UI.toggleWin('char');
           if (In.pressed('KeyM')) { if (UI.open.map) UI.closeMap(); else UI.openMap(); }
           if (In.pressed('KeyB') && !p.driving) { if (UI.open.win) UI.closeWin(); DSZ.Game.setBuild(S, !S.build.active); A.play('click'); }
           if (UI.drag && In.pressed('KeyR')) { UI.drag.it.rot = !UI.drag.it.rot; sizeGhost(); }

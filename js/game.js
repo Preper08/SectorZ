@@ -24,7 +24,7 @@
     const p = S.player = {
       x: sp[0], y: sp[1], ang: 1, aimAng: 1, hp: 100, food: 82, water: 78, stamina: 100, energy: 90, infection: 0, bleed: 0, broken: false, dead: false, driving: null,
       pose: { arms: 'walk', af: 0, legs: 'idle', lf: 0 }, look: {}, heldDef: null, lightDef: null, lightOn: false, lightFlick: 0, flash: 0, hurt: 0, muzzle: 0, moving: false, running: false, aiming: false, sneak: false, crouch: false, strength: 0,
-      inv: Inv.newPlayer(), ph: 0, atk: 0, atkT: 0, atkDone: true, cool: 0, reload: 0, stepT: 0, use: null, sprite: null, vx: 0, vy: 0, speed: 0
+      inv: Inv.newPlayer(), appearance: { skin: '#d6a680', hair: '#462e1c', bald: false }, ph: 0, atk: 0, atkT: 0, atkDone: true, cool: 0, reload: 0, stepT: 0, use: null, sprite: null, vx: 0, vy: 0, speed: 0
     };
     // starter kit (bare hands: the bat is a world pickup now)
     const P = p.inv;
@@ -165,6 +165,10 @@
   // (selects the draw entry in CLOTHING/VEST/HEADWEAR/FOOTWEAR/LEGS_FIGS) and its colour
   Game.refreshEquipVisuals = function (S) {
     const p = S.player, e = p.inv.equip, L = {};
+    // Appearance is stored on the player so the character screen can edit it independently of
+    // the equipped items. Old saves have no appearance field and simply use the figure defaults.
+    const ap = p.appearance || {};
+    L.skinCol = hexRgb(ap.skin); L.hairCol = hexRgb(ap.hair); L.bald = !!ap.bald;
     if (e.body) { L.bodyId = e.body.id; L.bodyCol = (e.body.tint && hexRgb(e.body.tint)) || CLOTH_COL[e.body.id] || [90, 90, 90]; }
     if (e.vest) { L.vestId = e.vest.id; L.vestCol = CLOTH_COL[e.vest.id] || [58, 64, 70]; }
     if (e.head) { L.headId = e.head.id; L.headCol = (e.head.tint && hexRgb(e.head.tint)) || CLOTH_COL[e.head.id] || [80, 80, 80]; }
@@ -174,6 +178,12 @@
     p.look = L;
     const lt = e.light; p.lightDef = lt ? Object.assign({}, I[lt.id], { id: lt.id }) : null;
     if (!lt) p.lightOn = false;
+  };
+  Game.setAppearance = function (S, key, value) {
+    S = S || Game.S; const p = S.player;
+    if (!p.appearance) p.appearance = { skin: '#d6a680', hair: '#462e1c', bald: false };
+    p.appearance[key] = value;
+    Game.refreshEquipVisuals(S);
   };
   function held(S) { const P = S.player.inv; return P.sel >= 0 ? P.hot[P.sel] : null; }
   Game.held = held;
@@ -999,7 +1009,7 @@
     return {
       horde: { active: S.horde.active, night: S.horde.night, announced: S.horde.announced, surgeT: S.horde.surgeT, spawned: S.horde.spawned, left: S.horde.left, nights: S.horde.nights, killed: S.horde.killed || 0 },
       v: 1, seed: S.seed, hour: S.hour, day: S.day, difficulty: S.difficulty || 'normal', stats: S.stats, weather: { rain: S.weather.rain, target: S.weather.target },
-      player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn },
+      player: { x: p.x, y: p.y, hp: p.hp, food: p.food, water: p.water, stamina: p.stamina, energy: p.energy, infection: p.infection, bleed: p.bleed, broken: p.broken, inv: p.inv, lightOn: p.lightOn, appearance: p.appearance },
       dog: S.dog ? { x: S.dog.x, y: S.dog.y, ang: S.dog.ang, name: S.dog.name, bond: S.dog.bond, unfed: S.dog.unfed, stay: !!S.dog.stay } : null,
       mods, base, removed: W.removed, drops: S.drops, cars: S.cars.map(c => ({ x: c.x, y: c.y, ang: c.ang, state: c.state, hp: c.hp, fuel: c.fuel, drivable: c.drivable, dead: c.dead, grid: c.grid, kind: c.kind, color: c.color, lightsOn: c.lightsOn, sirenOn: c.sirenOn }))
     };

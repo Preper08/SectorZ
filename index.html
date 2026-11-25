@@ -45,7 +45,7 @@
   <div id="toasts"></div>
   <div id="prompt" class="panel hidden"></div>
   <div id="progress" class="panel hidden"><span id="proglabel">Searching</span><div class="pbar"><i></i></div></div>
-  <div id="hintbar">TAB inventory &nbsp;·&nbsp; C crafting &nbsp;·&nbsp; Ctrl crouch (toggle) &nbsp;·&nbsp; B build &nbsp;·&nbsp; E interact &nbsp;·&nbsp; F light &nbsp;·&nbsp; R reload &nbsp;·&nbsp; M map</div>
+  <div id="hintbar">TAB inventory &nbsp;·&nbsp; C crafting &nbsp;·&nbsp; P character &nbsp;·&nbsp; Ctrl crouch (toggle) &nbsp;·&nbsp; B build &nbsp;·&nbsp; E interact &nbsp;·&nbsp; F light &nbsp;·&nbsp; R reload &nbsp;·&nbsp; M map</div>
   <div id="buildbar" class="panel hidden"></div>
   <div id="fps" class="hidden"></div>
 </div>
@@ -56,7 +56,7 @@
 <!-- ============ INVENTORY / CRAFTING WINDOW ============ -->
 <div id="win" class="win hidden">
   <div class="whead">
-    <div class="tabs"><button data-tab="inv" class="on">Inventory</button><button data-tab="craft">Crafting</button><button data-tab="admin" id="tab-admin-btn" class="hidden">Admin</button></div>
+    <div class="tabs"><button data-tab="inv" class="on">Inventory</button><button data-tab="craft">Crafting</button><button data-tab="char">Character</button><button data-tab="admin" id="tab-admin-btn" class="hidden">Admin</button></div>
     <button class="x" id="winx">✕</button>
   </div>
   <div id="tab-inv" class="wbody">
@@ -76,6 +76,23 @@
     <div class="col" id="crafttabs"></div>
     <div class="col" id="craftlist"></div>
     <div class="col" id="craftdetail"></div>
+  </div>
+  <div id="tab-char" class="wbody hidden">
+    <div class="col" id="chardollcol">
+      <h4>Character</h4>
+      <canvas id="char-preview" width="220" height="320"></canvas>
+      <div class="charbtns"><button class="btn" id="char-rot">Rotate</button><button class="btn" id="char-pose">Pose: Idle</button></div>
+    </div>
+    <div class="col" id="chareqcol">
+      <h4>Equipment</h4>
+      <div id="charequip"></div>
+      <div class="charhint">Drag gear here from the inventory, or right-click a worn item to take it off.</div>
+    </div>
+    <div class="col" id="charlookcol">
+      <h4>Skin tone</h4><div id="skin-sw" class="swatches"></div>
+      <h4>Hair colour</h4><div id="hair-sw" class="swatches"></div>
+      <button class="btn" id="char-bald">Bald: Off</button>
+    </div>
   </div>
   <div id="tab-admin" class="wbody hidden">
     <div class="col">
