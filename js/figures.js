@@ -943,13 +943,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const g = x.createRadialGradient(hp.x - hr * 0.35, hp.y - hr * 0.4, hr * 0.1, hp.x, hp.y, hr);
       g.addColorStop(0, rgb(skin, 1.25)); g.addColorStop(1, rgb(skin, 0.72)); x.fillStyle = g; x.beginPath(); x.arc(hp.x, hp.y, hr, 0, 7); x.fill();
       // hair covers back / top of head
-      const hs = pr([J.head[0] - 0.045, J.head[1], J.head[2] + 0.035]);
+      const hs = pr([J.head[0] - 0.015, J.head[1], J.head[2] + 0.012]);
       const hairShift = pr([J.head[0] - 0.05 * 1.6, J.head[1], J.head[2] + 0.03]);
       if (!spec.bald) {
-        // The hair circle sits slightly behind and ABOVE the skull, so its crown pokes through
-        // a cap or beanie. Clip only the hair fill below the hat's lower edge; the hat is drawn
-        // on top afterwards and the face/eyes below are painted as usual. Helmets keep their
-        // existing rendering untouched.
+        // The hair circle hugs the skull now: a larger offset made it read as a bun on the back
+        // and let the skull contour show through. Under a soft hat clip the hair to the back
+        // half below the band; the hat is drawn afterwards. Helmets keep their own rendering.
         const softHat = spec.headId === 'cap' || spec.headId === 'beanie' || spec.headId === 'buckethat';
         if (softHat) {
           x.save();
@@ -967,7 +966,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
           x.closePath(); x.clip();
         }
         x.fillStyle = rgb(spec.hair, 1); x.beginPath();
-        x.arc(hs.x, hs.y - 0.5, hr * 0.98, 0, 7); x.fill();
+        x.arc(hs.x, hs.y - 0.3, hr, 0, 7); x.fill();
         if (softHat) x.restore();
         // clip hair off the face when the face is toward the camera
         if (fv > 0.02) {
@@ -975,9 +974,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
           x.save(); x.beginPath(); x.arc(hp.x, hp.y, hr, 0, 7); x.clip();
           const g2 = x.createRadialGradient(fx.x, fx.y + 1, 1, fx.x, fx.y + 1, hr * 0.78);
           g2.addColorStop(0, rgb(skin, 1.12)); g2.addColorStop(0.8, rgb(skin, 0.95)); g2.addColorStop(1, rgb(skin, 0));
-          // A translucent face let hair show through at oblique headings; under a cap or beanie
-          // the face must be opaque so no hair pixels bleed across it during the walk cycle.
-          x.globalAlpha = softHat ? 1 : Math.min(1, fv * 2.2); x.fillStyle = g2; x.beginPath(); x.arc(fx.x, fx.y + 1, hr * 0.8, 0, 7); x.fill(); x.globalAlpha = 1;
+          // The face must be opaque: at oblique headings a translucent one let hair bleed
+          // through as a bright patch on the forehead.
+          x.globalAlpha = 1; x.fillStyle = g2; x.beginPath(); x.arc(fx.x, fx.y + 1, hr * 0.8, 0, 7); x.fill(); x.globalAlpha = 1;
           // eyes
           const e1 = pr([J.head[0] + 0.115, J.head[1] - 0.045, J.head[2] + 0.01]), e2 = pr([J.head[0] + 0.115, J.head[1] + 0.045, J.head[2] + 0.01]);
           x.fillStyle = spec.eye || 'rgba(14,10,10,0.9)'; x.globalAlpha = Math.min(1, fv * 2.5);
@@ -988,6 +987,13 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         const e1 = pr([J.head[0] + 0.115, J.head[1] - 0.045, J.head[2] + 0.01]), e2 = pr([J.head[0] + 0.115, J.head[1] + 0.045, J.head[2] + 0.01]);
         x.fillStyle = spec.eye || 'rgba(14,10,10,0.9)'; x.globalAlpha = Math.min(1, fv * 2.5); x.fillRect(e1.x - 0.9, e1.y - 0.7, 1.8, 1.6); x.fillRect(e2.x - 0.9, e2.y - 0.7, 1.8, 1.6); x.globalAlpha = 1;
       }
+      // Ears: a small skin nub on the side facing the camera, painted over the hair so a short
+      // cut does not swallow it. Drawing only the near ear keeps the far one from floating on
+      // top of the skull in a profile view. Hats are painted afterwards and cover it normally.
+      const ear = [-1, 1].map(sy => pr([J.head[0] - 0.008, J.head[1] + sy * 0.13, J.head[2] - 0.015]))
+        .sort((a, b) => b.d - a.d)[0];
+      x.fillStyle = rgb(skin, 0.92); x.beginPath(); x.ellipse(ear.x, ear.y + 0.4, 1.5, 2.1, 0, 0, 7); x.fill();
+      x.fillStyle = 'rgba(60,30,25,0.35)'; x.beginPath(); x.ellipse(ear.x, ear.y + 0.6, 0.7, 1.1, 0, 0, 7); x.fill();
       if (spec.hat) { // headwear from HEADWEAR_FIGS: cap dome + brim, helmet dome + rim
         const ht = pr([J.head[0] + 0.01, J.head[1], J.head[2] + 0.06]);
         const hw = HEADWEAR_FIGS[spec.headId];
