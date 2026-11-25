@@ -811,8 +811,12 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   const FOOTWEAR_FIGS = {
     barefoot: (J, cap, pr, skin, shoes, shin, sc) => {
       const s = sc === undefined ? 1 : sc;
-      cap([J.footL[0] - 0.02 * s, J.footL[1], J.footL[2] + 0.035 * s], [J.footL[0] + 0.12 * s, J.footL[1], J.footL[2] + 0.035 * s], 0.048 * s, skin);
-      cap([J.footR[0] - 0.02 * s, J.footR[1], J.footR[2] + 0.035 * s], [J.footR[0] + 0.12 * s, J.footR[1], J.footR[2] + 0.035 * s], 0.048 * s, skin);
+      [[J.footL, shin && shin.L], [J.footR, shin && shin.R]].forEach(([ft, sd]) => {
+        // A bare foot needs its own depth or the shin paints over it and the leg reads as a
+        // stump going into the floor. Sit it on the floor just below the raised ankle joint.
+        const d = Math.max(pr(ft).d, sd || -Infinity) + 0.05;
+        cap([ft[0] - 0.035 * s, ft[1], ft[2] - 0.022], [ft[0] + 0.14 * s, ft[1], ft[2] - 0.022], 0.05 * s, skin, { d });
+      });
     },
     // sneakers: padded grey canvas low-top with a laced instep, rubber toe cap and dark sole
     sneakers: (J, cap, pr, skin, shoes, shin, sc) => {
