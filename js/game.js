@@ -58,7 +58,7 @@
     // new games start bare-handed: the bat lies on the floor near the spawn.
     // Loaded saves keep whatever the player already has (no duplicates, no extra spawns).
     else Game.placeStarterBat(S);
-    // god mode (admin): fill the inventory when it is enabled before the game starts
+    // god mode (admin): start empty with an empty pack; gear comes from the admin list
     if (DSZ.settings.godmode) Game.godKit(S);
     Game.toast(S, 'Find supplies. Stay quiet. Survive the night.');
     DSZ.emit('newgame', S);
@@ -142,9 +142,9 @@
     Game.toast(S, 'Picked up ' + I[it.id].name + (it.q > 1 ? ' x' + it.q : ''));
     return true;
   };
-  // God mode (admin): the full police kit worn, the military kit carried in the pack, plus every
-  // weapon and its ammunition. Loot, food, medical supplies and building materials are left out:
-  // god mode never consumes items anyway, so carrying them only cluttered the pack.
+  // God mode (admin): start with an empty inventory. The player gets nothing pre-packed - every
+  // item, including the military set, is spawned from the admin list instead. The one exception
+  // is an empty police pack: without storage, admin-spawned items would fall straight to the floor.
   Game.godKit = function (S) {
     const p = S.player, P = p.inv;
     // Start clean so enabling god mode mid-run also clears whatever the player was carrying.
@@ -152,40 +152,10 @@
     for (let i = 0; i < P.hot.length; i++) P.hot[i] = null;
     for (const k in P.equip) P.equip[k] = null;
     Inv.refreshAll(P, Game.dropFn(S));
-    // Wear the uniform first: the pack, trousers, shirt and vest provide the storage grids.
-    const wear = (slot, id) => { if (!P.equip[slot] || P.equip[slot].id !== id) Inv.equip(P, Inv.make(id), Game.dropFn(S)); };
-    wear('bag', 'policepack'); wear('head', 'helmet'); wear('body', 'policeshirt');
-    wear('vest', 'vest'); wear('legs', 'policepants'); wear('feet', 'policeboots');
-    wear('light', 'flashlight'); // a working torch, charged by Inv.make, for the dark
-    // giveOrDrop keeps the kit intact even when the pack is full: the remainder lands at the
-    // player's feet instead of disappearing because ensure() ignored the leftover.
-    const ensure = (id, q, extra) => { const have = Inv.count(P, id); if (have < q) Game.giveOrDrop(S, Inv.make(id, q - have, extra)); };
-    const guns = ['pistol', 'smg', 'shotgun', 'rifle', 'arifle'];
-    for (const id of guns) ensure(id, 1, { mag: I[id].mag || 0 });
-    for (const id of ['bat', 'crowbar', 'knife', 'machete', 'axe', 'pipe']) ensure(id, 1);
-    // Move the six handiest weapons to the hotbar before packing anything else. Besides being
-    // ready to use, that frees the big contiguous cells a rifle needs, so nothing lands on the
-    // ground once the military kit is added.
-    const kit = guns.concat(['axe', 'machete']);
-    for (let i = 0; i < P.hot.length; i++) {
-      if (P.hot[i]) continue;
-      const id = kit.find(k => Inv.count(P, k) > 0 && !P.hot.some(x => x && x.id === k));
-      if (!id) break;
-      const it = Inv.all(P).find(x => x.id === id);
-      if (it) { Inv.removeItem(P, it); P.hot[i] = it; }
-    }
-    // The military set is carried, not worn: the player stays in uniform but can switch instantly.
-    // These ids are absent from loot tables, so god mode is their only source for now.
-    for (const id of ['milhelmet', 'miltop', 'milpants', 'milboots', 'milvest', 'milpack']) ensure(id, 1);
-    // Give the player a hammer so they can build structures.
-    ensure('hammer', 1);
-    // Workbenches are placed from the inventory like any other structure; god mode no longer
-    // spawns one in the world (that was only a testing shortcut).
-    ensure('ammo9', 90); ensure('shell', 40); ensure('ammo762', 40); ensure('ammo556', 90);
-    ensure('map', 1); // full town map on the admin kit, ready for the M key
-    // The worn set changed, so the figure has to be told.
+    // Empty bag only: it supplies the grid that admin items are placed into.
+    Inv.equip(P, Inv.make('policepack'), Game.dropFn(S));
     Game.refreshEquipVisuals(S);
-    Game.toast(S, 'God mode: police kit + all weapons. Items are infinite.');
+    Game.toast(S, 'God mode: empty inventory. Spawn gear from the admin list.');
   };
 
   // ---------------------------------------------------------------- equipment visuals

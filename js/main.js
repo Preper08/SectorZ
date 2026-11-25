@@ -64,7 +64,7 @@
   }
   // New Game must always start clean: developer mode is a persisted setting, so clear it here
   // (and save it) before generating the world, otherwise a previously enabled God Mode would be
-  // re-applied by Game.newGame and hand the new character the full admin kit. Continue keeps it.
+  // re-applied by Game.newGame and start the new character with the empty admin pack. Continue keeps it.
   Main.startNew = () => { DSZ.settings.godmode = false; DSZ.saveSettings(); begin(null); };
   Main.cont = () => { const d = Game.readSave(); if (d) begin(d); else begin(null); };
   Main.toTitle = function () {
