@@ -465,7 +465,7 @@
     const hdef = held && I[held.id];
     const gun = hdef && hdef.type === 'gun';
     const pose = armed ? (gun || !hdef ? { arms: 'aim', af: 0, legs: 'idle', lf: 0, face: true }
-      : { arms: 'swingR', af: 1, grip: hdef.id === 'bat' ? 'two' : '', legs: 'idle', lf: 0, face: true })
+      : { arms: 'swingR', af: 0, grip: hdef.id === 'bat' ? 'two' : '', legs: 'idle', lf: 0, face: true })
       : charPose === 1 ? { arms: 'walk', af: 2, legs: 'walk', lf: 2, face: true }
       : { arms: 'idleEmpty', af: 0, legs: 'idle', lf: 0, face: true };
     const sp = DSZ.Fig.get(DSZ.Fig.playerSpec(S.player.look), charAng, pose);
@@ -474,9 +474,10 @@
     x.imageSmoothingEnabled = false;
     x.drawImage(sp.c, dx, dy, sp.c.width * sc, sp.c.height * sc);
     if (hdef && DSZ.Render.drawHeldTo) {
-      // Preview uses the world weapon renderer. Guns are only a few pixels long in world scale,
-      // so enlarge them here; melee weapons keep close to the sprite scale.
-      const big = hdef.type === 'gun' ? 1.3 : 1.2;
+      // Preview uses the world weapon renderer at world scale for melee, so the paper doll shows
+      // exactly the same proportions as gameplay. Guns are only a few pixels long at that scale,
+      // so they keep the small preview boost.
+      const big = hdef.type === 'gun' ? 1.3 : 1;
       const fake = { ang: charAng, pose: { arms: pose.arms, af: pose.af, grip: pose.grip }, muzzle: 0, lightOn: false };
       x.save(); x.translate(dx, dy); x.scale(sc * big, sc * big);
       const hx = (sp.hand[0] + sp.ox) / big, hy = (sp.hand[1] + sp.oy) / big;

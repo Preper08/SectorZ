@@ -904,19 +904,19 @@
     // melee ----------------------------------------------------------------
     knife: { len: 0.34, th: 2.8, draw: W => {
       const { segT, P0, hl, ctx, TOT } = W;
-      segT(TOT * -0.08, TOT * 0.2, 0, 0, 2.8, '#3a2a1e'); // handle
+      segT(TOT * -0.08, TOT * 0.2, 0, 0, 2.4, '#3a2a1e'); // handle
       segT(TOT * 0.2, TOT * 0.24, -1.5, -1.5, 1.4, '#888'); // guard
-      segT(TOT * 0.24, TOT * 0.94, 0, 0, 2, '#c8ccd0'); // blade
-      const t0 = P0(TOT * 0.94, -1.2), tm = P0(TOT * 1.06, 0.3), t1 = P0(TOT * 0.94, 1.2);
+      segT(TOT * 0.24, TOT * 0.94, 0, 0, 2.5, '#c8ccd0'); // blade
+      const t0 = P0(TOT * 0.94, -1.5), tm = P0(TOT * 1.06, 0.3), t1 = P0(TOT * 0.94, 1.5);
       ctx.fillStyle = '#c8ccd0'; ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(tm[0], tm[1]); ctx.lineTo(t1[0], t1[1]); ctx.closePath(); ctx.fill(); // tip
       hl(P0(TOT * 0.3, 0)[0], P0(TOT * 0.3, 0)[1], P0(TOT * 0.9, 0)[0], P0(TOT * 0.9, 0)[1], 0.7);
     } },
     machete: { len: 0.55, th: 2.8, draw: W => {
       const { segT, P0, hl, ctx, TOT } = W;
-      segT(TOT * -0.1, TOT * 0.13, 0, 0, 3.2, '#2a2018'); // handle
+      segT(TOT * -0.1, TOT * 0.13, 0, 0, 3, '#2a2018'); // handle
       segT(TOT * 0.13, TOT * 0.16, -1.7, -1.7, 1.5, '#888'); // guard
-      segT(TOT * 0.16, TOT * 1.0, 0, 0, 3.5, '#b0b6ba'); // broad blade
-      const t0 = P0(TOT * 1.0, -1.8), tm = P0(TOT * 1.12, 0.6), t1 = P0(TOT * 1.0, 1.8);
+      segT(TOT * 0.16, TOT * 1.0, 0, 0, 4.3, '#b0b6ba'); // broad blade
+      const t0 = P0(TOT * 1.0, -2.4), tm = P0(TOT * 1.12, 0.8), t1 = P0(TOT * 1.0, 2.4);
       ctx.fillStyle = '#b0b6ba'; ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(tm[0], tm[1]); ctx.lineTo(t1[0], t1[1]); ctx.closePath(); ctx.fill(); // angled tip
       hl(P0(TOT * 0.2, 0)[0], P0(TOT * 0.2, 0)[1], P0(TOT * 0.96, 0)[0], P0(TOT * 0.96, 0)[1], 0.9);
     } },
