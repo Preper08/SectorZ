@@ -546,10 +546,17 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // instead of the tall pointed cone an over-stretched ellipse produced.
       // The band sits ABOVE the brows and the visor no longer droops onto the eyes: the old
       // forward projection put its front edge at +0.49 hr, right across the eye line.
+      // The crown is now a rounded square rather than a dome: flat top, upright sides.
       const base = hp.y + hr * 0.10, r = hr * 1.04, cy = hp.y - 1 - hr * 0.04;
+      const top = cy - r, rad = hr * 0.30;
       x.fillStyle = rgb(spec.hat, 1); x.beginPath();
-      x.arc(hp.x, cy, r, Math.PI, 2 * Math.PI);
-      x.lineTo(hp.x + r, base); x.lineTo(hp.x - r, base); x.closePath(); x.fill();
+      x.moveTo(hp.x - r, base);
+      x.lineTo(hp.x - r, top + rad);
+      x.quadraticCurveTo(hp.x - r, top, hp.x - r + rad, top);
+      x.lineTo(hp.x + r - rad, top);
+      x.quadraticCurveTo(hp.x + r, top, hp.x + r, top + rad);
+      x.lineTo(hp.x + r, base);
+      x.closePath(); x.fill();
       // six soft panel seams and the sweatband give the cap its own identity
       x.strokeStyle = rgb(spec.hat, 0.72); x.lineWidth = 1;
       for (const k of [-0.55, -0.2, 0.2, 0.55]) {
