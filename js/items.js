@@ -179,6 +179,7 @@
     beanie: ['#2a2a2e', '#8a8a8c', '#2a3a5a', '#8a3a3a', '#5a6242', '#b8a482'],
     tshirt: ['#e8e8e8', '#c8cbd0', '#5a7a9a', '#9a5a5a', '#5a9a6a', '#c8a040'],
     fannypack: ['#2a2a2e', '#3a4a6a', '#5a6242', '#6a3a3a', '#8a7a5a', '#8a8a8c'],
+    backpack: ['#2a2a2e', '#3a4a6a', '#5a6242', '#6a3a3a', '#8a7a5a', '#8a8a8c'],
     flannel: ['#9c3a34', '#3a5a8c', '#4a7a4a', '#8a6a2a', '#6a3a6a', '#8a8a8a'],
     tracksuit: ['#3c5a48', '#3c4a6a', '#6a3c4a', '#4a4a52', '#6a5a3c']
   };
