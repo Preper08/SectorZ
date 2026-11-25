@@ -603,9 +603,11 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // A bucket hat is a short, slightly tapered crown over a wide drooping brim. The crown
       // is NOT a half circle: a full dome read as a bowler from the front. The top is narrower
       // than the base and only softly rounded, while the brim is wider than the cap's visor.
-      const base = hp.y + hr * 0.14, r = hr * 1.02;
-      const top = hp.y - hr * 1.03, tw = r * 0.78;
-      const by = base - hr * 0.02, bw = hr * 1.62, bh = hr * 0.34;
+      // Height matters: the brim used to sit at eye level (+0.46 hr) and made the hat look
+      // pulled down over the face. The rim now stops just above the eyes, like the helmets.
+      const base = hp.y + hr * 0.02, r = hr * 1.02;
+      const top = hp.y - hr * 1.06, tw = r * 0.78;
+      const by = hp.y - hr * 0.06, bw = hr * 1.62, bh = hr * 0.33;
       // brim first; the crown covers its back edge, leaving a drooping rim around the head
       x.fillStyle = rgb(spec.hat, 0.84);
       x.beginPath(); x.ellipse(hp.x, by, bw, bh, 0, 0, 7); x.fill();
