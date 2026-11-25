@@ -212,8 +212,11 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     // In a deep squat with shorts, bare skin between the hem and a tall boot reads as the shin
     // detaching from the footwear. Extend the boot colour over that stretch so the leg reads as
     // one continuous tall boot; standing and low shoes keep the normal skin.
-    const tallBoot = id === 'boots' || id === 'policeboots' || id === 'milboots';
-    lg(legJ, lcap, pr, tallBoot && J.crouch ? shoes : skin, pants, legR);
+    // Only shorts leave a bare stretch between the hem and a tall boot that needs the boot
+    // colour. With no trousers at all the whole leg is skin, so recolouring it turned a naked
+    // crouching player into two solid boot-coloured legs.
+    const bootSkinBridge = (id === 'boots' || id === 'policeboots' || id === 'milboots') && spec.legsId !== 'bare';
+    lg(legJ, lcap, pr, bootSkinBridge && J.crouch ? shoes : skin, pants, legR);
     const fw = FOOTWEAR_FIGS[id] || FOOTWEAR_FIGS.barefoot;
     fw(J, cap, pr, skin, shoes, shinDepth(spec, J, pr), J.crouch ? 0.8 : 1);
   }
