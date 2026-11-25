@@ -810,10 +810,15 @@
     // of the body, draw the item first so the torso covers it as the player rotates; the near
     // hand keeps drawing on top. Without this, weapons passed straight through the figure.
     const it = p.heldDef;
-    const farHand = !!it && s.handD < s.bodyD;
+    // A two-handed bat swing is anchored to the attacking hand: left click uses the left hand
+    // anchor, right click the right one. Otherwise the weapon stayed in the right hand while the
+    // left arm swung, which read as two separate strikes.
+    const leftHeld = !!it && !!p.pose && p.pose.arms === 'swingL' && p.pose.grip === 'two';
+    const heldAnchor = leftHeld ? s.hand2 : s.hand;
+    const farHand = !!it && (leftHeld ? s.hand2D : s.handD) < s.bodyD;
     const drawHeldItem = () => {
       if (!it) return;
-      const hx = i[0] + s.hand[0] * CH_SCALE, hy = i[1] - lift + s.hand[1] * CH_SCALE;
+      const hx = i[0] + heldAnchor[0] * CH_SCALE, hy = i[1] - lift + heldAnchor[1] * CH_SCALE;
       drawHeld(it, p, hx, hy, S, spec.skin);
     };
     if (farHand) drawHeldItem();

@@ -618,6 +618,9 @@
       p.pose.legs = p.moving ? (p.running ? 'run' : 'walk') : 'idle'; p.pose.lf = Math.floor(p.ph) & 7; p.pose.crouch = p.crouch;
       if (p.atkT > 0) { p.pose.arms = p.atkHand === 'right' ? 'swingR' : 'swingL'; p.pose.af = Math.min(4, Math.floor((1 - p.atkT / p.atkTotal) * 5)); }
       else if (gun) { p.pose.arms = 'aim'; p.pose.af = 0; } else if (P.equip.light && p.lightOn && !mel) { p.pose.arms = 'light'; } else if (mel && p.aiming) { p.pose.arms = 'walk'; } else { p.pose.arms = h ? 'walk' : 'idleEmpty'; p.pose.af = 0; }
+      // A baseball bat is swung with both hands. Mark the pose so the figure puts the off hand
+      // on the grip instead of throwing a second punch; other melee weapons stay one-handed.
+      p.pose.grip = (h && h.id === 'bat' && (p.pose.arms === 'swingL' || p.pose.arms === 'swingR')) ? 'two' : null;
     }
     // ---- hotbar select
     if (!ui.blockKeys()) for (let i = 0; i < 6; i++) if (In.pressed('Digit' + (i + 1))) { P.sel = P.sel === i ? -1 : i; A.play('click'); S.build.active = false; }

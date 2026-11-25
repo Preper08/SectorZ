@@ -106,7 +106,16 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const t = af / 4; // 0 wind-up .. 1 follow through
       const wind = [-0.15, 0.3, pz + 0.85], hit = [0.55, 0.1, pz + 0.4], fin = [0.5, -0.25, pz + 0.12];
       let q; if (t < 0.4) q = lerp3([0.1, 0.25, pz + 0.3], wind, t / 0.4); else if (t < 0.7) q = lerp3(wind, hit, (t - 0.4) / 0.3); else q = lerp3(hit, fin, (t - 0.7) / 0.3);
-      if (arms === 'swingL') {
+      const left = arms === 'swingL';
+      if (P.grip === 'two') {
+        // Baseball bat: both hands ride the same arc, the off hand tucked just behind the
+        // grip hand. A forward "guard" hand read as a second punch during a bat swing.
+        const sign = left ? -1 : 1;
+        const main = [q[0], sign * Math.abs(q[1]), q[2]];
+        const off = [q[0] - 0.055, sign * Math.max(0.02, Math.abs(q[1]) - 0.075), q[2] + 0.02];
+        if (left) { hL = main; hR = off; hintL = [0, -0.7, -0.2]; hintR = [0, 0.4, -0.5]; }
+        else { hR = main; hL = off; hintR = [0, 0.7, -0.2]; hintL = [0, -0.4, -0.5]; }
+      } else if (left) {
         // Mirror the arc onto the left side; the right hand stays in a relaxed guard.
         hL = [q[0], -Math.abs(q[1]), q[2]];
         hR = [0.42, 0.12, pz + 0.46];
@@ -890,7 +899,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
 
   const poseCache = new Map();
   function cachedPose(P) {
-        const key = (P.arms || 'walk') + '|' + (P.af || 0) + '|' + (P.legs || 'idle') + '|' + (P.lf || 0) + '|' + !!P.limp + '|' + !!P.face + '|' + (P.hx || 0) + '|' + !!P.crouch;
+        const key = (P.arms || 'walk') + '|' + (P.af || 0) + '|' + (P.legs || 'idle') + '|' + (P.lf || 0) + '|' + !!P.limp + '|' + !!P.face + '|' + (P.hx || 0) + '|' + !!P.crouch + '|' + (P.grip || '');
     let J = poseCache.get(key);
     if (!J) {
       J = pose(P); poseCache.set(key, J);
@@ -1032,7 +1041,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     }
     if (!headDone) drawHead();
     const ha = pr(J.handR), hb = pr(J.handL);
-    return { c, ox, oy, hand: [ha.x, ha.y], hand2: [hb.x, hb.y], handD: ha.d, bodyD: pr(J.pel).d, head: [hp.x, hp.y] };
+    return { c, ox, oy, hand: [ha.x, ha.y], hand2: [hb.x, hb.y], handD: ha.d, hand2D: hb.d, bodyD: pr(J.pel).d, head: [hp.x, hp.y] };
   }
 
   const cache = new Map();
@@ -1053,14 +1062,14 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   DSZ.on('newgame', Fig.clearCache);
   Fig.get = function (spec, ang, P) {
     const n = Fig.NANG, ai = ((Math.round(ang / (Math.PI * 2) * n) % n) + n) % n;
-    const arms = P.arms || 'walk', af = P.af | 0, legs = P.legs || 'idle', lf = P.lf | 0, limp = !!P.limp, face = !!P.face, hx = !!P.hx, crouch = !!P.crouch;
+    const arms = P.arms || 'walk', af = P.af | 0, legs = P.legs || 'idle', lf = P.lf | 0, limp = !!P.limp, face = !!P.face, hx = !!P.hx, crouch = !!P.crouch, grip = P.grip || '';
     // vault progress is part of the pose, so it has to be part of the cache identity too. It is
     // quantised to eight steps: that is enough for a 0.45 s move to read as smooth at this size,
     // and it keeps the sprite cache from growing by one entry per frame.
     const vq = legs === 'vault' ? Math.round(U.clamp((P.af || 0) / 8, 0, 1) * 8) : -1;
     let last = lastSprites.get(spec);
-    if (last && last.id === spec.id && last.n === n && last.ai === ai && last.arms === arms && last.af === af && last.legs === legs && last.lf === lf && last.limp === limp && last.face === face && last.hx === hx && last.crouch === crouch && last.vq === vq) return last.sprite;
-    const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '') + (P.crouch ? 'c' : '') + (vq >= 0 ? 'v' + vq : '');
+    if (last && last.id === spec.id && last.n === n && last.ai === ai && last.arms === arms && last.af === af && last.legs === legs && last.lf === lf && last.limp === limp && last.face === face && last.hx === hx && last.crouch === crouch && last.vq === vq && last.grip === grip) return last.sprite;
+    const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '') + (P.crouch ? 'c' : '') + (vq >= 0 ? 'v' + vq : '') + (grip ? 'g' + grip : '');
     const entry = cache.get(key);
     let s;
     if (entry) { cache.delete(key); cache.set(key, entry); s = entry.sprite; }
@@ -1075,7 +1084,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       }
     }
     if (!last) { last = {}; lastSprites.set(spec, last); }
-    Object.assign(last, { id: spec.id, n, ai, arms, af, legs, lf, limp, face, hx, crouch, vq, sprite: s });
+    Object.assign(last, { id: spec.id, n, ai, arms, af, legs, lf, limp, face, hx, crouch, vq, grip, sprite: s });
     return s;
   };
   Fig.cacheSize = () => cache.size;
