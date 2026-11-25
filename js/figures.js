@@ -387,16 +387,22 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         for (const t of [0.25, 0.5, 0.75]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf, -0.1, z], [xf, 0.1, z], 0.011, dk); } // quilting
       }
     },
-    // rain coat: a slim, straight oilskin slicker with a peaked hood, taped seams and a slick
+    // rain coat: a slim, straight oilskin slicker with a folded hood, taped seams and a slick
     // sheen. No fur, no quilting and no wide hem - the silhouette is clearly not a winter coat.
     raincoat: (J, cap, shirt, covered) => {
       const lt = [Math.min(255, shirt[0] * 1.45 + 24), Math.min(255, shirt[1] * 1.45 + 24), Math.min(255, shirt[2] * 1.45 + 24)];
       const dk = [shirt[0] * 0.52, shirt[1] * 0.52, shirt[2] * 0.52];
-      // Hood peaks BACKWARDS (negative local x) like a real raincoat hood; a forward point gave
-      // it a high sort depth and painted it over the chest / any equipped vest. Kept shallow so
-      // the slicker reads slim from behind instead of carrying a big ball at the nape.
-      cap([J.neck[0] - 0.04, -0.05, J.neck[2] - 0.04], [J.neck[0] - 0.18, -0.01, J.neck[2] - 0.13], 0.055, shirt);
-      cap([J.neck[0] - 0.01, -0.075, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.075, J.neck[2] + 0.01], 0.05, dk); // narrow storm collar
+      // Hood hangs FOLDED on the upper back, below the nape (negative local x, so the torso and
+      // any vest still sort in front of it). It is built from vertical capsules - a tapered pouch
+      // with the dark opening at the top, a rounded hem and a fold sheen. One horizontal capsule
+      // across the back read as a pipe glued to the nape.
+      const hx = J.neck[0] - 0.085, hz = J.neck[2];
+      const hood = shirt.map(v => v * 0.86); // slight shade separates the folded hood from the slicker
+      cap([hx, -0.01, hz - 0.06], [hx, 0.01, hz - 0.11], 0.075, hood);                   // folded hood bulk
+      cap([hx - 0.035, -0.04, hz - 0.055], [hx - 0.035, 0.04, hz - 0.055], 0.024, dk);   // opening at the nape
+      cap([hx - 0.03, -0.045, hz - 0.172], [hx - 0.03, 0.045, hz - 0.172], 0.022, dk);   // rounded hem
+      cap([hx - 0.06, -0.028, hz - 0.08], [hx - 0.06, -0.028, hz - 0.145], 0.011, lt);   // fold sheen
+      cap([J.neck[0] - 0.01, -0.06, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.06, J.neck[2] + 0.01], 0.04, dk); // stand collar
       cap([J.pel[0] + 0.01, 0, J.pel[2] + 0.05], [J.neck[0], 0, J.neck[2] - 0.05], 0.13, shirt, { hem: true }); // slim upper body
       if (!covered) {
         const xf = J.pel[0] + 0.135;
