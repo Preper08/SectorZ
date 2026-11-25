@@ -200,7 +200,7 @@
     if (e.head) { L.headId = e.head.id; L.headCol = (e.head.tint && hexRgb(e.head.tint)) || CLOTH_COL[e.head.id] || [80, 80, 80]; }
     if (e.feet) { L.feetId = e.feet.id; L.feetCol = CLOTH_COL[e.feet.id]; }
     if (e.legs) { L.legsId = e.legs.id; L.legsCol = (e.legs.tint && hexRgb(e.legs.tint)) || CLOTH_COL[e.legs.id] || [84, 98, 126]; }
-    if (e.bag) { L.bagId = e.bag.id; L.bagCol = CLOTH_COL[e.bag.id]; }
+    if (e.bag) { L.bagId = e.bag.id; L.bagCol = (e.bag.tint && hexRgb(e.bag.tint)) || CLOTH_COL[e.bag.id]; }
     p.look = L;
     const lt = e.light; p.lightDef = lt ? Object.assign({}, I[lt.id], { id: lt.id }) : null;
     if (!lt) p.lightOn = false;
