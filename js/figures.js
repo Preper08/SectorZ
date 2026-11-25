@@ -328,8 +328,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const dk = shirt.map(v => v * 0.62), lt = shirt.map(v => Math.min(255, v * 1.2));
       // Hood sits BEHIND the neck (negative local x). That keeps its sort depth lower than the
       // vest plate, so an equipped vest covers it instead of the hood painting over the chest.
-      cap([J.neck[0] - 0.06, 0, J.neck[2] - 0.04], [J.neck[0] - 0.22, 0, J.neck[2] - 0.12], 0.1, shirt);
-      cap([J.neck[0] - 0.22, -0.07, J.neck[2] - 0.12], [J.neck[0] - 0.22, 0.07, J.neck[2] - 0.12], 0.11, dk);
+      // It is deliberately small and low: a head-sized capsule read as a hunchback bump on the
+      // back of both the player and the zombies. A real folded hood is a shallow bulge at the nape.
+      cap([J.neck[0] - 0.04, 0, J.neck[2] - 0.05], [J.neck[0] - 0.15, 0, J.neck[2] - 0.11], 0.07, shirt);
+      cap([J.neck[0] - 0.15, -0.055, J.neck[2] - 0.11], [J.neck[0] - 0.15, 0.055, J.neck[2] - 0.11], 0.075, dk);
       // Kangaroo pocket with a seam and two drawstrings ending in tips.
       const z = J.pel[2] + (J.neck[2] - J.pel[2]) * 0.22, xf = J.pel[0] + 0.15;
       cap([xf, -0.1, z], [xf, 0.1, z], 0.09, dk);
@@ -391,9 +393,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const lt = [Math.min(255, shirt[0] * 1.45 + 24), Math.min(255, shirt[1] * 1.45 + 24), Math.min(255, shirt[2] * 1.45 + 24)];
       const dk = [shirt[0] * 0.52, shirt[1] * 0.52, shirt[2] * 0.52];
       // Hood peaks BACKWARDS (negative local x) like a real raincoat hood; a forward point gave
-      // it a high sort depth and painted it over the chest / any equipped vest.
-      cap([J.neck[0] - 0.06, -0.06, J.neck[2] - 0.02], [J.neck[0] - 0.24, -0.02, J.neck[2] - 0.14], 0.085, shirt);
-      cap([J.neck[0] - 0.01, -0.085, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.085, J.neck[2] + 0.01], 0.07, dk); // narrow storm collar
+      // it a high sort depth and painted it over the chest / any equipped vest. Kept shallow so
+      // the slicker reads slim from behind instead of carrying a big ball at the nape.
+      cap([J.neck[0] - 0.04, -0.05, J.neck[2] - 0.04], [J.neck[0] - 0.18, -0.01, J.neck[2] - 0.13], 0.055, shirt);
+      cap([J.neck[0] - 0.01, -0.075, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.075, J.neck[2] + 0.01], 0.05, dk); // narrow storm collar
       cap([J.pel[0] + 0.01, 0, J.pel[2] + 0.05], [J.neck[0], 0, J.neck[2] - 0.05], 0.13, shirt, { hem: true }); // slim upper body
       if (!covered) {
         const xf = J.pel[0] + 0.135;
@@ -411,9 +414,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const fur = [Math.min(255, shirt[0] * 1.4 + 40), Math.min(255, shirt[1] * 1.4 + 40), Math.min(255, shirt[2] * 1.4 + 40)];
       const dk = [shirt[0] * 0.5, shirt[1] * 0.5, shirt[2] * 0.5];
       const lt = shirt.map(v => Math.min(255, v * 1.25 + 18));
-      cap([J.neck[0] - 0.02, -0.12, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.12, J.neck[2] - 0.02], 0.115, fur); // full fur collar
-      cap([J.shL[0], J.shL[1], J.shL[2] + 0.02], [J.neck[0], J.shL[1] * 0.7, J.neck[2] - 0.02], 0.1, shirt); // padded shoulders
-      cap([J.shR[0], J.shR[1], J.shR[2] + 0.02], [J.neck[0], J.shR[1] * 0.7, J.neck[2] - 0.02], 0.1, shirt);
+      cap([J.neck[0] - 0.02, -0.1, J.neck[2] - 0.02], [J.neck[0] - 0.02, 0.1, J.neck[2] - 0.02], 0.075, fur); // fur collar
+      cap([J.shL[0], J.shL[1], J.shL[2] + 0.02], [J.neck[0], J.shL[1] * 0.7, J.neck[2] - 0.02], 0.085, shirt); // padded shoulders
+      cap([J.shR[0], J.shR[1], J.shR[2] + 0.02], [J.neck[0], J.shR[1] * 0.7, J.neck[2] - 0.02], 0.085, shirt);
       cap([J.pel[0] + 0.02, 0, J.pel[2] + 0.06], [J.neck[0], 0, J.neck[2] - 0.06], 0.155, shirt, { hem: true }); // thick upper body
       if (!covered) {
         const xf = J.pel[0] + 0.15;
