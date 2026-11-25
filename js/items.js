@@ -116,7 +116,7 @@
   // Display name only - the id 'vest' is also the equipment slot, so saves stay compatible.
   it('vest', 'Ballistic Vest', 'clothes', { w: 2, h: 2, slot: 'vest', def: 38, warm: 4, cols: 4, rows: 3, col: '#2c3852', desc: 'Reduces bite damage. Many pouches.' });
   it('helmet', 'Riot Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#203154' });
-  it('cap', 'Baseball Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#2a3a5a', desc: 'Classic six-panel cap with a visor. Barely protects.' });
+  it('cap', 'Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#2a3a5a', desc: 'Classic six-panel cap with a visor. Barely protects.' });
   it('beanie', 'Beanie', 'clothes', { slot: 'head', def: 1, warm: 12, col: '#7a4a4a', desc: 'Knitted wool hat. Warmer than a cap, but minimal protection.' });
   it('buckethat', 'Bucket Hat', 'clothes', { slot: 'head', def: 1, warm: 6, col: '#6a6a52', desc: 'Soft cotton hat with a drooping all-round brim. Keeps the sun and rain off.' });
   // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags).

@@ -548,7 +548,32 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // forward projection put its front edge at +0.49 hr, right across the eye line.
       // The crown is now a rounded square rather than a dome: flat top, upright sides.
       const base = hp.y + hr * 0.10, r = hr * 1.04, cy = hp.y - 1 - hr * 0.04;
-      const top = cy - r, rad = hr * 0.30;
+      const top = cy - r, rad = hr * 0.45;
+      // Visor: a short rounded brim projecting from the brow. It is painted BEFORE the crown so
+      // the crown's silhouette occludes its root: only the part that really sticks out past the
+      // hat shows. Drawn on top, the brim's far corner poked over the rounded crown corner and
+      // read as a spike at the near-profile headings. It still fades out when the character is
+      // fully seen from behind, where the brim is on the far side of the head.
+      const fv = pr([1, 0, 0]).d, vis = Math.max(0, Math.min(1, (fv + 0.55) / 0.55));
+      if (vis > 0.02) {
+        const P = (dx, dy, dz) => pr([J.head[0] + dx, J.head[1] + dy, J.head[2] + dz]);
+        const bl = P(0.07, -0.085, 0.025), br = P(0.07, 0.085, 0.025);
+        // The tip is narrower than the root and rounded: a full-width far edge turned into a
+        // long thin spike when seen almost edge-on. The rounded tip keeps a small brim visible.
+        const tl = P(0.19, -0.07, 0.07), tr = P(0.19, 0.07, 0.07), tc = P(0.205, 0, 0.072);
+        x.globalAlpha = vis;
+        // shaded underside
+        x.fillStyle = rgb(spec.hat, 0.74); x.beginPath();
+        x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y + 0.5);
+        x.quadraticCurveTo(tc.x, tc.y + 0.5, tl.x, tl.y + 0.5); x.closePath(); x.fill();
+        // top of the brim with a gently curved front edge
+        x.fillStyle = rgb(spec.hat, 1.05); x.beginPath();
+        x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y);
+        x.quadraticCurveTo(tc.x, tc.y, tl.x, tl.y); x.closePath(); x.fill();
+        x.strokeStyle = rgb(spec.hat, 1.35); x.lineWidth = 1.2;
+        x.beginPath(); x.moveTo(tr.x, tr.y); x.quadraticCurveTo(tc.x, tc.y, tl.x, tl.y); x.stroke();
+        x.globalAlpha = 1;
+      }
       x.fillStyle = rgb(spec.hat, 1); x.beginPath();
       x.moveTo(hp.x - r, base);
       x.lineTo(hp.x - r, top + rad);
@@ -564,24 +589,6 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       }
       x.strokeStyle = rgb(spec.hat, 0.66); x.lineWidth = 2.4;
       x.beginPath(); x.ellipse(hp.x, base - hr * 0.05, r * 0.96, hr * 0.22, 0, Math.PI, 2 * Math.PI); x.stroke();
-      // Visor: a short rounded brim projecting from the brow, visible from front AND profile.
-      const fv = pr([1, 0, 0]).d;
-      if (fv > -0.05) {
-        const P = (dx, dy, dz) => pr([J.head[0] + dx, J.head[1] + dy, J.head[2] + dz]);
-        const bl = P(0.075, -0.09, 0.03), br = P(0.075, 0.09, 0.03);
-        const tl = P(0.17, -0.11, 0.08), tr = P(0.17, 0.11, 0.08);
-        x.globalAlpha = Math.min(1, Math.max(0.25, fv * 2.2));
-        // shaded underside
-        x.fillStyle = rgb(spec.hat, 0.74); x.beginPath();
-        x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y + 0.5); x.lineTo(tl.x, tl.y + 0.5); x.closePath(); x.fill();
-        // top of the brim with a gently curved front edge
-        x.fillStyle = rgb(spec.hat, 1.05); x.beginPath();
-        x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y);
-        x.quadraticCurveTo((tl.x + tr.x) / 2, tl.y + 1.0, tl.x, tl.y); x.closePath(); x.fill();
-        x.strokeStyle = rgb(spec.hat, 1.35); x.lineWidth = 1.3;
-        x.beginPath(); x.moveTo(tl.x, tl.y); x.quadraticCurveTo((tl.x + tr.x) / 2, tl.y + 1.0, tr.x, tr.y); x.stroke();
-        x.globalAlpha = 1;
-      }
       x.fillStyle = rgb(spec.hat, 1.3); x.beginPath(); x.arc(hp.x, cy - r + 1, 1.4, 0, 7); x.fill();
     },
     // beanie: knitted wool hat - soft round crown, vertical ribs and a folded cuff, no visor.
