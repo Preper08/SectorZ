@@ -596,6 +596,39 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       for (let i = -3; i <= 3; i++) {
         x.beginPath(); x.moveTo(hp.x + i * hr * 0.27, base - hr * 0.36); x.lineTo(hp.x + i * hr * 0.27, base + hr * 0.06); x.stroke();
       }
+    },
+    // bucket hat: soft cotton crown with a wide, drooping all-round brim. No visor - the
+    // continuous brim is what separates it from the cap from every heading.
+    buckethat: (x, spec, hp, ht, hr, rgb) => {
+      // A bucket hat is a short, slightly tapered crown over a wide drooping brim. The crown
+      // is NOT a half circle: a full dome read as a bowler from the front. The top is narrower
+      // than the base and only softly rounded, while the brim is wider than the cap's visor.
+      const base = hp.y + hr * 0.14, r = hr * 1.02;
+      const top = hp.y - hr * 1.03, tw = r * 0.78;
+      const by = base - hr * 0.02, bw = hr * 1.62, bh = hr * 0.34;
+      // brim first; the crown covers its back edge, leaving a drooping rim around the head
+      x.fillStyle = rgb(spec.hat, 0.84);
+      x.beginPath(); x.ellipse(hp.x, by, bw, bh, 0, 0, 7); x.fill();
+      // crown: tapered sides and a shallow rounded top
+      x.fillStyle = rgb(spec.hat, 1);
+      x.beginPath();
+      x.moveTo(hp.x - r, base);
+      x.quadraticCurveTo(hp.x - r * 0.96, top + hr * 0.3, hp.x - tw, top + hr * 0.02);
+      x.quadraticCurveTo(hp.x, top - hr * 0.14, hp.x + tw, top + hr * 0.02);
+      x.quadraticCurveTo(hp.x + r * 0.96, top + hr * 0.3, hp.x + r, base);
+      x.closePath(); x.fill();
+      // crown band just above the brim
+      x.strokeStyle = rgb(spec.hat, 0.7); x.lineWidth = 2;
+      x.beginPath(); x.ellipse(hp.x, base - hr * 0.02, r * 0.99, hr * 0.16, 0, 0, Math.PI); x.stroke();
+      // brim stitching follows the droop, with a lighter front edge
+      x.strokeStyle = rgb(spec.hat, 0.7); x.lineWidth = 1;
+      x.beginPath(); x.ellipse(hp.x, by + hr * 0.04, bw * 0.82, bh * 0.72, 0, 0.16, Math.PI - 0.16); x.stroke();
+      x.beginPath(); x.ellipse(hp.x, by + hr * 0.04, bw * 0.62, bh * 0.5, 0, 0.16, Math.PI - 0.16); x.stroke();
+      x.strokeStyle = rgb(spec.hat, 1.22); x.lineWidth = 1;
+      x.beginPath(); x.ellipse(hp.x, by + hr * 0.04, bw * 0.97, bh * 0.9, 0, 0.18, Math.PI - 0.18); x.stroke();
+      // soft crease across the crown top
+      x.strokeStyle = rgb(spec.hat, 0.8); x.lineWidth = 1;
+      x.beginPath(); x.ellipse(hp.x, top + hr * 0.14, r * 0.36, hr * 0.12, 0, 0, Math.PI); x.stroke();
     }
   };
 
@@ -865,7 +898,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         // a cap or beanie. Clip only the hair fill below the hat's lower edge; the hat is drawn
         // on top afterwards and the face/eyes below are painted as usual. Helmets keep their
         // existing rendering untouched.
-        const softHat = spec.headId === 'cap' || spec.headId === 'beanie';
+        const softHat = spec.headId === 'cap' || spec.headId === 'beanie' || spec.headId === 'buckethat';
         if (softHat) {
           x.save();
           // below the hat's lower edge...
@@ -1035,7 +1068,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     if (type === 'brute') { spec.shirt = sh.map(v => v * 0.8); spec.armR = 0.09; spec.skin = [dead[0] * 0.95, dead[1] * 0.95, dead[2] * 0.95]; }
     if (type === 'runner') { spec.skin = [dead[0] + 14, dead[1] - 4, dead[2] - 4]; }
     if (r() < 0.22) { // a real player cap, dirtied rather than a random invisible colour
-      const hatId = r() < 0.5 ? 'cap' : 'beanie';
+      const hatId = U.weighted(r, [['cap', 2], ['beanie', 2], ['buckethat', 1]]);
       const shades = DSZ.CLOTH_TINTS && DSZ.CLOTH_TINTS[hatId];
       const hatCol = shades ? hexRgb(shades[(r() * shades.length) | 0], 0.6 + r() * 0.35)
         : hexRgb(DSZ.ITEMS[hatId] && DSZ.ITEMS[hatId].col, 0.6 + r() * 0.35);
@@ -1120,7 +1153,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       spec.worn = [body];
       if (spec.legsId && DSZ.ITEMS[spec.legsId]) spec.worn.push(spec.legsId);
       if (spec.feetId && DSZ.ITEMS[spec.feetId]) spec.worn.push(spec.feetId);
-      if (spec.headId === 'cap') spec.worn.push('cap');
+      if (spec.headId === 'cap' || spec.headId === 'buckethat') spec.worn.push(spec.headId);
     }
     return spec;
   };

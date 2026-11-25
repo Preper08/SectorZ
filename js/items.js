@@ -118,6 +118,7 @@
   it('helmet', 'Riot Helmet', 'clothes', { w: 2, h: 2, slot: 'head', def: 20, warm: 3, col: '#203154' });
   it('cap', 'Baseball Cap', 'clothes', { slot: 'head', def: 2, warm: 3, col: '#2a3a5a', desc: 'Classic six-panel cap with a visor. Barely protects.' });
   it('beanie', 'Beanie', 'clothes', { slot: 'head', def: 1, warm: 12, col: '#7a4a4a', desc: 'Knitted wool hat. Warmer than a cap, but minimal protection.' });
+  it('buckethat', 'Bucket Hat', 'clothes', { slot: 'head', def: 1, warm: 6, col: '#6a6a52', desc: 'Soft cotton hat with a drooping all-round brim. Keeps the sun and rain off.' });
   // legs (LEGS slot): pocket capacity differs per item (cols/rows like bags).
   // The ladder follows how much cloth and how many seams an item has, from nothing but a
   // waistband up to proper cargo trousers: 2, 3, 4, 5, 6. Leg length alone is not the whole
@@ -177,6 +178,7 @@
     shorts: ['#c8b48a', '#3a4a6a', '#5a4a3a', '#4a5a4a', '#7a5a5a', '#8a8a86'],
     cap: ['#2a2a2e', '#8a8a8c', '#2a3a5a', '#8a3a3a', '#5a6242', '#b8a482'],
     beanie: ['#2a2a2e', '#8a8a8c', '#2a3a5a', '#8a3a3a', '#5a6242', '#b8a482'],
+    buckethat: ['#8a7a5a', '#2a2a2e', '#3a4a6a', '#b8a482', '#6a3a3a', '#5a6242'],
     tshirt: ['#e8e8e8', '#c8cbd0', '#5a7a9a', '#9a5a5a', '#5a9a6a', '#c8a040'],
     fannypack: ['#2a2a2e', '#3a4a6a', '#5a6242', '#6a3a3a', '#8a7a5a', '#8a8a8c'],
     backpack: ['#2a2a2e', '#3a4a6a', '#5a6242', '#6a3a3a', '#8a7a5a', '#8a8a8c'],
@@ -190,8 +192,8 @@
   const L = DSZ.LOOT = {
     kitchen: { n: [1, 3], t: [['beans', 8], ['soup', 7], ['bread', 5], ['chips', 4], ['cereal', 5], ['water', 5], ['soda', 5], ['knife', 4], ['matches', 3], ['lighter', 1.5], ['rags', 3], ['bottle', 3], ['juice', 3]] },
     fridge: { n: [0, 3], t: [['meat', 5], ['soda', 8], ['juice', 6], ['apple', 6], ['water', 6], ['candy', 4]] },
-    bedroom: { n: [0, 2], t: [['rags', 5], ['cloth', 4], ['painkillers', 3], ['candy', 2], ['flashlight', 1.2], ['battery', 3], ['cap', 2], ['beanie', 1.5], ['sneakers', 1.5], ['bandage', 2], ['radio', 1]] },
-    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['flannel', 5], ['sweater', 3], ['leather', 1.8], ['raincoat', 1.6], ['wintercoat', 0.7], ['cap', 4], ['beanie', 2], ['boots', 3], ['sneakers', 3], ['jeans', 5], ['trousers', 3], ['tracksuit', 2], ['cargopants', 1.5], ['policeshirt', 0.25], ['policepants', 0.25], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
+    bedroom: { n: [0, 2], t: [['rags', 5], ['cloth', 4], ['painkillers', 3], ['candy', 2], ['flashlight', 1.2], ['battery', 3], ['cap', 2], ['beanie', 1.5], ['buckethat', 1.2], ['sneakers', 1.5], ['bandage', 2], ['radio', 1]] },
+    clothes: { n: [1, 3], t: [['jacket', 4], ['hoodie', 4], ['flannel', 5], ['sweater', 3], ['leather', 1.8], ['raincoat', 1.6], ['wintercoat', 0.7], ['cap', 4], ['beanie', 2], ['buckethat', 2.5], ['boots', 3], ['sneakers', 3], ['jeans', 5], ['trousers', 3], ['tracksuit', 2], ['cargopants', 1.5], ['policeshirt', 0.25], ['policepants', 0.25], ['cloth', 6], ['rags', 6], ['fannypack', 2], ['backpack', 1.4]] },
     living: { n: [0, 2], t: [['battery', 4], ['rags', 3], ['candy', 3], ['chips', 3], ['soda', 3], ['radio', 1], ['lighter', 2], ['tape', 1]] },
     books: { n: [0, 1], t: [['rags', 3], ['map', 2], ['matches', 3], ['candy', 1]] },
     medical: { n: [0, 3], t: [['bandage', 9], ['painkillers', 6], ['antibiotics', 2.5], ['splint', 1.5], ['medkit', 1.2], ['rags', 3]] },
@@ -201,7 +203,7 @@
     grocery: { n: [1, 3], t: [['beans', 10], ['soup', 8], ['bread', 5], ['chips', 7], ['cereal', 6], ['water', 8], ['soda', 8], ['juice', 6], ['apple', 4], ['candy', 6], ['mre', 0.6]] },
     store: { n: [1, 3], t: [['beans', 4], ['water', 4], ['soda', 4], ['chips', 4], ['battery', 4], ['flashlight', 2], ['lighter', 2], ['tape', 3], ['rags', 3], ['backpack', 1.2], ['map', 1.5]] },
     hardware: { n: [1, 3], t: [['nails', 8], ['hammer', 3.5], ['crowbar', 3], ['wood', 5], ['scrap', 5], ['tape', 5], ['wire', 5], ['axe', 1.2], ['pipe', 3], ['battery', 3], ['flashlight', 2.5], ['gascan', 2], ['sheetmetal', 2.5], ['rope', 3], ['cement', 1.5], ['metalplate', 1.5]] },
-    clothing: { n: [1, 3], t: [['jacket', 6], ['hoodie', 6], ['flannel', 5], ['sweater', 5], ['leather', 3], ['raincoat', 3], ['padded', 1.5], ['wintercoat', 1.5], ['cap', 5], ['beanie', 3], ['boots', 5], ['sneakers', 4], ['runners', 2.5], ['jeans', 5], ['trousers', 4], ['tracksuit', 3], ['cargopants', 2], ['policeshirt', 0.3], ['policepants', 0.3], ['policeboots', 0.2], ['cloth', 6], ['fannypack', 3], ['backpack', 3], ['bigpack', 0.8]] },
+    clothing: { n: [1, 3], t: [['jacket', 6], ['hoodie', 6], ['flannel', 5], ['sweater', 5], ['leather', 3], ['raincoat', 3], ['padded', 1.5], ['wintercoat', 1.5], ['cap', 5], ['beanie', 3], ['buckethat', 3], ['boots', 5], ['sneakers', 4], ['runners', 2.5], ['jeans', 5], ['trousers', 4], ['tracksuit', 3], ['cargopants', 2], ['policeshirt', 0.3], ['policepants', 0.3], ['policeboots', 0.2], ['cloth', 6], ['fannypack', 3], ['backpack', 3], ['bigpack', 0.8]] },
     electronics: { n: [1, 3], t: [['battery', 10], ['flashlight', 5], ['radio', 3], ['wire', 5], ['tape', 3], ['fusebox', 3]] },
     gas: { n: [1, 3], t: [['gascan', 3], ['soda', 6], ['chips', 6], ['candy', 6], ['water', 5], ['map', 3], ['battery', 3], ['lighter', 3], ['keys', 0.6]] },
     guns: { n: [1, 3], t: [['pistol', 3], ['shotgun', 1.8], ['rifle', 1.2], ['ammo9', 6], ['shell', 4], ['ammo762', 3], ['knife', 3], ['machete', 2], ['vest', 0.8], ['policeshirt', 0.3], ['policepants', 0.3]] },
@@ -211,17 +213,17 @@
     // free, but outside admin play these are the items that make the plate carrier worth finding.
     military: { n: [2, 4], t: [['milhelmet', 2.4], ['miltop', 2.2], ['milpants', 2.2], ['milboots', 2.2], ['milvest', 1.6], ['milpack', 1.2], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1.4], ['smg', 1], ['arifle', 0.45], ['ammo556', 3], ['medkit', 1.5], ['mre', 2.5], ['bandage', 2], ['tape', 2], ['flashlight', 1.5]] },
     cell: { n: [0, 1], t: [['rags', 4], ['cloth', 3], ['candy', 2]] },
-    locker: { n: [0, 2], t: [['jacket', 3], ['flannel', 3], ['leather', 1.5], ['boots', 2], ['flashlight', 3], ['cap', 3], ['battery', 3], ['bandage', 2], ['crowbar', 2], ['mre', 0.8], ['water', 3], ['policepack', 0.2]] },
+    locker: { n: [0, 2], t: [['jacket', 3], ['flannel', 3], ['leather', 1.5], ['boots', 2], ['flashlight', 3], ['cap', 3], ['buckethat', 2], ['battery', 3], ['bandage', 2], ['crowbar', 2], ['mre', 0.8], ['water', 3], ['policepack', 0.2]] },
     office: { n: [0, 2], t: [['tape', 3], ['battery', 3], ['candy', 3], ['soda', 3], ['painkillers', 2], ['keys', 1.2], ['map', 1.5], ['water', 2]] },
     industrial: { n: [1, 3], t: [['scrap', 8], ['metalplate', 3], ['wire', 4], ['nails', 4], ['gascan', 3], ['pipe', 3], ['tape', 3], ['wood', 4], ['sheetmetal', 3], ['chemicals', 2], ['cement', 2], ['tire', 2]] },
     tools: { n: [1, 3], t: [['hammer', 5], ['nails', 7], ['crowbar', 3], ['wire', 4], ['pipe', 3], ['axe', 1.2], ['battery', 3], ['scrap', 4], ['tape', 3]] },
     storage: { n: [1, 3], t: [['scrap', 4], ['nails', 3], ['wood', 3], ['tape', 3], ['rags', 3], ['beans', 3], ['water', 3], ['battery', 3]] },
-    attic: { n: [0, 2], t: [['rags', 5], ['cloth', 5], ['wood', 3], ['rope', 2], ['tape', 2], ['nails', 2], ['lantern', 0.8], ['jacket', 1.5], ['raincoat', 1], ['wintercoat', 1], ['beanie', 1.5]] },
+    attic: { n: [0, 2], t: [['rags', 5], ['cloth', 5], ['wood', 3], ['rope', 2], ['tape', 2], ['nails', 2], ['lantern', 0.8], ['jacket', 1.5], ['raincoat', 1], ['wintercoat', 1], ['beanie', 1.5], ['buckethat', 1]] },
     trash: { n: [0, 2], t: [['rags', 6], ['scrap', 4], ['bottle', 5], ['soda', 3], ['cloth', 3], ['bread', 2], ['tape', 1], ['nails', 1.5]] },
     mail: { n: [0, 1], t: [['candy', 2], ['map', 1], ['keys', 0.6]] },
     register: { n: [0, 1], t: [['candy', 3], ['keys', 1], ['lighter', 3], ['map', 1]] },
     church: { n: [0, 2], t: [['candy', 2], ['bread', 3], ['water', 3], ['cloth', 3], ['rags', 3], ['lantern', 1.2], ['medkit', 0.5]] },
-    zombie: { n: [1, 2], t: [['rags', 5], ['candy', 3], ['cloth', 3], ['keys', 0.8], ['lighter', 1], ['bandage', 1.5], ['ammo9', 1], ['water', 1.5], ['beans', 1], ['cap', 1.5], ['beanie', 1], ['sneakers', 1], ['boots', 0.8]], none: 0.42 },
+    zombie: { n: [1, 2], t: [['rags', 5], ['candy', 3], ['cloth', 3], ['keys', 0.8], ['lighter', 1], ['bandage', 1.5], ['ammo9', 1], ['water', 1.5], ['beans', 1], ['cap', 1.5], ['beanie', 1], ['buckethat', 1], ['sneakers', 1], ['boots', 0.8]], none: 0.42 },
     // Corpse loot by zombie type. A walker has whatever was in their pockets when they turned;
     // a runner was fleeing and dropped most of it; a brute still carries the tools and supplies
     // that made them heavy; a crawler lost nearly everything. Weights, not new items, so the
@@ -235,7 +237,7 @@
     zombieGuns: { n: [1, 1], t: [['ammo9', 6], ['shell', 4], ['ammo762', 3], ['rags', 4], ['keys', 2]] },
     zombieFood: { n: [1, 1], t: [['beans', 4], ['water', 4], ['candy', 4], ['chips', 4], ['bread', 3], ['soda', 4]] },
     zombieTools: { n: [1, 1], t: [['nails', 4], ['scrap', 4], ['tape', 3], ['wire', 3], ['crowbar', 1.5], ['hammer', 1.5], ['rags', 3]] },
-    zombieClothes: { n: [1, 1], t: [['cloth', 4], ['rags', 4], ['cap', 2], ['beanie', 1.5], ['sneakers', 2], ['jeans', 1.5]] },
+    zombieClothes: { n: [1, 1], t: [['cloth', 4], ['rags', 4], ['cap', 2], ['beanie', 1.5], ['buckethat', 1.2], ['sneakers', 2], ['jeans', 1.5]] },
     // A military corpse is worth the risk of clearing the compound: one or two pieces of the
     // camo kit, plus the ammo and rations they were carrying when they turned.
     zombieMilitary: { n: [1, 2], t: [['milhelmet', 2], ['miltop', 2], ['milpants', 2], ['milboots', 2], ['milvest', 1.4], ['milpack', 1], ['ammo762', 5], ['ammo9', 3], ['shell', 2], ['rifle', 1], ['arifle', 0.4], ['ammo556', 2], ['medkit', 1.2], ['mre', 2], ['bandage', 2]] },
