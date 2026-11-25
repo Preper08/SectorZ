@@ -553,6 +553,8 @@
     if (shoe && shoe.speed) spd *= 1 + shoe.speed;
     if (p.crouch) spd *= 0.7; // crouch = 70% of normal walk speed
     if (p.broken) spd *= 0.5; if (p.use) spd *= 0.6; if (p.atkT > 0) spd *= 0.65; if (p.stamina < 12) spd *= 0.8;
+    // fever slows the body: mild at Feverish, worse once Infected, worst when Severe
+    if (p.infection > 60) spd *= 0.85; else if (p.infection > 30) spd *= 0.92; else if (p.infection > 0) spd *= 0.97;
     const wt = Inv.weight(P); if (wt > 40) spd *= Math.max(0.6, 1 - (wt - 40) / 120);
     p.vx += (mx * spd - p.vx) * Math.min(1, dt * 14); p.vy += (my * spd - p.vy) * Math.min(1, dt * 14);
     const sp = Math.hypot(p.vx, p.vy); p.moving = sp > 0.3;
@@ -623,7 +625,9 @@
     }
     if (!p.lastTile) p.lastTile = [0, 0];
     p.lastTile[0] = Math.floor(p.x); p.lastTile[1] = Math.floor(p.y);
-    if (p.running && p.moving) p.stamina = Math.max(0, p.stamina - 13 * dt); else p.stamina = Math.min(100, p.stamina + (p.moving ? 6 : 14) * dt);
+    // infection: fever saps stamina recovery; severe cases also burn it faster while running
+    if (p.running && p.moving) p.stamina = Math.max(0, p.stamina - 13 * dt * (p.infection > 60 ? 1.3 : 1));
+    else { let rg = p.moving ? 6 : 14; if (p.infection > 60) rg *= 0.25; else if (p.infection > 30) rg *= 0.5; else if (p.infection > 0) rg *= 0.75; p.stamina = Math.min(100, p.stamina + rg * dt); }
     if (p.moving) { p.stepT -= dt * sp / 2.4; if (p.stepT <= 0) { p.stepT = 1; const shoe = P.equip.feet ? I[P.equip.feet.id] : null; const base = shoe && shoe.quiet !== undefined ? shoe.quiet : 4; const nz = p.running ? 9 : (p.sneak ? 1.2 : (p.crouch ? Math.min(2.2, base * 0.55) : base)); A.play(p.running ? 'stepRun' : 'step', p.x, p.y, p.sneak ? 0.3 : (p.crouch ? 0.4 : 0.6), 20); E.noise(S, p.x, p.y, nz); } }
     p.ph += sp * dt * 5.3;
     // ---- pose
@@ -793,7 +797,7 @@
     const sleepMul = S.sleeping ? 0.4 : 1;
     const needs = DSZ.DIFFCUR ? DSZ.DIFFCUR.needs : 1, inf = DSZ.DIFFCUR ? DSZ.DIFFCUR.infect : 1;
     if (!god) {
-      p.food = Math.max(0, p.food - 0.042 * dt * sleepMul * needs * (p.running ? 1.5 : 1)); p.water = Math.max(0, p.water - 0.066 * dt * sleepMul * needs * (p.running ? 1.6 : 1)); p.energy = Math.max(0, p.energy - 0.012 * dt * (S.sleeping ? 0 : 1));
+      p.food = Math.max(0, p.food - 0.042 * dt * sleepMul * needs * (p.running ? 1.5 : 1)); p.water = Math.max(0, p.water - 0.066 * dt * sleepMul * needs * (p.running ? 1.6 : 1) * (p.infection > 30 ? 1.15 : 1)); p.energy = Math.max(0, p.energy - 0.012 * dt * (S.sleeping ? 0 : 1));
       let dmg = 0; if (p.food <= 0) dmg += 0.25; if (p.water <= 0) dmg += 0.4; if (p.energy <= 0) dmg += 0.1; if (p.bleed > 0) { dmg += 0.55 * p.bleed; p.bleed = Math.max(0, p.bleed - 0.012 * dt); if (Math.random() < dt * 1.2) E.blood(S, p.x, p.y, Math.random() * 6.28, 1, 0.1); }
       if (p.infection > 0) { p.infection = Math.min(100, p.infection + 0.07 * inf * dt); if (p.infection > 45) dmg += (p.infection - 45) * 0.01; if (p.infection >= 100) { Game.die(S, 'infection'); return; } }
       if (dmg > 0) { p.hp -= dmg * dt; if (p.hp <= 0) { Game.die(S, p.water <= 0 ? 'thirst' : (p.food <= 0 ? 'hunger' : (p.bleed > 0 ? 'bleeding' : 'infection'))); return; } }

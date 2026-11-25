@@ -16,6 +16,8 @@
   let bakeBudget = 3;
   const order = [], pool = [];
   let np = 0;
+  // cached radial vignette for the infection overlay (rebuilt only on resize)
+  let infVig = null, infVigKey = '';
 
   // ---------------------------------------------------------------- setup
   R.init = function (canvas) {
@@ -1302,6 +1304,20 @@
     // low-health / bleeding tint
     if (p.hp < 40) { ctx.fillStyle = 'rgba(120,0,0,' + ((40 - p.hp) / 40 * 0.25 * (0.7 + 0.3 * Math.sin(T * 5))) + ')'; ctx.fillRect(0, 0, VW, VH); }
     if (p.hurt > 0) { ctx.fillStyle = 'rgba(150,0,0,' + Math.min(0.35, p.hurt * 0.5) + ')'; ctx.fillRect(0, 0, VW, VH); }
+    // fever tint: a red flush that deepens as the infection climbs, with a slow pulse
+    if (!DSZ.settings.godmode && p.infection > 0) {
+      const k = Math.min(1, p.infection / 100);
+      const pulse = 0.75 + 0.25 * Math.sin(T * (1.5 + k * 1.5));
+      ctx.fillStyle = 'rgba(95,12,26,' + ((0.05 + k * 0.13) * pulse).toFixed(3) + ')';
+      ctx.fillRect(0, 0, VW, VH);
+      const key = VW + 'x' + VH;
+      if (infVigKey !== key) {
+        infVigKey = key;
+        infVig = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.22, VW / 2, VH / 2, Math.max(VW, VH) * 0.62);
+        infVig.addColorStop(0, 'rgba(70,4,14,0)'); infVig.addColorStop(1, 'rgba(70,4,14,1)');
+      }
+      ctx.globalAlpha = 0.10 + k * 0.22; ctx.fillStyle = infVig; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1;
+    }
     // film grain (pre-tiled into one canvas, then offset per frame - same animated grain, one draw)
     if (DSZ.settings.grain) {
       if (!R.grainBig || R.grainBig.width !== VW + 128 || R.grainBig.height !== VH + 128) {
