@@ -398,10 +398,11 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // across the back read as a pipe glued to the nape.
       const hx = J.neck[0] - 0.085, hz = J.neck[2];
       const hood = shirt.map(v => v * 0.86); // slight shade separates the folded hood from the slicker
-      cap([hx, -0.01, hz - 0.06], [hx, 0.01, hz - 0.11], 0.075, hood);                   // folded hood bulk
+      cap([hx, -0.01, hz - 0.06], [hx, 0.01, hz - 0.115], 0.075, hood);                  // folded hood bulk
+      cap([hx + 0.005, -0.01, hz - 0.105], [hx + 0.005, 0.01, hz - 0.165], 0.06, hood);  // narrower lower fold
       cap([hx - 0.035, -0.04, hz - 0.055], [hx - 0.035, 0.04, hz - 0.055], 0.024, dk);   // opening at the nape
-      cap([hx - 0.03, -0.045, hz - 0.172], [hx - 0.03, 0.045, hz - 0.172], 0.022, dk);   // rounded hem
-      cap([hx - 0.06, -0.028, hz - 0.08], [hx - 0.06, -0.028, hz - 0.145], 0.011, lt);   // fold sheen
+      cap([hx - 0.03, -0.04, hz - 0.208], [hx - 0.03, 0.04, hz - 0.208], 0.02, dk);      // rounded hem
+      cap([hx - 0.05, -0.028, hz - 0.08], [hx - 0.05, -0.028, hz - 0.16], 0.011, lt);    // fold sheen
       cap([J.neck[0] - 0.01, -0.06, J.neck[2] + 0.01], [J.neck[0] - 0.01, 0.06, J.neck[2] + 0.01], 0.04, dk); // stand collar
       cap([J.pel[0] + 0.01, 0, J.pel[2] + 0.05], [J.neck[0], 0, J.neck[2] - 0.05], 0.13, shirt, { hem: true }); // slim upper body
       if (!covered) {
