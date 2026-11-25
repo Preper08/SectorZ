@@ -211,14 +211,15 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
 
   // torso: pelvis-to-neck capsule + shoulder line + shorts hip piece, plus the clothing
   // details selected from CLOTHING_FIGS by bodyId (default: plain undershirt, no extras)
-  function drawTorso(J, spec, cap, skin, pants, shirt) {
+  function drawTorso(J, spec, cap, skin, pants, shirt, pr) {
     cap(J.pel, J.neck, 0.155, shirt, { torso: true });
     cap(J.shL, J.shR, 0.075, shirt);
     cap(J.pel, [J.pel[0], J.pel[1], J.pel[2] - 0.05], 0.15, pants);
     const cf = CLOTHING_FIGS[spec.bodyId];
     // A fourth argument tells a garment that a vest is worn over it: front details must not be
-    // painted on top of the plate, or the vest looks like it is under the shirt.
-    if (cf) cf(J, cap, shirt, !!spec.vestId);
+    // painted on top of the plate, or the vest looks like it is under the shirt. The fifth passes
+    // the projection helper so garments can place depth-sensitive pieces (e.g. coat tails).
+    if (cf) cf(J, cap, shirt, !!spec.vestId, pr);
   }
 
   // arms: upper arm + forearm with IK elbow, sleeve or bare skin
@@ -389,7 +390,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     },
     // rain coat: a slim, straight oilskin slicker with a folded hood, taped seams and a slick
     // sheen. No fur, no quilting and no wide hem - the silhouette is clearly not a winter coat.
-    raincoat: (J, cap, shirt, covered) => {
+    raincoat: (J, cap, shirt, covered, pr) => {
       const lt = [Math.min(255, shirt[0] * 1.45 + 24), Math.min(255, shirt[1] * 1.45 + 24), Math.min(255, shirt[2] * 1.45 + 24)];
       const dk = [shirt[0] * 0.52, shirt[1] * 0.52, shirt[2] * 0.52];
       // Hood hangs FOLDED on the upper back, below the nape (negative local x, so the torso and
@@ -411,13 +412,19 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         for (const t of [0.35, 0.7]) { const z = J.pel[2] + (J.neck[2] - J.pel[2]) * t; cap([xf - 0.01, -0.05, z], [xf - 0.01, 0.05, z], 0.01, dk); } // welded seams
         cap([J.pel[0] + 0.02, -0.075, J.pel[2] + 0.02], [J.pel[0] + 0.02, 0.075, J.pel[2] + 0.02], 0.02, lt); // hem binding
       }
-      // Long, narrow slicker fall - the hem reaches well past the hips without widening them.
-      cap([J.pel[0] + 0.01, -0.075, J.pel[2] + 0.02], [J.pel[0] + 0.01, 0.075, J.pel[2] - 0.18], 0.095, shirt);
-      cap([J.pel[0] + 0.01, -0.08, J.pel[2] - 0.18], [J.pel[0] + 0.01, 0.08, J.pel[2] - 0.18], 0.1, dk); // hem binding
+      // Long, narrow slicker fall. Two upright side panels instead of one wide diagonal capsule:
+      // a single piece has one depth for both sides, so at 3/4 angles it popped through the
+      // thighs and read as a swelling across the hips. Each panel now sorts against its own leg.
+      const hipD = [0, 1].map(i => Math.max(pr(J.pel).d + 0.02,
+        (pr(i ? J.hipR : J.hipL).d + pr(i ? J.kneeR : J.kneeL).d) / 2 + 0.06));
+      for (const y of [-0.10, 0.10]) {
+        const d = hipD[y < 0 ? 0 : 1];
+        cap([J.pel[0] + 0.01, y, J.pel[2] + 0.02], [J.pel[0] + 0.01, y, J.pel[2] - 0.10], 0.06, shirt, { d });
+      }
     },
     // winter coat: thick padded shoulders and fur collar, quilted chest, but a fitted waist
     // instead of the old wide hem that made every wearer look broad at the hips.
-    wintercoat: (J, cap, shirt, covered) => {
+    wintercoat: (J, cap, shirt, covered, pr) => {
       const fur = [Math.min(255, shirt[0] * 1.4 + 40), Math.min(255, shirt[1] * 1.4 + 40), Math.min(255, shirt[2] * 1.4 + 40)];
       const dk = [shirt[0] * 0.5, shirt[1] * 0.5, shirt[2] * 0.5];
       const lt = shirt.map(v => Math.min(255, v * 1.25 + 18));
@@ -430,9 +437,14 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         for (const z of [J.pel[2] + 0.14, J.pel[2] + 0.28]) cap([xf, -0.07, z], [xf, 0.07, z], 0.012, dk); // insulated quilting
         cap([xf, 0, J.pel[2] + 0.1], [xf, 0, J.neck[2] - 0.1], 0.011, lt); // zip line
       }
-      // Fitted but long parka tail: the hem hangs below the hips, the waist itself stays narrow.
-      cap([J.pel[0] + 0.01, -0.085, J.pel[2] + 0.02], [J.pel[0] + 0.01, 0.085, J.pel[2] - 0.14], 0.115, shirt);
-      cap([J.pel[0] + 0.01, -0.07, J.pel[2] - 0.14], [J.pel[0] + 0.01, 0.07, J.pel[2] - 0.14], 0.1, dk); // cinched hem band
+      // Fitted but long parka tail: two upright panels keep the waist narrow and let each side
+      // sort against its own thigh. One wide diagonal capsule cut across the legs while rotating.
+      const hipD = [0, 1].map(i => Math.max(pr(J.pel).d + 0.02,
+        (pr(i ? J.hipR : J.hipL).d + pr(i ? J.kneeR : J.kneeL).d) / 2 + 0.06));
+      for (const y of [-0.105, 0.105]) {
+        const d = hipD[y < 0 ? 0 : 1];
+        cap([J.pel[0] + 0.01, y, J.pel[2] + 0.02], [J.pel[0] + 0.01, y, J.pel[2] - 0.09], 0.075, shirt, { d });
+      }
     },
     // police duty shirt: sharp collar, shoulder tabs, gold badge and a radio pocket.
     // Navy like the riot helmet and the ballistic vest, so the whole set reads as one uniform.
@@ -895,7 +907,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     const skin = spec.skin, shirt = spec.shirt, pants = spec.pants, shoes = spec.shoes || [30, 28, 28];
     const rb = spec.armR || 0.062;
     drawLegs(J, spec, cap, pr, skin, pants, shoes);
-    drawTorso(J, spec, cap, skin, pants, shirt);
+    drawTorso(J, spec, cap, skin, pants, shirt, pr);
     drawArms(J, spec, cap, rb, skin, shirt);
     drawVest(J, spec, cap);
     cap(J.neck, J.head, 0.05, skin);
