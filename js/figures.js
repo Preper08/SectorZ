@@ -206,9 +206,19 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     const id = spec.feetId;
     const tuck = (id === 'boots' || id === 'policeboots' || id === 'milboots') ? 0.93
       : (id === 'sneakers' || id === 'runners') ? 0.92 : 1;
-    const legJ = tuck < 1 ? Object.assign({}, J, {
-      footL: lerp3(J.kneeL, J.footL, tuck), footR: lerp3(J.kneeR, J.footR, tuck)
+    // Capsule radii are in sprite pixels (SC) while height is in world units (ZU), so a capsule
+    // centred on the z=0 ankle reaches below the floor. Lift the ground contact per footwear so
+    // the lowest visible piece - sole, shoe or bare shin - rests on the floor instead of sinking.
+    // A player without footwear has feetId null, which must use the barefoot offset too.
+    const ground = { barefoot: 0.08, sneakers: 0.046, runners: 0.048, boots: 0.04, policeboots: 0.042, milboots: 0.046 };
+    const gz = ground[id || 'barefoot'] || 0;
+    const groundJ = gz ? Object.assign({}, J, {
+      footL: [J.footL[0], J.footL[1], J.footL[2] + gz],
+      footR: [J.footR[0], J.footR[1], J.footR[2] + gz]
     }) : J;
+    const legJ = tuck < 1 ? Object.assign({}, groundJ, {
+      footL: lerp3(groundJ.kneeL, groundJ.footL, tuck), footR: lerp3(groundJ.kneeR, groundJ.footR, tuck)
+    }) : groundJ;
     // In a deep squat with shorts, bare skin between the hem and a tall boot reads as the shin
     // detaching from the footwear. Extend the boot colour over that stretch so the leg reads as
     // one continuous tall boot; standing and low shoes keep the normal skin.
@@ -218,7 +228,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     const bootSkinBridge = (id === 'boots' || id === 'policeboots' || id === 'milboots') && spec.legsId !== 'bare';
     lg(legJ, lcap, pr, bootSkinBridge && J.crouch ? shoes : skin, pants, legR);
     const fw = FOOTWEAR_FIGS[id] || FOOTWEAR_FIGS.barefoot;
-    fw(J, cap, pr, skin, shoes, shinDepth(spec, J, pr), J.crouch ? 0.8 : 1);
+    fw(groundJ, cap, pr, skin, shoes, shinDepth(spec, groundJ, pr), J.crouch ? 0.8 : 1);
   }
 
   // torso: pelvis-to-neck capsule + shoulder line + shorts hip piece, plus the clothing
