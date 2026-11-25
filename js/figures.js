@@ -987,13 +987,15 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         const e1 = pr([J.head[0] + 0.115, J.head[1] - 0.045, J.head[2] + 0.01]), e2 = pr([J.head[0] + 0.115, J.head[1] + 0.045, J.head[2] + 0.01]);
         x.fillStyle = spec.eye || 'rgba(14,10,10,0.9)'; x.globalAlpha = Math.min(1, fv * 2.5); x.fillRect(e1.x - 0.9, e1.y - 0.7, 1.8, 1.6); x.fillRect(e2.x - 0.9, e2.y - 0.7, 1.8, 1.6); x.globalAlpha = 1;
       }
-      // Ears: a small skin nub on the side facing the camera, painted over the hair so a short
-      // cut does not swallow it. Drawing only the near ear keeps the far one from floating on
-      // top of the skull in a profile view. Hats are painted afterwards and cover it normally.
-      const ear = [-1, 1].map(sy => pr([J.head[0] - 0.008, J.head[1] + sy * 0.13, J.head[2] - 0.015]))
+      // Ear: a small skin patch ON the skull, not a nub sticking out of it. Clipping to the head
+      // circle keeps the silhouette clean while turning - an ear outside the outline read as
+      // "klempav". Only the near ear is drawn, so a profile does not show a second floating dot.
+      const ear = [-1, 1].map(sy => pr([J.head[0] - 0.008, J.head[1] + sy * 0.105, J.head[2] - 0.012]))
         .sort((a, b) => b.d - a.d)[0];
-      x.fillStyle = rgb(skin, 0.92); x.beginPath(); x.ellipse(ear.x, ear.y + 0.4, 1.5, 2.1, 0, 0, 7); x.fill();
-      x.fillStyle = 'rgba(60,30,25,0.35)'; x.beginPath(); x.ellipse(ear.x, ear.y + 0.6, 0.7, 1.1, 0, 0, 7); x.fill();
+      x.save(); x.beginPath(); x.arc(hp.x, hp.y, hr, 0, 7); x.clip();
+      x.fillStyle = rgb(skin, 0.88); x.beginPath(); x.ellipse(ear.x, ear.y + 0.3, 1.2, 1.7, 0, 0, 7); x.fill();
+      x.fillStyle = 'rgba(60,30,25,0.3)'; x.beginPath(); x.ellipse(ear.x, ear.y + 0.45, 0.5, 0.8, 0, 0, 7); x.fill();
+      x.restore();
       if (spec.hat) { // headwear from HEADWEAR_FIGS: cap dome + brim, helmet dome + rim
         const ht = pr([J.head[0] + 0.01, J.head[1], J.head[2] + 0.06]);
         const hw = HEADWEAR_FIGS[spec.headId];
