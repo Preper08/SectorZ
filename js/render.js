@@ -1069,6 +1069,13 @@
     seg(bx, by, tipx, tipy, th, col);
     hl(bx, by, tipx, tipy, th * 0.3);
   }
+  // Character screen: draw the held item into an arbitrary canvas. drawHeld targets the
+  // renderer's own context, so swap it briefly and restore it afterwards. The caller sets the
+  // wanted transform; hx/hy are in that canvas's coordinate space.
+  R.drawHeldTo = function (target, it, p, hx, hy, skin) {
+    const old = ctx; ctx = target;
+    try { drawHeld(it, p, hx, hy, null, skin); } finally { ctx = old; }
+  };
   function drawParticle(pt, S) {
     const i = iso(pt.x, pt.y), y = i[1] - pt.z * ZU, t = pt.life / pt.max;
     switch (pt.type) {

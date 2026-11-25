@@ -31,7 +31,7 @@
     // tabs
     document.querySelectorAll('#win .tabs button').forEach(b => b.addEventListener('click', () => UI.showTab(b.dataset.tab)));
     els['char-rot'].onclick = () => { charAng += Math.PI / 8; renderChar(); A.play('click'); };
-    els['char-pose'].onclick = () => { charPose = !charPose; els['char-pose'].textContent = 'Pose: ' + (charPose ? 'Walk' : 'Idle'); renderChar(); A.play('click'); };
+    els['char-pose'].onclick = () => { charPose = (charPose + 1) % CHAR_POSES.length; els['char-pose'].textContent = 'Pose: ' + CHAR_POSES[charPose]; renderChar(); A.play('click'); };
     els['char-bald'].onclick = () => { if (!S) return; const ap = S.player.appearance || {}; DSZ.Game.setAppearance(S, 'bald', !ap.bald); renderChar(); A.play('click'); };
     $('winx').onclick = () => UI.closeWin(); $('mapx').onclick = () => UI.closeMap();
     $('takeall').onclick = takeAll;
@@ -406,7 +406,8 @@
   const EQ = [['head', 'Head'], ['body', 'Body'], ['vest', 'Vest'], ['legs', 'Legs'], ['feet', 'Feet'], ['bag', 'Bag'], ['light', 'Light']];
   const SKIN_SW = ['#d6a680', '#f0d2b8', '#ecc4a4', '#a87856', '#78543c', '#583e2e'];
   const HAIR_SW = ['#462e1c', '#1e1814', '#966c3c', '#c4aa64', '#6e6e70', '#141416'];
-  let charAng = 1, charPose = false;
+  const CHAR_POSES = ['Idle', 'Walk', 'Armed'];
+  let charAng = 1, charPose = 0;
   function paintEquip(el) {
     const P = S.player.inv; el.innerHTML = '';
     for (const [k, lab] of EQ) {
@@ -460,11 +461,30 @@
     renderEquip();
     const cv = els['char-preview'], x = cv.getContext('2d');
     x.clearRect(0, 0, cv.width, cv.height);
-    const sp = DSZ.Fig.get(DSZ.Fig.playerSpec(S.player.look), charAng,
-      { arms: charPose ? 'walk' : 'idleEmpty', af: 2, legs: charPose ? 'walk' : 'idle', lf: 2, face: true });
+    const armed = charPose === 2, P = S.player.inv, held = armed ? P.hot[P.sel] : null;
+    const hdef = held && I[held.id];
+    const gun = hdef && hdef.type === 'gun';
+    const pose = armed ? (gun || !hdef ? { arms: 'aim', af: 0, legs: 'idle', lf: 0, face: true }
+      : { arms: 'swingR', af: 1, grip: hdef.id === 'bat' ? 'two' : '', legs: 'idle', lf: 0, face: true })
+      : charPose === 1 ? { arms: 'walk', af: 2, legs: 'walk', lf: 2, face: true }
+      : { arms: 'idleEmpty', af: 0, legs: 'idle', lf: 0, face: true };
+    const sp = DSZ.Fig.get(DSZ.Fig.playerSpec(S.player.look), charAng, pose);
     const sc = Math.min((cv.width - 16) / sp.c.width, (cv.height - 16) / sp.c.height);
+    const dx = Math.round((cv.width - sp.c.width * sc) / 2), dy = Math.round((cv.height - sp.c.height * sc) / 2);
     x.imageSmoothingEnabled = false;
-    x.drawImage(sp.c, Math.round((cv.width - sp.c.width * sc) / 2), Math.round((cv.height - sp.c.height * sc) / 2), sp.c.width * sc, sp.c.height * sc);
+    x.drawImage(sp.c, dx, dy, sp.c.width * sc, sp.c.height * sc);
+    if (hdef && DSZ.Render.drawHeldTo) {
+      // Preview uses the world weapon renderer. Guns are only a few pixels long in world scale,
+      // so enlarge them here; melee weapons keep close to the sprite scale.
+      const big = hdef.type === 'gun' ? 1.3 : 1.2;
+      const fake = { ang: charAng, pose: { arms: pose.arms, af: pose.af, grip: pose.grip }, muzzle: 0, lightOn: false };
+      x.save(); x.translate(dx, dy); x.scale(sc * big, sc * big);
+      const hx = (sp.hand[0] + sp.ox) / big, hy = (sp.hand[1] + sp.oy) / big;
+      DSZ.Render.drawHeldTo(x, hdef, fake, hx, hy, S.player.look.skinCol || [214, 166, 128]);
+      x.restore();
+    }
+    els['char-pose'].textContent = 'Pose: ' + CHAR_POSES[charPose];
+    els['char-pose'].title = held ? 'Held: ' + I[held.id].name : (armed ? 'Select a weapon in the hotbar' : '');
     const ap = S.player.appearance || {};
     paintSwatches(els['skin-sw'], SKIN_SW, ap.skin, 'skin');
     paintSwatches(els['hair-sw'], HAIR_SW, ap.hair, 'hair');
