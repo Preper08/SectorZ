@@ -544,8 +544,9 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     cap: (x, spec, hp, ht, hr, rgb, pr, J) => {
       // A near-circular dome (like the helmet shell, only softer) keeps the natural head shape
       // instead of the tall pointed cone an over-stretched ellipse produced.
-      // The band sits ABOVE the brows: the old +0.28*hr baseline pushed the hat onto the eyes.
-      const base = hp.y + hr * 0.06, r = hr * 1.04, cy = hp.y - 1 - hr * 0.06;
+      // The band sits ABOVE the brows and the visor no longer droops onto the eyes: the old
+      // forward projection put its front edge at +0.49 hr, right across the eye line.
+      const base = hp.y + hr * 0.10, r = hr * 1.04, cy = hp.y - 1 - hr * 0.04;
       x.fillStyle = rgb(spec.hat, 1); x.beginPath();
       x.arc(hp.x, cy, r, Math.PI, 2 * Math.PI);
       x.lineTo(hp.x + r, base); x.lineTo(hp.x - r, base); x.closePath(); x.fill();
@@ -560,18 +561,18 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       const fv = pr([1, 0, 0]).d;
       if (fv > -0.05) {
         const P = (dx, dy, dz) => pr([J.head[0] + dx, J.head[1] + dy, J.head[2] + dz]);
-        const bl = P(0.075, -0.09, 0.046), br = P(0.075, 0.09, 0.046);
-        const tl = P(0.19, -0.12, 0.036), tr = P(0.19, 0.12, 0.036);
+        const bl = P(0.075, -0.09, 0.03), br = P(0.075, 0.09, 0.03);
+        const tl = P(0.17, -0.11, 0.08), tr = P(0.17, 0.11, 0.08);
         x.globalAlpha = Math.min(1, Math.max(0.25, fv * 2.2));
         // shaded underside
         x.fillStyle = rgb(spec.hat, 0.74); x.beginPath();
-        x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y + 1.2); x.lineTo(tl.x, tl.y + 1.2); x.closePath(); x.fill();
+        x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y + 0.5); x.lineTo(tl.x, tl.y + 0.5); x.closePath(); x.fill();
         // top of the brim with a gently curved front edge
         x.fillStyle = rgb(spec.hat, 1.05); x.beginPath();
         x.moveTo(bl.x, bl.y); x.lineTo(br.x, br.y); x.lineTo(tr.x, tr.y);
-        x.quadraticCurveTo((tl.x + tr.x) / 2, tl.y + 1.6, tl.x, tl.y); x.closePath(); x.fill();
+        x.quadraticCurveTo((tl.x + tr.x) / 2, tl.y + 1.0, tl.x, tl.y); x.closePath(); x.fill();
         x.strokeStyle = rgb(spec.hat, 1.35); x.lineWidth = 1.3;
-        x.beginPath(); x.moveTo(tl.x, tl.y); x.quadraticCurveTo((tl.x + tr.x) / 2, tl.y + 1.6, tr.x, tr.y); x.stroke();
+        x.beginPath(); x.moveTo(tl.x, tl.y); x.quadraticCurveTo((tl.x + tr.x) / 2, tl.y + 1.0, tr.x, tr.y); x.stroke();
         x.globalAlpha = 1;
       }
       x.fillStyle = rgb(spec.hat, 1.3); x.beginPath(); x.arc(hp.x, cy - r + 1, 1.4, 0, 7); x.fill();
@@ -580,7 +581,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     beanie: (x, spec, hp, ht, hr, rgb) => {
       const dk = [spec.hat[0] * 0.72, spec.hat[1] * 0.72, spec.hat[2] * 0.72];
       const lt = [Math.min(255, spec.hat[0] * 1.22), Math.min(255, spec.hat[1] * 1.22), Math.min(255, spec.hat[2] * 1.22)];
-      const base = hp.y + hr * 0.34, r = hr * 1.09;
+      const base = hp.y + hr * 0.20, r = hr * 1.09;
       x.fillStyle = rgb(spec.hat, 1); x.beginPath();
       x.arc(hp.x, hp.y - 1, r, Math.PI, 2 * Math.PI);
       x.lineTo(hp.x + r, base); x.lineTo(hp.x - r, base); x.closePath(); x.fill();
@@ -594,7 +595,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       x.beginPath(); x.ellipse(hp.x, base - hr * 0.14, r * 0.98, hr * 0.3, 0, Math.PI, 2 * Math.PI); x.stroke();
       x.strokeStyle = rgb(lt, 1); x.lineWidth = 1;
       for (let i = -3; i <= 3; i++) {
-        x.beginPath(); x.moveTo(hp.x + i * hr * 0.27, base - hr * 0.36); x.lineTo(hp.x + i * hr * 0.27, base + hr * 0.06); x.stroke();
+        x.beginPath(); x.moveTo(hp.x + i * hr * 0.27, base - hr * 0.36); x.lineTo(hp.x + i * hr * 0.27, base + hr * 0.02); x.stroke();
       }
     },
     // bucket hat: soft cotton crown with a wide, drooping all-round brim. No visor - the
@@ -903,8 +904,8 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         const softHat = spec.headId === 'cap' || spec.headId === 'beanie' || spec.headId === 'buckethat';
         if (softHat) {
           x.save();
-          // below the hat's lower edge...
-          x.beginPath(); x.rect(-2000, hp.y + hr * 0.22, 4000, 4000); x.clip();
+          // below the hat's lower edge (the raised cap band sits at +0.10 hr)...
+          x.beginPath(); x.rect(-2000, hp.y + hr * 0.10, 4000, 4000); x.clip();
           // ...and only on the BACK half of the head. Hair on the face side was what read as
           // the skull showing through the hat when the character turned while walking.
           const fx = (ca - sa) * 32, fy = (ca + sa) * 16, fl = Math.hypot(fx, fy) || 1;
