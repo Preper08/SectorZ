@@ -914,9 +914,12 @@
       // Fore-end under the barrel, where the support hand sits.
       segT(TOT * 0.24, TOT * 0.64, 1.2, 1.2, 2, wood);
       segT(TOT * 0.24, TOT * 0.9, 0, 0, 1.4, dark); // shorter, slimmer barrel
-      // Iron sights: small rear notch and front bead, no optics.
-      segT(TOT * 0.2, TOT * 0.2, -1.8, -1.8, 1.1, steel);
-      segT(TOT * 0.86, TOT * 0.86, -1.8, -1.8, 1, pale);
+      // Simple iron sights: a rear notch and a front post with a bead, both rising from the barrel.
+      segT(TOT * 0.22, TOT * 0.22, -0.5, -2.2, 1, steel); // rear post
+      segT(TOT * 0.19, TOT * 0.25, -2.2, -2.2, 0.8, steel); // rear notch bar
+      segT(TOT * 0.86, TOT * 0.86, -0.5, -2.2, 1, steel); // front post
+      const bead = P0(TOT * 0.86, -2.3);
+      ctx.fillStyle = pale; ctx.beginPath(); ctx.arc(bead[0], bead[1], 0.6, 0, 7); ctx.fill();
       hl(P0(TOT * 0.28, -0.7)[0], P0(TOT * 0.28, -0.7)[1], P0(TOT * 0.82, -0.7)[0], P0(TOT * 0.82, -0.7)[1], 0.6);
     } },
     // Modern assault rifle: collapsible stock, flat-top rail, vented handguard, muzzle brake,
