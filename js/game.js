@@ -777,11 +777,30 @@
   };
 
   // ---------------------------------------------------------------- survival stats, world systems
+  // Thermal comfort is derived only: existing daylight, weather and clothing `warm` stats.
+  // Purely informational — no damage, needs, illness or stamina changes, and never saved.
+  function clothingWarmth(P) {
+    let w = 0;
+    for (const slot of ['head', 'body', 'vest', 'legs', 'feet']) {
+      const it = P.equip[slot];
+      if (it) w += (DSZ.ITEMS[it.id] && DSZ.ITEMS[it.id].warm) || 0;
+    }
+    return w;
+  }
+  function updateThermal(S) {
+    const p = S.player;
+    if (DSZ.settings.godmode) { p.thermal = ''; p.warmth = 0; p.warmNeed = 0; return; }
+    const need = 20 * (1 - DSZ.Render.daylight(S.hour) + S.weather.rain);
+    const w = clothingWarmth(p.inv);
+    p.warmth = w; p.warmNeed = need;
+    p.thermal = w < need - 4 ? 'cold' : (w > need + 12 ? 'warm' : '');
+  }
   function updateSurvival(S, dt) {
     const p = S.player, P = p.inv; if (p.dead) return;
     // god mode: no needs, no bleed/infection, full stamina (settings > God mode)
     const god = DSZ.settings.godmode;
     if (god) { p.bleed = 0; p.infection = 0; p.stamina = 100; }
+    updateThermal(S);
     const sleepMul = S.sleeping ? 0.4 : 1;
     const needs = DSZ.DIFFCUR ? DSZ.DIFFCUR.needs : 1, inf = DSZ.DIFFCUR ? DSZ.DIFFCUR.infect : 1;
     if (!god) {
