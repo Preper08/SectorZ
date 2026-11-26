@@ -108,7 +108,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // The pump sits on the weapon axis and just below it. Keep the support hand on that same
       // line (same lateral offset as the trigger hand, slightly forward and lower) or it reads
       // as holding air beside the barrel when the character turns.
-      hL = [0.5, -0.12, pz + 0.46]; hR = [0.68, -0.12, pz + 0.42];
+      hL = [0.5, -0.12, pz + 0.46]; hR = [0.75, -0.12, pz + 0.41];
       hintL = [0, -0.5, -0.5]; hintR = [0, -0.2, -0.6];
     }
     else if (arms === 'light') { hR = [0.36, 0.2, pz + 0.37]; hL = [Math.sin(ph) * swing, -0.26, pz + 0.17]; hintR = [0, 0.6, -0.5]; }
