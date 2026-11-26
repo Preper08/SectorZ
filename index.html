@@ -45,7 +45,7 @@
   <div id="toasts"></div>
   <div id="prompt" class="panel hidden"></div>
   <div id="progress" class="panel hidden"><span id="proglabel">Searching</span><div class="pbar"><i></i></div></div>
-  <div id="hintbar">TAB inventory &nbsp;·&nbsp; C crafting &nbsp;·&nbsp; P character &nbsp;·&nbsp; Ctrl crouch (toggle) &nbsp;·&nbsp; B build &nbsp;·&nbsp; E interact &nbsp;·&nbsp; F light &nbsp;·&nbsp; R reload &nbsp;·&nbsp; M map</div>
+  <div id="hintbar">TAB player &nbsp;·&nbsp; C crafting &nbsp;·&nbsp; Ctrl crouch (toggle) &nbsp;·&nbsp; B build &nbsp;·&nbsp; E interact &nbsp;·&nbsp; F light &nbsp;·&nbsp; R reload &nbsp;·&nbsp; M map</div>
   <div id="buildbar" class="panel hidden"></div>
   <div id="fps" class="hidden"></div>
 </div>
@@ -56,7 +56,7 @@
 <!-- ============ INVENTORY / CRAFTING WINDOW ============ -->
 <div id="win" class="win hidden">
   <div class="whead">
-    <div class="tabs"><button data-tab="inv" class="on">Inventory</button><button data-tab="craft">Crafting</button><button data-tab="char">Character</button><button data-tab="admin" id="tab-admin-btn" class="hidden">Admin</button></div>
+    <div class="tabs"><button data-tab="player" class="on">Player</button><button data-tab="craft">Crafting</button><button data-tab="admin" id="tab-admin-btn" class="hidden">Admin</button></div>
     <button class="x" id="winx">✕</button>
   </div>
   <div id="tab-inv" class="wbody">
@@ -99,6 +99,12 @@
       <input id="admin-search" type="text" placeholder="Search items..." autocomplete="off">
       <div id="admin-list" class="adminlist"></div>
     </div>
+  </div>
+  <!-- PROTOTYPE: unified Player screen. Existing nodes are moved here while open. -->
+  <div id="tab-player" class="wbody hidden">
+    <div class="col" id="pcharhost"></div>
+    <div class="col" id="peqhost"><div id="pcondhost"></div></div>
+    <div class="col" id="pinvhost"></div>
   </div>
 </div>
 <div id="tip" class="panel hidden"></div>

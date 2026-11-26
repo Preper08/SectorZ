@@ -3,7 +3,7 @@
   'use strict';
   const DSZ = window.DSZ, U = DSZ.U, C = DSZ.C, W = DSZ.World, O = DSZ.O, I = DSZ.ITEMS, Inv = DSZ.Inv, A = DSZ.Audio, In = DSZ.Input;
   const $ = id => document.getElementById(id);
-  const UI = DSZ.UI = { open: { win: false, tab: 'inv', map: false, menu: false, settings: false, controls: false, title: true, death: false, tv: false }, loot: null, drag: null };
+  const UI = DSZ.UI = { open: { win: false, tab: 'player', map: false, menu: false, settings: false, controls: false, title: true, death: false, tv: false }, loot: null, drag: null };
   // Grid cell size. Normally 44px, but it shrinks (down to CELL_MIN) when a big bag plus an
   // open container would make the window wider than the screen and push the loot column out
   // of view. Every grid layout and every drag/drop calculation below uses CELL, so changing
@@ -12,6 +12,8 @@
   let CELL = CELL_MAX;
   let vitalNodes = [];
   let S = null, els = {}, imgCache = {}, craftTab = 'Survival', craftSel = null, hudT = 0, hotSig = '', toastSig = '', hovered = null, mmCanvas = null, mapRendered = null;
+  // PROTOTYPE: original parents of the nodes borrowed by the unified Player tab.
+  let playerHomes = null;
 
   const img = (id, tint) => { const key = tint ? id + '|' + tint : id; let u = imgCache[key]; if (!u) u = imgCache[key] = DSZ.Icons.get(id, tint).toDataURL(); return u; };
   UI.img = img;
@@ -21,7 +23,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-char', 'tab-admin', 'admin-search', 'admin-list', 'tab-admin-btn', 'char-preview', 'charequip', 'skin-sw', 'hair-sw', 'char-bald', 'char-rot', 'char-pose', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'carsirenrow', 'carsiren', 'tvttl']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-char', 'tab-admin', 'tab-player', 'pcharhost', 'peqhost', 'pinvhost', 'pcondhost', 'chardollcol', 'chareqcol', 'condition', 'admin-search', 'admin-list', 'tab-admin-btn', 'char-preview', 'charequip', 'skin-sw', 'hair-sw', 'char-bald', 'char-rot', 'char-pose', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'carsirenrow', 'carsiren', 'tvttl']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.eqcol = $('eqcol');
@@ -56,7 +58,7 @@
     window.addEventListener('mouseup', dragUp);
     // Re-fit the inventory when the window is resized, so an open container never drifts
     // off screen after the player resizes the game.
-    window.addEventListener('resize', () => { fitHud(); if (UI.open.win && (UI.open.tab === 'inv' || UI.open.tab === 'char')) { renderInv(); if (UI.open.tab === 'char') renderChar(); } if (UI.open.pc) UI.resizePC(); });
+    window.addEventListener('resize', () => { fitHud(); if (UI.open.win && (UI.open.tab === 'inv' || UI.open.tab === 'char' || UI.open.tab === 'player')) { renderInv(); if (UI.open.tab !== 'inv') renderChar(); } if (UI.open.pc) UI.resizePC(); });
     els.cursor.classList.remove('hidden');
     buildSettings(); buildControls();
     DSZ.on('death', s => UI.showDeath(s));
@@ -64,14 +66,36 @@
   UI.setState = s => { S = s; hotSig = ''; toastSig = ''; mapRendered = null; mmCanvas = null; fitHud(); };
 
   // ------------------------------------------------------------------ windows
+  // The Player screen owns the existing doll/equipment/inventory/condition nodes. They are the
+  // same elements the old Inventory/Character tabs used - nothing is cloned and no inventory
+  // logic is duplicated. The old tab buttons are gone; any code asking for 'inv'/'char' lands
+  // on this screen instead.
+  function setPlayerLayout(on) {
+    if (!playerHomes) playerHomes = ['chardollcol', 'chareqcol', 'gridcol', 'condition'].map(id => ({ el: els[id], home: els[id].parentNode, next: els[id].nextSibling }));
+    if (on) {
+      els.pcharhost.appendChild(els.chardollcol);
+      els.peqhost.insertBefore(els.chareqcol, els.pcondhost);
+      els.pcondhost.appendChild(els.condition);
+      els.pinvhost.appendChild(els.gridcol);
+    } else {
+      for (const h of playerHomes) {
+        if (h.el.parentNode === h.home) continue;
+        if (h.next && h.next.parentNode === h.home) h.home.insertBefore(h.el, h.next); else h.home.appendChild(h.el);
+      }
+    }
+  }
   UI.showTab = function (t) {
-    UI.open.tab = t; document.querySelectorAll('#win .tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    if (t === 'inv' || t === 'char') t = 'player'; // old screens folded into the unified one
+    const prev = UI.open.tab;
+    if (prev === 'player' && t !== 'player') setPlayerLayout(false);
+    if (t === 'player' && prev !== 'player') setPlayerLayout(true);
+    UI.open.tab = t; els.win.classList.toggle('player-open', t === 'player'); els.hud.classList.toggle('player-open', t === 'player'); document.querySelectorAll('#win .tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
     els['tab-admin-btn'].classList.toggle('hidden', !DSZ.settings.godmode); // admin tab exists only in god mode
-    els['tab-inv'].classList.toggle('hidden', t !== 'inv'); els['tab-craft'].classList.toggle('hidden', t !== 'craft'); els['tab-char'].classList.toggle('hidden', t !== 'char'); els['tab-admin'].classList.toggle('hidden', t !== 'admin');
-    if (t === 'craft') renderCraft(); else if (t === 'admin') renderAdmin(); else if (t === 'char') renderChar(); else renderInv();
+    els['tab-inv'].classList.toggle('hidden', t !== 'inv'); els['tab-craft'].classList.toggle('hidden', t !== 'craft'); els['tab-char'].classList.toggle('hidden', t !== 'char'); els['tab-admin'].classList.toggle('hidden', t !== 'admin'); els['tab-player'].classList.toggle('hidden', t !== 'player');
+    if (t === 'craft') renderCraft(); else if (t === 'admin') renderAdmin(); else if (t === 'char') renderChar(); else if (t === 'player') { renderInv(); renderChar(); } else renderInv();
   };
-  UI.openWin = function (tab) { UI.open.win = true; els.win.classList.remove('hidden'); hotbarLift(); UI.showTab(tab || UI.open.tab || 'inv'); A.play('click', null, null, 0.4); };
-  UI.closeWin = function () { cancelDrag(); UI.open.win = false; UI.loot = null; els.win.classList.add('hidden'); hideTip(); els.lootcol.classList.add('hidden'); hotbarLift(); };
+  UI.openWin = function (tab) { UI.open.win = true; els.win.classList.remove('hidden'); hotbarLift(); UI.showTab(tab || UI.open.tab || 'player'); A.play('click', null, null, 0.4); };
+  UI.closeWin = function () { cancelDrag(); if (UI.open.tab === 'player') { setPlayerLayout(false); UI.open.tab = 'inv'; } els.hud.classList.remove('player-open'); UI.open.win = false; UI.loot = null; els.win.classList.add('hidden'); hideTip(); els.lootcol.classList.add('hidden'); hotbarLift(); };
   UI.toggleWin = function (tab) { if (UI.open.win && UI.open.tab === tab) UI.closeWin(); else UI.openWin(tab); };
   UI.openLoot = function (title, grid, owner) { UI.loot = { title, grid, owner }; UI.openWin('inv'); };
   // ---- interactive TV: a large popup showing the enlarged broadcast of the set we are at.
@@ -372,6 +396,8 @@
   function fitCell() {
     if (!S) return CELL_MAX;
     if (!UI.open.win) return CELL_MAX;
+    // PROTOTYPE: compact cells keep the unified three-column layout scroll-free.
+    if (UI.open.tab === 'player') return 22;
     const P = S.player.inv;
     let storeCols = 0;
     for (const slot of Inv.STORE) { const g = Inv.gridOf(P, slot); if (g && g.w > storeCols) storeCols = g.w; }
@@ -546,7 +572,7 @@
     else { A.play('pickup'); DSZ.Game.toast(S, 'Admin: +' + d.name); }
     UI.refresh();
   }
-  UI.refresh = () => { hotbarLift(); if (UI.open.win) { if (UI.open.tab === 'inv' || UI.open.tab === 'char') { renderInv(); if (UI.open.tab === 'char') renderChar(); } else renderCraft(); } renderHot(true); };
+  UI.refresh = () => { hotbarLift(); if (UI.open.win) { if (UI.open.tab === 'inv' || UI.open.tab === 'char' || UI.open.tab === 'player') { renderInv(); if (UI.open.tab !== 'inv') renderChar(); } else renderCraft(); } renderHot(true); };
   UI.markCraftDirty = () => { UI._csig = null; };
   function renderHot(force) {
     if (!S) return; const P = S.player.inv, p = S.player;
@@ -788,7 +814,7 @@
     row('God mode (admin)', tog('godmode', () => { if (S && s.godmode && DSZ.Game.godKit) DSZ.Game.godKit(S); els['tab-admin-btn'].classList.toggle('hidden', !s.godmode); if (S) DSZ.Game.toast(S, s.godmode ? 'God mode ON - immortal, empty pack, all items in admin.' : 'God mode OFF.'); }));
   }
   function buildControls() {
-    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Z', 'Sneak (toggle)'], ['Ctrl', 'Crouch (toggle)'], ['E', 'Interact · search · open · enter car'], ['T', 'Search nearest vehicle (trunk)'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I', 'Inventory'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['V', 'Rozika: stay / follow'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Car: N', 'Police siren (toggle)'], ['Esc', 'Pause']];
+    const rows = [['W A S D', 'Move'], ['Mouse', 'Aim'], ['Left click', 'Attack / fire / use'], ['Right click', 'Steady aim'], ['Shift', 'Run'], ['Z', 'Sneak (toggle)'], ['Ctrl', 'Crouch (toggle)'], ['E', 'Interact · search · open · enter car'], ['T', 'Search nearest vehicle (trunk)'], ['Hold E', 'Pry locked door (crowbar/axe)'], ['1 – 6', 'Select hotbar item'], ['Tab / I / P', 'Player screen'], ['C', 'Crafting'], ['B', 'Base building'], ['F', 'Toggle flashlight'], ['R', 'Reload · rotate'], ['G', 'Refuel vehicle'], ['V', 'Rozika: stay / follow'], ['Q', 'Drop selected item'], ['M', 'Map (needs a Town Map)'], ['Mouse wheel', 'Zoom'], ['Car: W/S A/D', 'Drive · steer'], ['Car: Space', 'Handbrake'], ['Car: L / H', 'Headlights · horn'], ['Car: N', 'Police siren (toggle)'], ['Esc', 'Pause']];
     els.ctlbody.innerHTML = '<div class="ctl">' + rows.map(r => '<b>' + r[0] + '</b><span>' + r[1] + '</span>').join('') + '</div>';
   }
 
@@ -897,7 +923,7 @@
           else if (In.pressed('ArrowLeft')) setTvChannel((UI.tvChannel || 1) - 1);
         }
         else if (!UI.open.menu) {
-          if (In.pressed('Tab') || In.pressed('KeyI')) UI.toggleWin('inv');
+          if (In.pressed('Tab') || In.pressed('KeyI') || In.pressed('KeyP')) UI.toggleWin('player');
           if (In.pressed('KeyC')) UI.toggleWin('craft');
           if (In.pressed('KeyP')) UI.toggleWin('char');
           if (In.pressed('KeyM')) { if (UI.open.map) UI.closeMap(); else UI.openMap(); }
