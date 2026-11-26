@@ -857,7 +857,7 @@
     // Compact pump shotgun: one short dark receiver/barrel line, a plain wooden stock and a
     // simple ribbed forend. No bead, no receiver band, no highlight - the silhouette should read
     // at 1x. Gameplay stats and animations are untouched.
-    shotgun: { len: 0.52, th: 3, grip: 0, draw: W => {
+    shotgun: { len: 0.42, th: 3, grip: 0, draw: W => {
       const { segT, P0, seg, ctx, TOT, dark, wood, ny } = W;
       const down = ny < 0 ? -1 : 1, pn = 1.8 * down; // under-barrel side stays down while turning
       // plain tapered stock
@@ -870,10 +870,10 @@
       segT(TOT * -0.14, TOT * 0.18, 0, 0, 3.4, dark); // receiver / trigger hand
       const g0 = P0(TOT * 0.0, 1.2), g1 = P0(TOT * -0.06, 3.4);
       seg(g0[0], g0[1], g1[0], g1[1], 2, dark); // simple trigger guard
-      segT(TOT * 0.18, TOT * 1.0, 0, 0, 1.9, dark); // barrel
-      segT(TOT * 0.14, TOT * 0.82, pn, pn, 1.4, dark); // magazine tube
-      segT(TOT * 0.22, TOT * 0.42, pn, pn, 3, wood); // forend / pump
-      for (const t of [0.27, 0.37]) segT(TOT * t, TOT * t, pn - 1.2, pn + 1.2, 1, '#3a2a1c'); // two ribs
+      segT(TOT * 0.18, TOT * 0.82, 0, 0, 1.9, dark); // short barrel
+      segT(TOT * 0.12, TOT * 0.68, pn, pn, 1.4, dark); // magazine tube
+      segT(TOT * 0.14, TOT * 0.3, pn, pn, 3, wood); // forend right behind the receiver, under the hand
+      for (const t of [0.18, 0.26]) segT(TOT * t, TOT * t, pn - 1.2, pn + 1.2, 1, '#3a2a1c'); // two ribs
     } },
     rifle: { len: 0.54, th: 3, grip: 3, draw: W => {
       const { segT, P0, seg, hl, ctx, TOT, col, dark, wood } = W;
