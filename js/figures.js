@@ -104,21 +104,21 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // Weapon-specific support hand: the fore-end sits further out on a rifle than on an SMG,
       // while a pistol is held one-handed with the off hand guarding near the receiver.
       const held = P.held || '';
-      hR = [0.5, 0.12, pz + 0.4]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.6];
-      // Each fore-end sits at a different distance from the trigger hand. The values come from
-      // the weapon definitions: pistol one-handed, SMG short handguard, AR longer handguard,
-      // hunting rifle forward fore-end. Keeping them separate avoids one offset for all guns.
-      if (held === 'rifle') hL = [0.72, -0.06, pz + 0.42];
-      else if (held === 'arifle') hL = [0.68, -0.06, pz + 0.43];
-      else if (held === 'smg') hL = [0.64, -0.06, pz + 0.44];
-      else if (held === 'shotgun') hL = [0.7, -0.06, pz + 0.31];
+      hR = [0.42, 0.12, pz + 0.4]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.6];
+      // Each fore-end sits at a different distance from the trigger hand. Hands are kept closer
+      // to the torso than before so the weapon rests against the shoulder instead of floating
+      // out in front of the character.
+      if (held === 'rifle') hL = [0.62, -0.06, pz + 0.42];
+      else if (held === 'arifle') hL = [0.58, -0.06, pz + 0.43];
+      else if (held === 'smg') hL = [0.54, -0.06, pz + 0.44];
+      else if (held === 'shotgun') hL = [0.6, -0.06, pz + 0.31];
       else { hL = [0.08, -0.22, pz + 0.18]; hintL = [0, -0.2, -0.8]; } // pistol: one-handed, free hand relaxed
     }
     else if (arms === 'aimPump') {
       // Shotgun: right hand firmly on the pistol grip / trigger, left hand forward and slightly
       // lower on the forend. The support hand stays close to the weapon axis so it reads as
       // gripping the pump instead of floating beside the barrel at oblique headings.
-      hR = [0.5, 0.12, pz + 0.36]; hL = [0.7, -0.06, pz + 0.31];
+      hR = [0.42, 0.12, pz + 0.36]; hL = [0.6, -0.06, pz + 0.31];
       hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.6];
     }
     else if (arms === 'light') { hR = [0.36, 0.2, pz + 0.37]; hL = [Math.sin(ph) * swing, -0.26, pz + 0.17]; hintR = [0, 0.6, -0.5]; }

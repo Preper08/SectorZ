@@ -829,6 +829,18 @@
     if (p.flash > 0) { ctx.globalAlpha = p.flash * 0.35; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - lift - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
     if (p.hurt > 0) { ctx.globalAlpha = Math.min(0.5, p.hurt); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#f00'; ctx.drawImage(whiteSil(s), i[0] - s.ox, i[1] - lift - s.oy); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
   }
+  // Old bolt-action rifle sprite, kept only as a rollback option until the new model is approved.
+  const rifleLegacyDraw = W => {
+    const { segT, P0, ctx, TOT, col, dark, wood } = W;
+    segT(TOT * -0.26, TOT * 0.58, 0, 0, 3.2, wood); // wooden stock
+    segT(TOT * 0.58, TOT * 0.92, 0, 0, 2.7, col); // steel action
+    segT(TOT * 0.92, TOT * 1.1, 0, 0, 1.5, dark); // barrel
+    const g0 = P0(TOT * -0.02, 1.1), g1 = P0(TOT * -0.06, 4.5);
+    ctx.strokeStyle = dark; ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(g0[0], g0[1]); ctx.lineTo(g1[0], g1[1]); ctx.stroke(); // grip
+    ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(P0(TOT * 0.64, -1.9)[0], P0(TOT * 0.64, -1.9)[1], 1.3, 0, 7); ctx.fill(); // bolt handle
+  };
+
   // weapon definition table: each entry holds the displayed length (world units),
   // stroke thickness and a draw function receiving the weapon-space helpers.
   // Adding a weapon = a new entry; visual dims are separate from gameplay range/damage.
@@ -877,15 +889,35 @@
       segT(TOT * 0.14, TOT * 0.3, pn, pn, 3, wood); // forend right behind the receiver, under the hand
       for (const t of [0.18, 0.26]) segT(TOT * t, TOT * t, pn - 1.2, pn + 1.2, 1, '#3a2a1c'); // two ribs
     } },
-    rifle: { len: 0.54, th: 3, grip: 3, draw: W => {
-      const { segT, P0, seg, hl, ctx, TOT, col, dark, wood } = W;
-      segT(TOT * -0.26, TOT * 0.58, 0, 0, 3.2, wood); // wooden stock
-      segT(TOT * 0.58, TOT * 0.92, 0, 0, 2.7, col); // steel action
-      segT(TOT * 0.92, TOT * 1.1, 0, 0, 1.5, dark); // barrel
-      const g0 = P0(TOT * -0.02, 1.1), g1 = P0(TOT * -0.06, 4.5);
-      seg(g0[0], g0[1], g1[0], g1[1], 2.4, dark); // grip
-      ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(P0(TOT * 0.64, -1.9)[0], P0(TOT * 0.64, -1.9)[1], 1.3, 0, 7); ctx.fill(); // bolt handle
-      hl(P0(TOT * -0.05, -0.8)[0], P0(TOT * -0.05, -0.8)[1], P0(TOT * 0.88, -0.8)[0], P0(TOT * 0.88, -0.8)[1], 0.9);
+    // Classic bolt-action hunting rifle: one continuous wooden stock and receiver, a dark bolt
+    // handle, moderate barrel and plain iron sights. No scope or tactical furniture.
+    rifle: { len: 0.56, th: 3, grip: 3, draw: W => {
+      const { segT, P0, seg, hl, ctx, TOT, dark, wood } = W;
+      const steel = '#2b2e31', pale = '#b9bec4';
+      // Butt and wrist: a simple tapered wooden shape rather than one uniform thick line.
+      // Butt, wrist and pistol grip are one continuous wooden shape, as on a real hunting rifle.
+      const stock = [
+        P0(TOT * -0.34, -2), P0(TOT * -0.26, -2.1), P0(TOT * -0.12, -1.05),
+        P0(TOT * -0.04, -1.1), P0(TOT * -0.04, 0.65), P0(TOT * -0.1, 2.9),
+        P0(TOT * -0.2, 2.2), P0(TOT * -0.34, 2)
+      ];
+      ctx.fillStyle = wood; ctx.beginPath(); ctx.moveTo(stock[0][0], stock[0][1]);
+      for (let i = 1; i < stock.length; i++) ctx.lineTo(stock[i][0], stock[i][1]);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+      segT(TOT * -0.35, TOT * -0.33, -1.6, 1.6, 1.3, '#3a2a1c'); // butt plate flush with the stock end
+      // Wooden receiver continues the stock; only the bolt handle is dark metal.
+      segT(TOT * -0.06, TOT * 0.24, 0, 0, 2.8, wood); // wooden receiver, continuous with the stock
+      const bolt0 = P0(TOT * 0.1, 1.5), bolt1 = P0(TOT * 0.12, 3);
+      seg(bolt0[0], bolt0[1], bolt1[0], bolt1[1], 0.8, steel); // slimmer bolt handle stalk
+      ctx.fillStyle = steel; ctx.beginPath(); ctx.arc(bolt1[0], bolt1[1], 0.75, 0, 7); ctx.fill(); // knob
+      // Fore-end under the barrel, where the support hand sits.
+      segT(TOT * 0.24, TOT * 0.64, 1.2, 1.2, 2, wood);
+      segT(TOT * 0.24, TOT * 0.9, 0, 0, 1.4, dark); // shorter, slimmer barrel
+      // Iron sights: small rear notch and front bead, no optics.
+      segT(TOT * 0.2, TOT * 0.2, -1.8, -1.8, 1.1, steel);
+      segT(TOT * 0.86, TOT * 0.86, -1.8, -1.8, 1, pale);
+      hl(P0(TOT * 0.28, -0.7)[0], P0(TOT * 0.28, -0.7)[1], P0(TOT * 0.82, -0.7)[0], P0(TOT * 0.82, -0.7)[1], 0.6);
     } },
     // Modern assault rifle: collapsible stock, flat-top rail, vented handguard, muzzle brake,
     // curved magazine, pistol grip and a small reflex sight. Drawn in weapon space like the
