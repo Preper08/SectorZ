@@ -863,8 +863,8 @@
       const { segT, P0, seg, ctx, TOT, dark, wood, ny } = W;
       const down = ny < 0 ? -1 : 1, pn = 1.8 * down; // under-barrel side stays down while turning
       // plain tapered stock
-      const s0 = P0(TOT * -0.2, -2.2), s1 = P0(TOT * -0.06, -1.5);
-      const s2 = P0(TOT * -0.06, 1.5), s3 = P0(TOT * -0.2, 2.2);
+      const s0 = P0(TOT * -0.34, -2.4), s1 = P0(TOT * -0.12, -1.6);
+      const s2 = P0(TOT * -0.12, 1.6), s3 = P0(TOT * -0.34, 2.4);
       ctx.fillStyle = wood; ctx.beginPath(); ctx.moveTo(s0[0], s0[1]);
       for (const q of [s1, s2, s3]) ctx.lineTo(q[0], q[1]);
       ctx.closePath(); ctx.fill();
