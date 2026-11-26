@@ -1009,11 +1009,9 @@
   };
 
   function drawHeld(it, p, hx, hy, S, skin) {
-    // 3D direction from hand along facing, with elevation. The shotgun keeps a constant offset
-    // from the body while aiming: a view-dependent bias made the barrel appear to bend as the
-    // character turned. The fixed offset also keeps it readable when facing the camera.
-    const bias = it.id === 'shotgun' && p.pose && p.pose.arms === 'aimPump' ? 0.42 : 0;
-    const a = p.ang + bias;
+    // 3D direction from hand along facing, with elevation. No extra offset: in the live game the
+    // facing angle turns smoothly, so any weapon bias reads as the barrel bending in the hands.
+    const a = p.ang;
     const ca = Math.cos(a), sa = Math.sin(a);
     let el = 0, L = 0.5, th = 3.4, col = '#2a2a2e', col2 = '#555';
     const wf = WEAPON_FIGS[it.id];
