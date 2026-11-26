@@ -859,7 +859,7 @@
     // Compact pump shotgun: one short dark receiver/barrel line, a plain wooden stock and a
     // simple ribbed forend. No bead, no receiver band, no highlight - the silhouette should read
     // at 1x. Gameplay stats and animations are untouched.
-    shotgun: { len: 0.42, th: 3, grip: -4.5, draw: W => {
+    shotgun: { len: 0.42, th: 3, grip: 0, draw: W => {
       const { segT, P0, seg, ctx, TOT, dark, wood, ny } = W;
       const down = ny < 0 ? -1 : 1, pn = 1.8 * down; // under-barrel side stays down while turning
       // plain tapered stock
