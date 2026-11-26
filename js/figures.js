@@ -100,7 +100,20 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       hR = [0.08, 0.26, pz + 0.18];
       hintL = [0, 0, -1]; hintR = [0, 0.5, -0.4];
     }
-    else if (arms === 'aim') { hR = [0.5, 0.12, pz + 0.46]; hL = [0.42, -0.04, pz + 0.43]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.5]; }
+    else if (arms === 'aim') {
+      // Weapon-specific support hand: the fore-end sits further out on a rifle than on an SMG,
+      // while a pistol is held one-handed with the off hand guarding near the receiver.
+      const held = P.held || '';
+      hR = [0.5, 0.12, pz + 0.4]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.6];
+      // Each fore-end sits at a different distance from the trigger hand. The values come from
+      // the weapon definitions: pistol one-handed, SMG short handguard, AR longer handguard,
+      // hunting rifle forward fore-end. Keeping them separate avoids one offset for all guns.
+      if (held === 'rifle') hL = [0.72, -0.06, pz + 0.42];
+      else if (held === 'arifle') hL = [0.68, -0.06, pz + 0.43];
+      else if (held === 'smg') hL = [0.64, -0.06, pz + 0.44];
+      else if (held === 'shotgun') hL = [0.7, -0.06, pz + 0.31];
+      else { hL = [0.08, -0.22, pz + 0.18]; hintL = [0, -0.2, -0.8]; } // pistol: one-handed, free hand relaxed
+    }
     else if (arms === 'aimPump') {
       // Shotgun: right hand firmly on the pistol grip / trigger, left hand forward and slightly
       // lower on the forend. The support hand stays close to the weapon axis so it reads as
@@ -123,13 +136,14 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         if (left) { hL = main; hR = off; hintL = [0, -0.7, -0.2]; hintR = [0, 0.4, -0.5]; }
         else { hR = main; hL = off; hintR = [0, 0.7, -0.2]; hintL = [0, -0.4, -0.5]; }
       } else if (left) {
-        // Mirror the arc onto the left side; the right hand stays in a relaxed guard.
+        // Mirror the arc onto the left side. With a one-handed melee weapon the free hand stays
+        // low and relaxed instead of throwing a second punch; bare fists keep the old guard.
         hL = [q[0], -Math.abs(q[1]), q[2]];
-        hR = [0.42, 0.12, pz + 0.46];
+        hR = P.heldType === 'melee' ? [0.08, 0.22, pz + 0.18] : [0.42, 0.12, pz + 0.46];
         hintL = [0, -0.7, -0.2]; hintR = [0, 0.5, -0.5];
       } else {
         hR = q;
-        hL = [0.42, -0.12, pz + 0.46];
+        hL = P.heldType === 'melee' ? [0.08, -0.22, pz + 0.18] : [0.42, -0.12, pz + 0.46];
         hintR = [0, 0.7, -0.2]; hintL = [0, -0.5, -0.5];
       }
     }
@@ -252,7 +266,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   }
 
   // arms: upper arm + forearm with IK elbow, sleeve or bare skin
-  function drawArms(J, spec, cap, rb, skin, shirt) {
+  function drawArms(J, spec, cap, rb, skin, shirt, pr) {
     const sleeve = spec.sleeve || shirt;
     if (spec.fullSleeve) {
       // Long coats reach the wrist; leave only the hand bare instead of a bare forearm.
@@ -265,6 +279,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       cap(J.shL, J.elL, rb + 0.008, sleeve); cap(J.elL, J.handL, rb, spec.glove || skin);
       cap(J.shR, J.elR, rb + 0.008, sleeve); cap(J.elR, J.handR, rb, spec.glove || skin);
     }
+    // Simple closed hands: a small mitten-like cap on each wrist. pa == pb makes a round dot in
+    // the existing capsule renderer, so no new asset or drawing path is needed. The tiny depth
+    // nudge keeps it in front of the forearm that ends at the same joint.
+    for (const h of [J.handL, J.handR]) cap(h, h, rb * 1.05, spec.glove || skin, { d: pr(h).d + 0.02 });
   }
 
   // bag: distinct shapes per bag type. The pack sits on the back, so it has to sort on the far
@@ -924,7 +942,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
 
   const poseCache = new Map();
   function cachedPose(P) {
-        const key = (P.arms || 'walk') + '|' + (P.af || 0) + '|' + (P.legs || 'idle') + '|' + (P.lf || 0) + '|' + !!P.limp + '|' + !!P.face + '|' + (P.hx || 0) + '|' + !!P.crouch + '|' + (P.grip || '');
+        const key = (P.arms || 'walk') + '|' + (P.af || 0) + '|' + (P.legs || 'idle') + '|' + (P.lf || 0) + '|' + !!P.limp + '|' + !!P.face + '|' + (P.hx || 0) + '|' + !!P.crouch + '|' + (P.grip || '') + '|' + (P.held || '') + '|' + (P.heldType || '');
     let J = poseCache.get(key);
     if (!J) {
       J = pose(P); poseCache.set(key, J);
@@ -942,7 +960,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     const rb = spec.armR || 0.062;
     drawLegs(J, spec, cap, pr, skin, pants, shoes);
     drawTorso(J, spec, cap, skin, pants, shirt, pr);
-    drawArms(J, spec, cap, rb, skin, shirt);
+    drawArms(J, spec, cap, rb, skin, shirt, pr);
     drawVest(J, spec, cap);
     cap(J.neck, J.head, 0.05, skin);
     drawBag(J, spec, cap, pr);
@@ -1095,14 +1113,14 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   DSZ.on('newgame', Fig.clearCache);
   Fig.get = function (spec, ang, P) {
     const n = Fig.NANG, ai = ((Math.round(ang / (Math.PI * 2) * n) % n) + n) % n;
-    const arms = P.arms || 'walk', af = P.af | 0, legs = P.legs || 'idle', lf = P.lf | 0, limp = !!P.limp, face = !!P.face, hx = !!P.hx, crouch = !!P.crouch, grip = P.grip || '';
+    const arms = P.arms || 'walk', af = P.af | 0, legs = P.legs || 'idle', lf = P.lf | 0, limp = !!P.limp, face = !!P.face, hx = !!P.hx, crouch = !!P.crouch, grip = P.grip || '', held = P.held || '', heldType = P.heldType || '';
     // vault progress is part of the pose, so it has to be part of the cache identity too. It is
     // quantised to eight steps: that is enough for a 0.45 s move to read as smooth at this size,
     // and it keeps the sprite cache from growing by one entry per frame.
     const vq = legs === 'vault' ? Math.round(U.clamp((P.af || 0) / 8, 0, 1) * 8) : -1;
     let last = lastSprites.get(spec);
-    if (last && last.id === spec.id && last.n === n && last.ai === ai && last.arms === arms && last.af === af && last.legs === legs && last.lf === lf && last.limp === limp && last.face === face && last.hx === hx && last.crouch === crouch && last.vq === vq && last.grip === grip) return last.sprite;
-    const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '') + (P.crouch ? 'c' : '') + (vq >= 0 ? 'v' + vq : '') + (grip ? 'g' + grip : '');
+    if (last && last.id === spec.id && last.n === n && last.ai === ai && last.arms === arms && last.af === af && last.legs === legs && last.lf === lf && last.limp === limp && last.face === face && last.hx === hx && last.crouch === crouch && last.vq === vq && last.grip === grip && last.held === held && last.heldType === heldType) return last.sprite;
+    const key = spec.id + '|' + ai + '|' + (P.arms || 'walk') + (P.af | 0) + '|' + (P.legs || 'idle') + (P.lf | 0) + (P.limp ? 'l' : '') + (P.face ? 'f' : '') + (P.hx ? 'h' : '') + (P.crouch ? 'c' : '') + (vq >= 0 ? 'v' + vq : '') + (grip ? 'g' + grip : '') + (held ? 'w' + held : '') + (heldType ? 't' + heldType : '');
     const entry = cache.get(key);
     let s;
     if (entry) { cache.delete(key); cache.set(key, entry); s = entry.sprite; }
@@ -1117,7 +1135,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       }
     }
     if (!last) { last = {}; lastSprites.set(spec, last); }
-    Object.assign(last, { id: spec.id, n, ai, arms, af, legs, lf, limp, face, hx, crouch, vq, grip, sprite: s });
+    Object.assign(last, { id: spec.id, n, ai, arms, af, legs, lf, limp, face, hx, crouch, vq, grip, held, heldType, sprite: s });
     return s;
   };
   Fig.cacheSize = () => cache.size;

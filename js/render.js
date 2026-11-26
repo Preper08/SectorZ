@@ -815,9 +815,9 @@
     // left arm swung, which read as two separate strikes.
     const leftHeld = !!it && !!p.pose && p.pose.arms === 'swingL' && p.pose.grip === 'two';
     const heldAnchor = leftHeld ? s.hand2 : s.hand;
-    // A shotgun is always drawn over the figure: a hand on the far side must never cover the
-    // barrel or pump while the character turns. The knuckles are repainted over the grip below.
-    const farHand = !!it && it.id !== 'shotgun' && (leftHeld ? s.hand2D : s.handD) < s.bodyD;
+    // Normal depth order for every weapon: when the holding hand is nearer the camera, draw the
+    // weapon first so the hand sits over the grip; when it is farther, the weapon covers it.
+    const farHand = !!it && (leftHeld ? s.hand2D : s.handD) < s.bodyD;
     const drawHeldItem = () => {
       if (!it) return;
       const hx = i[0] + heldAnchor[0] * CH_SCALE, hy = i[1] - lift + heldAnchor[1] * CH_SCALE;
@@ -1059,10 +1059,9 @@
       const wood = '#6a4a2a';
       if (wf) wf.draw({ segT, P0, seg, hl, ctx, TOT, th, col, dark, wood, px, py, nx, ny, fx, fy, tipx, tipy, p, it });
       else { seg(bx, by, tipx, tipy, th, col); hl(bx, by, tipx, tipy, th * 0.3); } // unknown gun fallback
-      // The figure sprite is drawn before the weapon, so the grip would cover the hand. Paint
-      // the knuckles back over the grip centre - except on the shotgun, where a single strong
-      // overlay read as a hand lying on top of the gun instead of holding it naturally.
-      if (skin && it.id !== 'shotgun') {
+      // The figure now draws its own hand caps at both wrists. A single knuckle repaint here made
+      // one hand look stronger than the other, so no weapon gets this overlay any more.
+      if (skin && it.type !== 'gun') {
         const c = 'rgb(' + (skin[0] | 0) + ',' + (skin[1] | 0) + ',' + (skin[2] | 0) + ')';
         ctx.strokeStyle = 'rgba(12,8,6,0.7)'; ctx.lineWidth = 5.4;
         ctx.beginPath(); ctx.moveTo(hx - 2.4, hy - 1.2); ctx.lineTo(hx + 2.4, hy + 1.2); ctx.stroke();
