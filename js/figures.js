@@ -102,7 +102,7 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     }
     else if (arms === 'aim') {
       // Weapon-specific support hand: the fore-end sits further out on a rifle than on an SMG,
-      // while a pistol is held one-handed with the off hand guarding near the receiver.
+      // while a pistol is held with both hands, the off hand wrapped under the grip.
       const held = P.held || '';
       hR = [0.42, 0.12, pz + 0.4]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.6];
       // Each fore-end sits at a different distance from the trigger hand. Hands are kept closer
@@ -112,7 +112,8 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       else if (held === 'arifle') hL = [0.58, -0.06, pz + 0.43];
       else if (held === 'smg') hL = [0.54, -0.06, pz + 0.44];
       else if (held === 'shotgun') hL = [0.6, -0.06, pz + 0.31];
-      else { hL = [0.08, -0.22, pz + 0.18]; hintL = [0, -0.2, -0.8]; } // pistol: one-handed, free hand relaxed
+      else if (held === 'pistol') { hL = [0.36, -0.04, pz + 0.32]; hintL = [0, -0.5, -0.5]; } // two-handed pistol: support hand tucked under the grip
+      else { hL = [0.08, -0.22, pz + 0.18]; hintL = [0, -0.2, -0.8]; } // fallback: relaxed
     }
     else if (arms === 'aimPump') {
       // Shotgun: right hand firmly on the pistol grip / trigger, left hand forward and slightly

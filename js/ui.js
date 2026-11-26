@@ -472,8 +472,8 @@
     const sc = Math.min((cv.width - 16) / sp.c.width, (cv.height - 16) / sp.c.height);
     const dx = Math.round((cv.width - sp.c.width * sc) / 2), dy = Math.round((cv.height - sp.c.height * sc) / 2);
     x.imageSmoothingEnabled = false;
-    x.drawImage(sp.c, dx, dy, sp.c.width * sc, sp.c.height * sc);
-    if (hdef && DSZ.Render.drawHeldTo) {
+    const drawWeapon = () => {
+      if (!hdef || !DSZ.Render.drawHeldTo) return;
       // Preview uses the world weapon renderer at world scale for melee, so the paper doll shows
       // exactly the same proportions as gameplay. Guns are only a few pixels long at that scale,
       // so they keep the small preview boost.
@@ -484,7 +484,13 @@
       const hx = (anchor[0] + sp.ox) / big, hy = (anchor[1] + sp.oy) / big;
       DSZ.Render.drawHeldTo(x, hdef, fake, hx, hy, S.player.look.skinCol || [214, 166, 128]);
       x.restore();
-    }
+    };
+    // Match the gameplay depth order: when the holding hand is on the far side, the figure —
+    // including the head — must cover the weapon instead of the grip drawing over the face.
+    const farHand = sp.handD < sp.bodyD;
+    if (farHand) drawWeapon();
+    x.drawImage(sp.c, dx, dy, sp.c.width * sc, sp.c.height * sc);
+    if (!farHand) drawWeapon();
     els['char-pose'].textContent = 'Pose: ' + CHAR_POSES[charPose];
     els['char-pose'].title = held ? 'Held: ' + I[held.id].name : (armed ? 'Select a weapon in the hotbar' : '');
     const ap = S.player.appearance || {};

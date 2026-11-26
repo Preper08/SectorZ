@@ -1094,6 +1094,17 @@
       const wood = '#6a4a2a';
       if (wf) wf.draw({ segT, P0, seg, hl, ctx, TOT, th, col, dark, wood, px, py, nx, ny, fx, fy, tipx, tipy, p, it });
       else { seg(bx, by, tipx, tipy, th, col); hl(bx, by, tipx, tipy, th * 0.3); } // unknown gun fallback
+      // The pistol grip runs straight through the wrist anchor, so painting the whole weapon over
+      // the fist made it look glued on. A short knuckle bar across the grip puts the fingers back
+      // in front of it — the hand reads as holding the grip instead of wearing it.
+      if (skin && it.id === 'pistol') {
+        const c = 'rgb(' + (skin[0] | 0) + ',' + (skin[1] | 0) + ',' + (skin[2] | 0) + ')';
+        const kx = px * 1.6, ky = py * 1.6;
+        ctx.strokeStyle = 'rgba(12,8,6,0.38)'; ctx.lineWidth = 3.6;
+        ctx.beginPath(); ctx.moveTo(hx - kx, hy - ky); ctx.lineTo(hx + kx, hy + ky); ctx.stroke();
+        ctx.strokeStyle = c; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.moveTo(hx - kx, hy - ky); ctx.lineTo(hx + kx, hy + ky); ctx.stroke();
+      }
       // The figure now draws its own hand caps at both wrists. A single knuckle repaint here made
       // one hand look stronger than the other, so no weapon gets this overlay any more.
       if (skin && it.type !== 'gun') {
