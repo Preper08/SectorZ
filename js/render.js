@@ -854,19 +854,28 @@
       ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.6, -2)[0] - 1, P0(TOT * 0.6, -2)[1] - 1, 2, 2); // sight
       hl(P0(TOT * 0, -0.9)[0], P0(TOT * 0, -0.9)[1], P0(TOT * 0.75, -0.9)[0], P0(TOT * 0.75, -0.9)[1], 0.9);
     } },
-    shotgun: { len: 0.4, th: 3, grip: 0, draw: W => {
-      const { segT, P0, hl, TOT, col, dark, wood, ny } = W;
+    // Pump shotgun: the old 0.4-unit model had a long receiver and a stub barrel, so neither
+    // hand had a believable place to hold it. Built around the trigger hand at t=0: wooden stock
+    // behind it, receiver on it, a real-length barrel and the pump immediately in front where
+    // the support hand sits. Gameplay stats / animations are untouched.
+    shotgun: { len: 0.62, th: 3, grip: 0, draw: W => {
+      const { segT, P0, seg, hl, ctx, TOT, col, dark, wood, ny } = W;
       // Keep the under-barrel hardware on the screen-down side at every heading, like the gun
       // grips do. Without this flip the tube jumped above the barrel on half the rotations.
       const down = ny < 0 ? -1 : 1;
-      segT(TOT * -0.3, TOT * 0.78, 0, 0, 3.4, col); // receiver
-      segT(TOT * 0.78, TOT * 1.04, 0, 0, 1.7, dark); // barrel
-      // Magazine tube must run straight and parallel under the barrel. The old short, slanted
-      // segment hung off the muzzle like a hook and the pump sat on a different offset line.
-      segT(TOT * 0.32, TOT * 0.88, 1.8 * down, 1.8 * down, 1.6, dark); // tube magazine ends short of the muzzle
-      segT(TOT * -0.28, TOT * -0.06, -0.4, -0.4, 3.8, wood); // wooden butt
-      segT(TOT * 0.24, TOT * 0.44, 1.8 * down, 1.8 * down, 2.6, wood); // wooden pump shifted back toward the support hand
-      hl(P0(TOT * -0.05, -1)[0], P0(TOT * -0.05, -1)[1], P0(TOT * 0.7, -1)[0], P0(TOT * 0.7, -1)[1], 1);
+      segT(TOT * -0.34, TOT * -0.14, -0.5, -0.5, 4.2, wood); // wooden stock
+      segT(TOT * -0.36, TOT * -0.33, -0.5, -0.5, 4.6, '#3a2a1c'); // butt plate
+      // Icon reads as one long dark steel body with a brown stock and pump, so the receiver and
+      // barrel share the dark colour instead of being painted in the item's wood tint.
+      segT(TOT * -0.22, TOT * 0.26, 0, 0, 3.6, dark); // receiver over the trigger hand
+      segT(TOT * -0.18, TOT * 0.02, 0, 0, 2.4, col); // wooden receiver band in the item's colour
+      const g0 = P0(TOT * -0.08, 1.2), g1 = P0(TOT * -0.14, 4.6);
+      seg(g0[0], g0[1], g1[0], g1[1], 2.2, wood); // grip / trigger guard hint
+      segT(TOT * 0.26, TOT * 1.0, 0, 0, 1.8, dark); // full-length barrel
+      segT(TOT * 0.14, TOT * 0.86, 1.8 * down, 1.8 * down, 1.6, dark); // magazine tube under it
+      segT(TOT * 0.24, TOT * 0.44, 1.8 * down, 1.8 * down, 2.6, wood); // pump at the support hand
+      const bead = P0(TOT * 0.96, -1.8); ctx.fillStyle = '#d8d6cf'; ctx.beginPath(); ctx.arc(bead[0], bead[1], 0.9, 0, 7); ctx.fill(); // front bead
+      hl(P0(TOT * 0.24, -0.8)[0], P0(TOT * 0.24, -0.8)[1], P0(TOT * 0.92, -0.8)[0], P0(TOT * 0.92, -0.8)[1], 0.8);
     } },
     rifle: { len: 0.54, th: 3, grip: 3, draw: W => {
       const { segT, P0, seg, hl, ctx, TOT, col, dark, wood } = W;
