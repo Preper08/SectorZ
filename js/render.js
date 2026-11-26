@@ -1009,8 +1009,14 @@
   };
 
   function drawHeld(it, p, hx, hy, S, skin) {
-    // 3D direction from hand along facing, with elevation
-    const a = p.ang, ca = Math.cos(a), sa = Math.sin(a);
+    // 3D direction from hand along facing, with elevation. When a shotgun is aimed straight at
+    // the camera the isometric projection collapses it into a short vertical stick across the
+    // chest; bias its screen direction slightly to the side in that arc so it reads as a gun.
+    const facingFwd = Math.cos(p.ang) + Math.sin(p.ang);
+    const bias = it.id === 'shotgun' && p.pose && p.pose.arms === 'aimPump'
+      ? 0.42 * Math.max(0, Math.min(1, facingFwd / 1.4)) : 0;
+    const a = p.ang + bias;
+    const ca = Math.cos(a), sa = Math.sin(a);
     let el = 0, L = 0.5, th = 3.4, col = '#2a2a2e', col2 = '#555';
     const wf = WEAPON_FIGS[it.id];
     if (wf) {

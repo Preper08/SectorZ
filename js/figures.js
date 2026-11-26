@@ -105,8 +105,8 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // Shotgun: right hand firmly on the pistol grip / trigger, left hand forward and slightly
       // lower on the forend. The support hand stays close to the weapon axis so it reads as
       // gripping the pump instead of floating beside the barrel at oblique headings.
-      hR = [0.5, 0.12, pz + 0.32]; hL = [0.66, 0.08, pz + 0.24];
-      hintR = [0, 0.5, -0.5]; hintL = [0, -0.4, -0.6];
+      hR = [0.5, 0.2, pz + 0.36]; hL = [0.7, -0.2, pz + 0.28];
+      hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.6];
     }
     else if (arms === 'light') { hR = [0.36, 0.2, pz + 0.37]; hL = [Math.sin(ph) * swing, -0.26, pz + 0.17]; hintR = [0, 0.6, -0.5]; }
     else if (arms === 'swing' || arms === 'swingL' || arms === 'swingR') {
