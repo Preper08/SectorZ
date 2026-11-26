@@ -295,14 +295,19 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   function drawBag(J, spec, cap, pr) {
     if (!spec.bag) return;
     const big = spec.bagId === 'bigpack', small = spec.bagId === 'fannypack', tac = spec.bagId === 'policepack', mil = spec.bagId === 'milpack';
-    // Back line runs pelvis -> neck. Offset the pack perpendicular to it so it tilts with the
-    // back when crouching instead of staying vertical behind the hips.
+    // Police and military duty packs stay upright, like ordinary backpacks. Only the soft packs
+    // follow the leaning back line when crouching.
+    const upright = tac || mil;
     const sx = J.neck[0] - J.pel[0], sz = J.neck[2] - J.pel[2], sl = Math.hypot(sx, sz) || 1;
     const ux = sx / sl, uz = sz / sl, nx = uz, nz = -ux;
     const off = small ? 0.1 : 0.22, mid = small ? 0.25 : 0.5;
-    const bk = [J.pel[0] + sx * mid - nx * off, 0, J.pel[2] + sz * mid - nz * off + (small ? 0 : 0.02)];
-    // Pack-local point: x = perpendicular (back/forward), z = height along the back line.
-    const bp = (x, y, z) => [bk[0] + nx * x + ux * z, y, bk[2] + nz * x + uz * z];
+    const bk = upright
+      ? [J.pel[0] - 0.22, 0, (J.pel[2] + J.neck[2]) / 2 + 0.02]
+      : [J.pel[0] + sx * mid - nx * off, 0, J.pel[2] + sz * mid - nz * off + (small ? 0 : 0.02)];
+    // Pack-local point: soft packs rotate with the back; duty packs keep the vertical axis.
+    const bp = upright
+      ? (x, y, z) => [bk[0] + x, y, bk[2] + z]
+      : (x, y, z) => [bk[0] + nx * x + ux * z, y, bk[2] + nz * x + uz * z];
     // Keep the pack on the correct side of the torso at every heading: behind it when the
     // character faces the camera, in front when the back is turned. The natural depth already
     // picks the side, but the pack is wide enough to overlap the torso, so a small bias makes
@@ -319,8 +324,8 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         // Same depth rule as the other packs, so it never paints over the chest and keeps its
         // shape while walking, vaulting or crouching.
         const dk = spec.bag.map(v => v * 0.66), tan = [150, 130, 88], lt = spec.bag.map(v => Math.min(255, v * 2.5 + 24));
-        cap(bp(0, -0.15, -0.2), bp(0, 0.15, 0.24), 0.145, spec.bag, { bag: true, d: back }); // main compartment
-        cap(bp(-0.02, -0.14, 0.14), bp(-0.02, 0.14, 0.24), 0.115, dk, { d: back }); // top flap
+        cap(bp(0, -0.15, -0.08), bp(0, 0.15, -0.08), 0.17, spec.bag, { bag: true, d: back }); // square main block
+        cap(bp(-0.02, -0.14, 0.1), bp(-0.02, 0.14, 0.1), 0.12, dk, { d: back }); // flat top flap
         for (const y of [-0.08, -0.02, 0.04, 0.1]) cap(bp(-0.14, y, -0.08), bp(-0.14, y, 0.22), 0.016, lt, { d: back + 0.02 }); // MOLLE rows
         for (const z of [-0.04, 0.08, 0.18]) cap(bp(-0.15, -0.12, z), bp(-0.15, 0.12, z), 0.012, tan, { d: back + 0.03 }); // webbing
         cap(bp(0, -0.16, -0.04), bp(0, -0.16, 0.16), 0.065, tan, { d: back }); // side pouches
@@ -335,8 +340,8 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
         // a radio antenna. Same depth rule as the plain backpack, so it never paints over the
         // chest and keeps its shape in every walk/vault pose.
         const dk = spec.bag.map(v => v * 0.7), lt = spec.bag.map(v => Math.min(255, v * 2.6 + 30));
-        cap(bp(0, -0.12, -0.16), bp(0, 0.12, 0.18), 0.13, spec.bag, { bag: true, d: back });
-        cap(bp(-0.02, -0.11, 0.13), bp(-0.02, 0.11, 0.18), 0.095, dk, { d: back });
+        cap(bp(0, -0.13, -0.07), bp(0, 0.13, -0.07), 0.15, spec.bag, { bag: true, d: back }); // square duty block
+        cap(bp(-0.02, -0.12, 0.1), bp(-0.02, 0.12, 0.1), 0.1, dk, { d: back }); // flat top flap
         for (const y of [-0.08, 0, 0.08]) cap(bp(-0.11, y, 0.06), bp(-0.11, y, 0.2), 0.02, lt, { d: back + 0.02 });
         for (const z of [-0.02, 0.12]) cap(bp(-0.12, -0.1, z), bp(-0.12, 0.1, z), 0.014, lt, { d: back + 0.03 });
         cap(bp(-0.13, -0.02, 0.11), bp(-0.13, 0.02, 0.11), 0.022, [226, 188, 86], { d: back + 0.04 }); // gold name tape
