@@ -865,7 +865,7 @@
       // segment hung off the muzzle like a hook and the pump sat on a different offset line.
       segT(TOT * 0.32, TOT * 0.88, 1.8 * down, 1.8 * down, 1.6, dark); // tube magazine ends short of the muzzle
       segT(TOT * -0.28, TOT * -0.06, -0.4, -0.4, 3.8, wood); // wooden butt
-      segT(TOT * 0.36, TOT * 0.56, 1.8 * down, 1.8 * down, 2.6, wood); // wooden pump centred on the tube
+      segT(TOT * 0.24, TOT * 0.44, 1.8 * down, 1.8 * down, 2.6, wood); // wooden pump shifted back toward the support hand
       hl(P0(TOT * -0.05, -1)[0], P0(TOT * -0.05, -1)[1], P0(TOT * 0.7, -1)[0], P0(TOT * 0.7, -1)[1], 1);
     } },
     rifle: { len: 0.54, th: 3, grip: 3, draw: W => {
