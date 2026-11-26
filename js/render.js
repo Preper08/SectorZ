@@ -870,8 +870,8 @@
       ctx.closePath(); ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
       segT(TOT * -0.14, TOT * 0.18, 0, 0, 3.4, dark); // receiver / trigger hand
-      const g0 = P0(TOT * 0.0, 1.2), g1 = P0(TOT * -0.06, 3.4);
-      seg(g0[0], g0[1], g1[0], g1[1], 2, dark); // simple trigger guard
+      const g0 = P0(TOT * -0.06, 1), g1 = P0(TOT * -0.08, 2.2);
+      seg(g0[0], g0[1], g1[0], g1[1], 1.6, dark); // short grip behind the receiver, clear of the pump hand
       segT(TOT * 0.18, TOT * 0.82, 0, 0, 1.9, dark); // short barrel
       segT(TOT * 0.12, TOT * 0.68, pn, pn, 1.4, dark); // magazine tube
       segT(TOT * 0.14, TOT * 0.3, pn, pn, 3, wood); // forend right behind the receiver, under the hand
