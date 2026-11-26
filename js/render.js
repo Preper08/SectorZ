@@ -815,11 +815,14 @@
     // left arm swung, which read as two separate strikes.
     const leftHeld = !!it && !!p.pose && p.pose.arms === 'swingL' && p.pose.grip === 'two';
     const heldAnchor = leftHeld ? s.hand2 : s.hand;
-    const farHand = !!it && (leftHeld ? s.hand2D : s.handD) < s.bodyD;
+    // A shotgun is always drawn over the figure: a hand on the far side must never cover the
+    // barrel or pump while the character turns. The knuckles are repainted over the grip below.
+    const farHand = !!it && it.id !== 'shotgun' && (leftHeld ? s.hand2D : s.handD) < s.bodyD;
     const drawHeldItem = () => {
       if (!it) return;
       const hx = i[0] + heldAnchor[0] * CH_SCALE, hy = i[1] - lift + heldAnchor[1] * CH_SCALE;
-      drawHeld(it, p, hx, hy, S, spec.skin);
+      const support = it.id === 'shotgun' ? [i[0] + s.hand2[0] * CH_SCALE, i[1] - lift + s.hand2[1] * CH_SCALE] : null;
+      drawHeld(it, p, hx, hy, S, spec.skin, support);
     };
     if (farHand) drawHeldItem();
     ctx.save(); ctx.translate(i[0], i[1] - lift); ctx.scale(CH_SCALE, CH_SCALE); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
@@ -858,7 +861,7 @@
     // simple ribbed forend. No bead, no receiver band, no highlight - the silhouette should read
     // at 1x. Gameplay stats and animations are untouched.
     shotgun: { len: 0.42, th: 3, grip: 0, draw: W => {
-      const { segT, P0, seg, ctx, TOT, dark, wood, ny } = W;
+      const { segT, P0, seg, ctx, TOT, dark, wood, ny, support, skin, hx, hy } = W;
       const down = ny < 0 ? -1 : 1, pn = 1.8 * down; // under-barrel side stays down while turning
       // plain tapered stock
       const s0 = P0(TOT * -0.34, -2.4), s1 = P0(TOT * -0.12, -1.6);
@@ -874,6 +877,18 @@
       segT(TOT * 0.12, TOT * 0.68, pn, pn, 1.4, dark); // magazine tube
       segT(TOT * 0.14, TOT * 0.3, pn, pn, 3, wood); // forend right behind the receiver, under the hand
       for (const t of [0.18, 0.26]) segT(TOT * t, TOT * t, pn - 1.2, pn + 1.2, 1, '#3a2a1c'); // two ribs
+      // The whole gun is painted after the figure, so repaint both knuckles on top of it: one on
+      // the pistol grip, one on the pump. No other part of a hand can cover the weapon now.
+      const knuckle = (kx, ky) => {
+        if (kx === undefined || ky === undefined || !skin) return;
+        const c = 'rgb(' + skin.map(v => v | 0).join(',') + ')';
+        ctx.strokeStyle = 'rgba(12,8,6,0.7)'; ctx.lineWidth = 4.6;
+        ctx.beginPath(); ctx.moveTo(kx - 2, ky - 1); ctx.lineTo(kx + 2, ky + 1); ctx.stroke();
+        ctx.strokeStyle = c; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(kx - 2, ky - 1); ctx.lineTo(kx + 2, ky + 1); ctx.stroke();
+      };
+      knuckle(hx, hy);
+      if (support) knuckle(support[0], support[1]);
     } },
     rifle: { len: 0.54, th: 3, grip: 3, draw: W => {
       const { segT, P0, seg, hl, ctx, TOT, col, dark, wood } = W;
@@ -1006,7 +1021,7 @@
     } }
   };
 
-  function drawHeld(it, p, hx, hy, S, skin) {
+  function drawHeld(it, p, hx, hy, S, skin, support) {
     // 3D direction from hand along facing, with elevation
     const a = p.ang, ca = Math.cos(a), sa = Math.sin(a);
     let el = 0, L = 0.5, th = 3.4, col = '#2a2a2e', col2 = '#555';
@@ -1053,7 +1068,7 @@
     const dark = '#1e1e22';
     if (it.type === 'gun') {
       const wood = '#6a4a2a';
-      if (wf) wf.draw({ segT, P0, seg, hl, ctx, TOT, th, col, dark, wood, px, py, nx, ny, fx, fy, tipx, tipy, p, it });
+      if (wf) wf.draw({ segT, P0, seg, hl, ctx, TOT, th, col, dark, wood, px, py, nx, ny, fx, fy, tipx, tipy, p, it, support, skin, hx, hy });
       else { seg(bx, by, tipx, tipy, th, col); hl(bx, by, tipx, tipy, th * 0.3); } // unknown gun fallback
       // The figure sprite is drawn before the weapon, so the grip would cover the hand. Paint
       // the knuckles back over the grip centre (now aligned with the hand anchor) to sell it.
@@ -1084,9 +1099,9 @@
   // Character screen: draw the held item into an arbitrary canvas. drawHeld targets the
   // renderer's own context, so swap it briefly and restore it afterwards. The caller sets the
   // wanted transform; hx/hy are in that canvas's coordinate space.
-  R.drawHeldTo = function (target, it, p, hx, hy, skin) {
+  R.drawHeldTo = function (target, it, p, hx, hy, skin, support) {
     const old = ctx; ctx = target;
-    try { drawHeld(it, p, hx, hy, null, skin); } finally { ctx = old; }
+    try { drawHeld(it, p, hx, hy, null, skin, support); } finally { ctx = old; }
   };
   function drawParticle(pt, S) {
     const i = iso(pt.x, pt.y), y = i[1] - pt.z * ZU, t = pt.life / pt.max;
