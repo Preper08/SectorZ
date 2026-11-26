@@ -482,8 +482,7 @@
       x.save(); x.translate(dx, dy); x.scale(sc * big, sc * big);
       const anchor = sp.hand; // the shotgun is anchored to the trigger hand
       const hx = (anchor[0] + sp.ox) / big, hy = (anchor[1] + sp.oy) / big;
-      const sx = (sp.hand2[0] + sp.ox) / big, sy = (sp.hand2[1] + sp.oy) / big;
-      DSZ.Render.drawHeldTo(x, hdef, fake, hx, hy, S.player.look.skinCol || [214, 166, 128], hdef.id === 'shotgun' ? [sx, sy] : null);
+      DSZ.Render.drawHeldTo(x, hdef, fake, hx, hy, S.player.look.skinCol || [214, 166, 128]);
       x.restore();
     }
     els['char-pose'].textContent = 'Pose: ' + CHAR_POSES[charPose];
