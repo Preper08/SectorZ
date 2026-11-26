@@ -793,7 +793,7 @@
     const need = 20 * (1 - DSZ.Render.daylight(S.hour) + S.weather.rain);
     const w = clothingWarmth(p.inv);
     p.warmth = w; p.warmNeed = need;
-    p.thermal = w < need - 4 ? 'cold' : (w > need + 12 ? 'warm' : '');
+    p.thermal = w < need - 4 ? 'cold' : '';
   }
   function updateSurvival(S, dt) {
     const p = S.player, P = p.inv; if (p.dead) return;
