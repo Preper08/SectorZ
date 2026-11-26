@@ -3,7 +3,7 @@
   'use strict';
   const DSZ = window.DSZ, U = DSZ.U, C = DSZ.C, W = DSZ.World, O = DSZ.O, I = DSZ.ITEMS, Inv = DSZ.Inv, A = DSZ.Audio, In = DSZ.Input;
   const $ = id => document.getElementById(id);
-  const UI = DSZ.UI = { open: { win: false, tab: 'player', map: false, menu: false, settings: false, controls: false, title: true, death: false, tv: false }, loot: null, drag: null };
+  const UI = DSZ.UI = { open: { win: false, tab: 'inv', map: false, menu: false, settings: false, controls: false, title: true, death: false, tv: false }, loot: null, drag: null };
   // Grid cell size. Normally 44px, but it shrinks (down to CELL_MIN) when a big bag plus an
   // open container would make the window wider than the screen and push the loot column out
   // of view. Every grid layout and every drag/drop calculation below uses CELL, so changing
@@ -396,8 +396,13 @@
   function fitCell() {
     if (!S) return CELL_MAX;
     if (!UI.open.win) return CELL_MAX;
-    // PROTOTYPE: compact cells keep the unified three-column layout scroll-free.
-    if (UI.open.tab === 'player') return 22;
+    // Unified Player screen: scale cells to the viewport so a fullscreen window uses the space
+    // while a small window stays compact and scroll-free.
+    if (UI.open.tab === 'player') {
+      const byH = Math.floor((window.innerHeight - 317) / 12); // ~166px of headings/padding + 12 cell rows
+      const byW = Math.floor((document.documentElement.clientWidth * 0.96 - 490) / 9);
+      return U.clamp(Math.min(byH, byW), CELL_MIN, 44);
+    }
     const P = S.player.inv;
     let storeCols = 0;
     for (const slot of Inv.STORE) { const g = Inv.gridOf(P, slot); if (g && g.w > storeCols) storeCols = g.w; }

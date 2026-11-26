@@ -159,7 +159,8 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 .eqslot img { max-width: 52px; max-height: 52px; cursor: grab; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); }
 #equip { width: 276px; }
 /* PROTOTYPE: unified Player tab reuses the real doll, equipment and inventory nodes. */
-#win.player-open { width: min(1180px, 96vw); }
+#win.player-open { width: max-content; max-width: 96vw; background: rgba(20, 24, 30, 0.96); backdrop-filter: none; -webkit-backdrop-filter: none; }
+#win.player-open #char-preview { background: rgba(255, 255, 255, 0.05); }
 #tab-player { flex-wrap: wrap; align-items: flex-start; gap: 10px; }
 #win.player-open #charequip { width: 220px; }
 #win.player-open #charequip .eqslot { width: 56px; height: 56px; margin: 0 2px 2px 0; }
@@ -167,6 +168,14 @@ body.noblur { --blur: none; --panel: rgba(12, 14, 18, 0.86); --panel-hi: rgba(26
 #win.player-open #chareqcol .charhint { width: 220px; }
 #win.player-open #condition .cond { min-width: 0; font-size: 12px; gap: 2px 8px; }
 #tab-player .col { max-width: 100%; }
+@media (min-width: 1000px) and (min-height: 680px) {
+  #win.player-open #char-preview { width: 264px; height: 384px; }
+  #win.player-open #charequip { width: 250px; }
+  #win.player-open #charequip .eqslot { width: 64px; height: 64px; }
+  #win.player-open #charequip .eqslot img { max-width: 52px; max-height: 52px; }
+  #win.player-open #chareqcol .charhint { width: 250px; }
+  #win.player-open #condition .cond { font-size: 13px; }
+}
 
 /* character screen: paper doll, a second view of the equipment slots, appearance swatches */
 #char-preview { width: 220px; height: 320px; background: rgba(0,0,0,0.28); border: 1px solid var(--line); image-rendering: pixelated; }

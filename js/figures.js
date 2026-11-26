@@ -295,19 +295,14 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
   function drawBag(J, spec, cap, pr) {
     if (!spec.bag) return;
     const big = spec.bagId === 'bigpack', small = spec.bagId === 'fannypack', tac = spec.bagId === 'policepack', mil = spec.bagId === 'milpack';
-    // Police and military duty packs stay upright, like ordinary backpacks. Only the soft packs
-    // follow the leaning back line when crouching.
-    const upright = tac || mil;
+    // Every pack, including police and military duty packs, rides the pelvis -> neck line, so it
+    // tilts with the back when crouching. Duty packs keep their square block shape.
     const sx = J.neck[0] - J.pel[0], sz = J.neck[2] - J.pel[2], sl = Math.hypot(sx, sz) || 1;
     const ux = sx / sl, uz = sz / sl, nx = uz, nz = -ux;
     const off = small ? 0.1 : 0.22, mid = small ? 0.25 : 0.5;
-    const bk = upright
-      ? [J.pel[0] - 0.22, 0, (J.pel[2] + J.neck[2]) / 2 + 0.02]
-      : [J.pel[0] + sx * mid - nx * off, 0, J.pel[2] + sz * mid - nz * off + (small ? 0 : 0.02)];
-    // Pack-local point: soft packs rotate with the back; duty packs keep the vertical axis.
-    const bp = upright
-      ? (x, y, z) => [bk[0] + x, y, bk[2] + z]
-      : (x, y, z) => [bk[0] + nx * x + ux * z, y, bk[2] + nz * x + uz * z];
+    const bk = [J.pel[0] + sx * mid - nx * off, 0, J.pel[2] + sz * mid - nz * off + (small ? 0 : 0.02)];
+    // Pack-local point: local z runs along the back, local x perpendicular to it.
+    const bp = (x, y, z) => [bk[0] + nx * x + ux * z, y, bk[2] + nz * x + uz * z];
     // Keep the pack on the correct side of the torso at every heading: behind it when the
     // character faces the camera, in front when the back is turned. The natural depth already
     // picks the side, but the pack is wide enough to overlap the torso, so a small bias makes
