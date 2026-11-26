@@ -464,7 +464,7 @@
     const armed = charPose === 2, P = S.player.inv, held = armed ? P.hot[P.sel] : null;
     const hdef = held && I[held.id];
     const gun = hdef && hdef.type === 'gun';
-    const pose = armed ? (gun || !hdef ? { arms: 'aim', af: 0, legs: 'idle', lf: 0, face: true }
+    const pose = armed ? (gun || !hdef ? { arms: hdef && hdef.id === 'shotgun' ? 'aimPump' : 'aim', af: 0, legs: 'idle', lf: 0, face: true }
       : { arms: 'swingR', af: 0, grip: hdef.id === 'bat' ? 'two' : '', legs: 'idle', lf: 0, face: true })
       : charPose === 1 ? { arms: 'walk', af: 2, legs: 'walk', lf: 2, face: true }
       : { arms: 'idleEmpty', af: 0, legs: 'idle', lf: 0, face: true };
@@ -480,7 +480,8 @@
       const big = hdef.type === 'gun' ? 1.3 : 1;
       const fake = { ang: charAng, pose: { arms: pose.arms, af: pose.af, grip: pose.grip }, muzzle: 0, lightOn: false };
       x.save(); x.translate(dx, dy); x.scale(sc * big, sc * big);
-      const hx = (sp.hand[0] + sp.ox) / big, hy = (sp.hand[1] + sp.oy) / big;
+      const anchor = pose.arms === 'aimPump' ? sp.hand2 : sp.hand;
+      const hx = (anchor[0] + sp.ox) / big, hy = (anchor[1] + sp.oy) / big;
       DSZ.Render.drawHeldTo(x, hdef, fake, hx, hy, S.player.look.skinCol || [214, 166, 128]);
       x.restore();
     }

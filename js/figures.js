@@ -101,6 +101,13 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       hintL = [0, 0, -1]; hintR = [0, 0.5, -0.4];
     }
     else if (arms === 'aim') { hR = [0.5, 0.12, pz + 0.46]; hL = [0.42, -0.04, pz + 0.43]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.5]; }
+    else if (arms === 'aimPump') {
+      // Shotgun: left hand works the trigger/grip, right hand supports the pump further forward
+      // and slightly lower, under the barrel. A normal rifle `aim` put both hands together at the
+      // receiver, which read as holding a shotgun by the stock only.
+      hL = [0.5, -0.12, pz + 0.46]; hR = [0.68, 0.06, pz + 0.4];
+      hintL = [0, -0.5, -0.5]; hintR = [0, 0.4, -0.6];
+    }
     else if (arms === 'light') { hR = [0.36, 0.2, pz + 0.37]; hL = [Math.sin(ph) * swing, -0.26, pz + 0.17]; hintR = [0, 0.6, -0.5]; }
     else if (arms === 'swing' || arms === 'swingL' || arms === 'swingR') {
       const t = af / 4; // 0 wind-up .. 1 follow through

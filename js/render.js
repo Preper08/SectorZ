@@ -813,7 +813,7 @@
     // A two-handed bat swing is anchored to the attacking hand: left click uses the left hand
     // anchor, right click the right one. Otherwise the weapon stayed in the right hand while the
     // left arm swung, which read as two separate strikes.
-    const leftHeld = !!it && !!p.pose && p.pose.arms === 'swingL' && p.pose.grip === 'two';
+    const leftHeld = !!it && !!p.pose && ((p.pose.arms === 'swingL' && p.pose.grip === 'two') || p.pose.arms === 'aimPump');
     const heldAnchor = leftHeld ? s.hand2 : s.hand;
     const farHand = !!it && (leftHeld ? s.hand2D : s.handD) < s.bodyD;
     const drawHeldItem = () => {
