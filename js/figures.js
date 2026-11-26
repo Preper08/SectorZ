@@ -104,13 +104,15 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
       // Weapon-specific support hand: the fore-end sits further out on a rifle than on an SMG,
       // while a pistol is held with both hands, the off hand wrapped under the grip.
       const held = P.held || '';
-      hR = [0.42, 0.12, pz + 0.4]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.6];
+      // SMG is held compact: the trigger hand stays close to the body so the off hand can reach
+      // the handguard instead of both hands stacking on the same grip.
+      hR = held === 'smg' ? [0.26, 0.12, pz + 0.34] : [0.42, 0.12, pz + 0.4]; hintR = held === 'smg' ? [-0.12, 0.18, -0.78] : [0, 0.5, -0.5]; hintL = [0, -0.5, -0.6];
       // Each fore-end sits at a different distance from the trigger hand. Hands are kept closer
       // to the torso than before so the weapon rests against the shoulder instead of floating
       // out in front of the character.
       if (held === 'rifle') hL = [0.62, -0.06, pz + 0.42];
       else if (held === 'arifle') hL = [0.58, -0.06, pz + 0.43];
-      else if (held === 'smg') hL = [0.54, -0.06, pz + 0.44];
+      else if (held === 'smg') hL = [0.54, -0.02, pz + 0.38]; // fingers ahead of the magazine, under the receiver
       else if (held === 'shotgun') hL = [0.6, -0.06, pz + 0.31];
       else if (held === 'pistol') { hL = [0.36, -0.04, pz + 0.32]; hintL = [0, -0.5, -0.5]; } // two-handed pistol: support hand tucked under the grip
       else { hL = [0.08, -0.22, pz + 0.18]; hintL = [0, -0.2, -0.8]; } // fallback: relaxed

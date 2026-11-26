@@ -817,11 +817,14 @@
     const heldAnchor = leftHeld ? s.hand2 : s.hand;
     // Normal depth order for every weapon: when the holding hand is nearer the camera, draw the
     // weapon first so the hand sits over the grip; when it is farther, the weapon covers it.
-    const farHand = !!it && (leftHeld ? s.hand2D : s.handD) < s.bodyD;
+    // SMG: behind the head at rear angles, in front of the off hand at side angles.
+    const depthBias = it && it.id === 'smg' ? (Math.cos(p.ang) < -0.2 ? 0.07 : 0.012) : 0.012;
+    const farHand = !!it && (leftHeld ? s.hand2D : s.handD) < s.bodyD + depthBias;
     const drawHeldItem = () => {
       if (!it) return;
       const hx = i[0] + heldAnchor[0] * CH_SCALE, hy = i[1] - lift + heldAnchor[1] * CH_SCALE;
-      drawHeld(it, p, hx, hy, S, spec.skin);
+      const hx2 = i[0] + s.hand2[0] * CH_SCALE, hy2 = i[1] - lift + s.hand2[1] * CH_SCALE;
+      drawHeld(it, p, hx, hy, S, spec.skin, hx2, hy2);
     };
     if (farHand) drawHeldItem();
     ctx.save(); ctx.translate(i[0], i[1] - lift); ctx.scale(CH_SCALE, CH_SCALE); ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
@@ -862,8 +865,8 @@
       segT(TOT * 0.8, TOT * 1.02, 0, 0, 1.6, dark); // short barrel
       const m0 = P0(TOT * 0.3, 2.2), m1 = P0(TOT * 0.34, 7.2);
       seg(m0[0], m0[1], m1[0], m1[1], 2.1, dark); // straight magazine
-      const g0 = P0(TOT * -0.02, 1.5), g1 = P0(TOT * -0.06, 5.2);
-      seg(g0[0], g0[1], g1[0], g1[1], 2.3, dark); // grip
+      const g0 = P0(TOT * -0.02, 1.5), g1 = P0(TOT * -0.05, 2.9);
+      seg(g0[0], g0[1], g1[0], g1[1], 2.3, dark); // grip, ending inside the fist
       segT(TOT * -0.34, TOT * -0.16, 0, 0, 1.8, dark); // stock stub
       ctx.fillStyle = dark; ctx.fillRect(P0(TOT * 0.6, -2)[0] - 1, P0(TOT * 0.6, -2)[1] - 1, 2, 2); // sight
       hl(P0(TOT * 0, -0.9)[0], P0(TOT * 0, -0.9)[1], P0(TOT * 0.75, -0.9)[0], P0(TOT * 0.75, -0.9)[1], 0.9);
@@ -1043,7 +1046,7 @@
     } }
   };
 
-  function drawHeld(it, p, hx, hy, S, skin) {
+  function drawHeld(it, p, hx, hy, S, skin, hx2, hy2) {
     // 3D direction from hand along facing, with elevation. No extra offset: in the live game the
     // facing angle turns smoothly, so any weapon bias reads as the barrel bending in the hands.
     const a = p.ang;
@@ -1052,7 +1055,7 @@
     const wf = WEAPON_FIGS[it.id];
     if (wf) {
       L = wf.len; th = wf.th;
-      if (it.type === 'gun') { col = it.col || '#333'; el = 0; }
+      if (it.type === 'gun') { col = it.col || '#333'; el = it.id === 'smg' ? -0.3 : 0; } // SMG sits a touch lower in the hands
       else if (it.type === 'melee') {
         col = it.col || '#aaa';
         if (p.pose.arms === 'swing' || p.pose.arms === 'swingL' || p.pose.arms === 'swingR') { const t = p.pose.af / 4; el = t < 0.4 ? 0.2 + t * 3 : (t < 0.7 ? 1.4 - (t - 0.4) * 5.5 : -0.3); } else el = 0.3; // carry angle closer to the body
@@ -1092,18 +1095,33 @@
     const dark = '#1e1e22';
     if (it.type === 'gun') {
       const wood = '#6a4a2a';
+      // SMG finger goes on first so the receiver/grip hides its root — only the tip shows
+      // through the trigger guard, like a finger curled onto the trigger from behind.
+      if (skin && it.id === 'smg') {
+        const c = 'rgb(' + (skin[0] | 0) + ',' + (skin[1] | 0) + ',' + (skin[2] | 0) + ')';
+        const f0 = P0(TOT * -0.05, 1.7), f1 = P0(TOT * 0.1, 1.7);
+        ctx.strokeStyle = 'rgba(12,8,6,0.38)'; ctx.lineWidth = 3.2;
+        ctx.beginPath(); ctx.moveTo(f0[0], f0[1]); ctx.lineTo(f1[0], f1[1]); ctx.stroke();
+        ctx.strokeStyle = c; ctx.lineWidth = 2.2;
+        ctx.beginPath(); ctx.moveTo(f0[0], f0[1]); ctx.lineTo(f1[0], f1[1]); ctx.stroke();
+      }
       if (wf) wf.draw({ segT, P0, seg, hl, ctx, TOT, th, col, dark, wood, px, py, nx, ny, fx, fy, tipx, tipy, p, it });
       else { seg(bx, by, tipx, tipy, th, col); hl(bx, by, tipx, tipy, th * 0.3); } // unknown gun fallback
-      // The pistol grip runs straight through the wrist anchor, so painting the whole weapon over
-      // the fist made it look glued on. A short knuckle bar across the grip puts the fingers back
-      // in front of it — the hand reads as holding the grip instead of wearing it.
-      if (skin && it.id === 'pistol') {
+      // The pistol/SMG grip runs straight through the wrist anchor, so painting the whole weapon
+      // over the fist made it look glued on. A short knuckle bar across the grip puts the fingers
+      // back in front of it — the hand reads as holding the grip instead of wearing it.
+      if (skin && (it.id === 'pistol' || it.id === 'smg')) {
         const c = 'rgb(' + (skin[0] | 0) + ',' + (skin[1] | 0) + ',' + (skin[2] | 0) + ')';
-        const kx = px * 1.6, ky = py * 1.6;
-        ctx.strokeStyle = 'rgba(12,8,6,0.38)'; ctx.lineWidth = 3.6;
-        ctx.beginPath(); ctx.moveTo(hx - kx, hy - ky); ctx.lineTo(hx + kx, hy + ky); ctx.stroke();
-        ctx.strokeStyle = c; ctx.lineWidth = 2.4;
-        ctx.beginPath(); ctx.moveTo(hx - kx, hy - ky); ctx.lineTo(hx + kx, hy + ky); ctx.stroke();
+        const knuckle = (kx0, ky0, reach, scale) => {
+          const kx = px * reach, ky = py * reach;
+          ctx.strokeStyle = 'rgba(12,8,6,0.38)'; ctx.lineWidth = 3.6 * scale;
+          ctx.beginPath(); ctx.moveTo(kx0 - kx, ky0 - ky); ctx.lineTo(kx0 + kx, ky0 + ky); ctx.stroke();
+          ctx.strokeStyle = c; ctx.lineWidth = 2.4 * scale;
+          ctx.beginPath(); ctx.moveTo(kx0 - kx, ky0 - ky); ctx.lineTo(kx0 + kx, ky0 + ky); ctx.stroke();
+        };
+        if (it.id === 'pistol') knuckle(hx, hy, 1.6, 1); // pistol: fist over the grip
+        if (it.id === 'smg' && Math.sin(p.ang) < 0) knuckle(hx + nx * 0.4, hy + ny * 0.4, 1.1, 1.1); // rear angles: fist close to the grip
+        // The off hand stays behind the SMG so it never hides the receiver or handguard.
       }
       // The figure now draws its own hand caps at both wrists. A single knuckle repaint here made
       // one hand look stronger than the other, so no weapon gets this overlay any more.
@@ -1134,9 +1152,9 @@
   // Character screen: draw the held item into an arbitrary canvas. drawHeld targets the
   // renderer's own context, so swap it briefly and restore it afterwards. The caller sets the
   // wanted transform; hx/hy are in that canvas's coordinate space.
-  R.drawHeldTo = function (target, it, p, hx, hy, skin) {
+  R.drawHeldTo = function (target, it, p, hx, hy, skin, hx2, hy2) {
     const old = ctx; ctx = target;
-    try { drawHeld(it, p, hx, hy, null, skin); } finally { ctx = old; }
+    try { drawHeld(it, p, hx, hy, null, skin, hx2, hy2); } finally { ctx = old; }
   };
   function drawParticle(pt, S) {
     const i = iso(pt.x, pt.y), y = i[1] - pt.z * ZU, t = pt.life / pt.max;

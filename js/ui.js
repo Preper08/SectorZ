@@ -482,12 +482,14 @@
       x.save(); x.translate(dx, dy); x.scale(sc * big, sc * big);
       const anchor = sp.hand; // the shotgun is anchored to the trigger hand
       const hx = (anchor[0] + sp.ox) / big, hy = (anchor[1] + sp.oy) / big;
-      DSZ.Render.drawHeldTo(x, hdef, fake, hx, hy, S.player.look.skinCol || [214, 166, 128]);
+      const hx2 = (sp.hand2[0] + sp.ox) / big, hy2 = (sp.hand2[1] + sp.oy) / big;
+      DSZ.Render.drawHeldTo(x, hdef, fake, hx, hy, S.player.look.skinCol || [214, 166, 128], hx2, hy2);
       x.restore();
     };
     // Match the gameplay depth order: when the holding hand is on the far side, the figure —
     // including the head — must cover the weapon instead of the grip drawing over the face.
-    const farHand = sp.handD < sp.bodyD;
+    const depthBias = hdef && hdef.id === 'smg' ? (Math.cos(charAng) < -0.2 ? 0.07 : 0.012) : 0.012;
+    const farHand = sp.handD < sp.bodyD + depthBias;
     if (farHand) drawWeapon();
     x.drawImage(sp.c, dx, dy, sp.c.width * sc, sp.c.height * sc);
     if (!farHand) drawWeapon();
