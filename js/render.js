@@ -371,7 +371,7 @@
     drawFlares(S, dl);
     drawTvGlows(dl, px, py, insideB);      // after the lightmap, so night cannot multiply it away
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    drawPost(S, dl);
+    drawPost(S, dl, insideB);
   };
 
   const corpseLampCache = new WeakMap();
@@ -1383,13 +1383,21 @@
   }
 
   // ---------------------------------------------------------------- post
-  function drawPost(S, dl) {
+  function drawPost(S, dl, insideB) {
     const VW = R.VW, VH = R.VH, p = S.player;
-    // rain
-    if (S.weather.rain > 0.05) {
+    // rain: no streaks indoors, and skip streaks falling over an opaque roof
+    if (S.weather.rain > 0.05 && !insideB) {
       ctx.strokeStyle = 'rgba(170,190,220,' + (0.16 + S.weather.rain * 0.18) + ')'; ctx.lineWidth = 1; ctx.beginPath();
       const n = (60 + S.weather.rain * 170) | 0;
-      for (let i = 0; i < n; i++) { const sx = ((i * 97.13 + T * 400) % (VW + 100)) - 20, sy = ((i * 53.7 + T * 1200 + (i % 7) * 31) % (VH + 60)) - 20; ctx.moveTo(sx, sy); ctx.lineTo(sx - 5, sy + 14); }
+      const izx = 1 / zsx(), izy = 1 / zsy();
+      for (let i = 0; i < n; i++) {
+        const px = ((i * 97.13 + T * 400) % (VW + 100)) - 20, py = ((i * 53.7 + T * 1200 + (i % 7) * 31) % (VH + 60)) - 20;
+        // roofTileAt works in world iso pixels; streaks here are raw canvas pixels.
+        const rt = roofTileAt((px - VW / 2) * izx + camIx, (py - VH / 2) * izy + camIy);
+        const b = W.inb(rt[0], rt[1]) && W.blds[W.room[rt[1] * C.W + rt[0]]];
+        if (b && b.roofA > 0.5) continue; // covered by a visible roof
+        ctx.moveTo(px, py); ctx.lineTo(px - 5, py + 14);
+      }
       ctx.stroke();
     }
     // vignette is applied inside the lightmap (see drawLighting)

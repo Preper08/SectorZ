@@ -961,7 +961,11 @@
     updateHorde(S, dt, night);
     arcTick(S, dt);
     // rain splashes
-    if (w.rain > 0.1 && Math.random() < dt * w.rain * 40) { const a = Math.random() * 6.28, d = Math.random() * 10; E.particle(S, { type: 'splash', x: S.player.x + Math.cos(a) * d, y: S.player.y + Math.sin(a) * d, z: 0, vx: 0, vy: 0, vz: 0, life: 0.35 }); }
+    if (w.rain > 0.1 && Math.random() < dt * w.rain * 40) {
+      const a = Math.random() * 6.28, d = Math.random() * 10;
+      const x = S.player.x + Math.cos(a) * d, y = S.player.y + Math.sin(a) * d;
+      if (!W.insideBuilding(x, y)) E.particle(S, { type: 'splash', x, y, z: 0, vx: 0, vy: 0, vz: 0, life: 0.35 });
+    }
     // dynamic zombie spawns around the player
     S.spawnT -= dt;
     if (S.spawnT <= 0) {
