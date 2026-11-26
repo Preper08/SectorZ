@@ -480,7 +480,7 @@
       const big = hdef.type === 'gun' ? 1.3 : 1;
       const fake = { ang: charAng, pose: { arms: pose.arms, af: pose.af, grip: pose.grip }, muzzle: 0, lightOn: false };
       x.save(); x.translate(dx, dy); x.scale(sc * big, sc * big);
-      const anchor = pose.arms === 'aimPump' ? sp.hand2 : sp.hand;
+      const anchor = sp.hand; // the shotgun is anchored to the trigger hand
       const hx = (anchor[0] + sp.ox) / big, hy = (anchor[1] + sp.oy) / big;
       DSZ.Render.drawHeldTo(x, hdef, fake, hx, hy, S.player.look.skinCol || [214, 166, 128]);
       x.restore();

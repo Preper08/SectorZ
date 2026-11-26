@@ -102,14 +102,11 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     }
     else if (arms === 'aim') { hR = [0.5, 0.12, pz + 0.46]; hL = [0.42, -0.04, pz + 0.43]; hintR = [0, 0.5, -0.5]; hintL = [0, -0.5, -0.5]; }
     else if (arms === 'aimPump') {
-      // Shotgun: left hand works the trigger/grip, right hand supports the pump further forward
-      // and slightly lower, under the barrel. A normal rifle `aim` put both hands together at the
-      // receiver, which read as holding a shotgun by the stock only.
-      // The pump sits on the weapon axis and just below it. Keep the support hand on that same
-      // line (same lateral offset as the trigger hand, slightly forward and lower) or it reads
-      // as holding air beside the barrel when the character turns.
-      hL = [0.5, -0.12, pz + 0.46]; hR = [0.75, -0.12, pz + 0.41];
-      hintL = [0, -0.5, -0.5]; hintR = [0, -0.2, -0.6];
+      // Shotgun: right hand firmly on the pistol grip / trigger, left hand forward and slightly
+      // lower on the forend. The support hand stays close to the weapon axis so it reads as
+      // gripping the pump instead of floating beside the barrel at oblique headings.
+      hR = [0.5, 0.12, pz + 0.46]; hL = [0.66, 0.08, pz + 0.41];
+      hintR = [0, 0.5, -0.5]; hintL = [0, 0.1, -0.6];
     }
     else if (arms === 'light') { hR = [0.36, 0.2, pz + 0.37]; hL = [Math.sin(ph) * swing, -0.26, pz + 0.17]; hintR = [0, 0.6, -0.5]; }
     else if (arms === 'swing' || arms === 'swingL' || arms === 'swingR') {
