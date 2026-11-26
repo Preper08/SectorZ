@@ -855,12 +855,17 @@
       hl(P0(TOT * 0, -0.9)[0], P0(TOT * 0, -0.9)[1], P0(TOT * 0.75, -0.9)[0], P0(TOT * 0.75, -0.9)[1], 0.9);
     } },
     shotgun: { len: 0.4, th: 3, grip: 0, draw: W => {
-      const { segT, P0, hl, TOT, col, dark, wood } = W;
+      const { segT, P0, hl, TOT, col, dark, wood, ny } = W;
+      // Keep the under-barrel hardware on the screen-down side at every heading, like the gun
+      // grips do. Without this flip the tube jumped above the barrel on half the rotations.
+      const down = ny < 0 ? -1 : 1;
       segT(TOT * -0.3, TOT * 0.78, 0, 0, 3.4, col); // receiver
       segT(TOT * 0.78, TOT * 1.04, 0, 0, 1.7, dark); // barrel
-      segT(TOT * 0.78, TOT * 1.0, 2.2, 2.5, 1.7, dark); // tube magazine under the barrel
-      segT(TOT * -0.28, TOT * -0.06, -0.4, -0.4, 4.3, wood); // wooden butt
-      segT(TOT * 0.36, TOT * 0.54, 1.8, 2.7, 2.5, wood); // wooden pump
+      // Magazine tube must run straight and parallel under the barrel. The old short, slanted
+      // segment hung off the muzzle like a hook and the pump sat on a different offset line.
+      segT(TOT * 0.32, TOT * 0.88, 1.8 * down, 1.8 * down, 1.6, dark); // tube magazine ends short of the muzzle
+      segT(TOT * -0.28, TOT * -0.06, -0.4, -0.4, 3.8, wood); // wooden butt
+      segT(TOT * 0.36, TOT * 0.56, 1.8 * down, 1.8 * down, 2.6, wood); // wooden pump centred on the tube
       hl(P0(TOT * -0.05, -1)[0], P0(TOT * -0.05, -1)[1], P0(TOT * 0.7, -1)[0], P0(TOT * 0.7, -1)[1], 1);
     } },
     rifle: { len: 0.54, th: 3, grip: 3, draw: W => {
