@@ -496,8 +496,9 @@
     const armed = charPose === 2, P = S.player.inv, held = armed ? P.hot[P.sel] : null;
     const hdef = held && I[held.id];
     const gun = hdef && hdef.type === 'gun';
-    const pose = armed ? (gun || !hdef ? { arms: hdef && hdef.id === 'shotgun' ? 'aimPump' : 'aim', af: 0, held: hdef && hdef.id, heldType: hdef && hdef.type, legs: 'idle', lf: 0, face: true }
-      : { arms: 'swingR', af: 0, grip: (hdef.id === 'bat' || hdef.id === 'spear') ? 'two' : '', held: hdef.id, heldType: hdef.type, legs: 'idle', lf: 0, face: true })
+    const pose = armed ? (!hdef ? { arms: 'guard', af: 0, legs: 'idle', lf: 0, face: true }
+      : gun || hdef.id === 'shotgun' ? { arms: hdef.id === 'shotgun' ? 'aimPump' : 'aim', af: 0, held: hdef.id, heldType: hdef.type, legs: 'idle', lf: 0, face: true }
+        : { arms: 'swingR', af: 0, grip: (hdef.id === 'bat' || hdef.id === 'spear') ? 'two' : '', held: hdef.id, heldType: hdef.type, legs: 'idle', lf: 0, face: true })
       : charPose === 1 ? { arms: 'walk', af: 2, held: hdef && hdef.id, heldType: hdef && hdef.type, legs: 'walk', lf: 2, face: true }
       : { arms: 'idleEmpty', af: 0, legs: 'idle', lf: 0, face: true };
     const sp = DSZ.Fig.get(DSZ.Fig.playerSpec(S.player.look), charAng, pose);

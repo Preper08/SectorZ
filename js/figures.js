@@ -152,6 +152,10 @@ const VAULT_LIFT = DSZ.VAULT_LIFT;
     }
     else if (arms === 'zreach') { const w = Math.sin(ph) * 0.05; hR = [0.58, 0.17, pz + 0.5 + w]; hL = [0.52, -0.17, pz + 0.43 - w]; hintR = [0, 0.4, -0.7]; hintL = [0, -0.4, -0.7]; }
     else if (arms === 'zatk') { const t = af / 3, s = Math.sin(t * Math.PI); hR = [0.5 + 0.2 * s, 0.14, pz + 0.55 - 0.3 * s]; hL = [0.5 + 0.2 * s, -0.14, pz + 0.5 - 0.3 * s]; hintR = [0, 0.4, -0.7]; hintL = [0, -0.4, -0.7]; }
+    else if (arms === 'guard') { // empty hands held up in front of the chest, ready stance
+      hR = [0.3, 0.14, pz + 0.55]; hL = [0.28, -0.14, pz + 0.52];
+      hintR = [0, 0.35, -0.6]; hintL = [0, -0.35, -0.6];
+    }
     else if (arms === 'down') { hL = [0, -0.27, pz + 0.12]; hR = [0, 0.27, pz + 0.12]; }
     // vault: the right hand plants on the sill ahead of the body, the left swings back for
     // balance. Both follow the same arc, so the hands are already down when the hips come up.
