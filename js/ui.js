@@ -23,7 +23,7 @@
 
   // ------------------------------------------------------------------ init
   UI.init = function () {
-    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-char', 'tab-admin', 'tab-player', 'pcharhost', 'peqhost', 'pinvhost', 'pcondhost', 'chardollcol', 'chareqcol', 'condition', 'admin-search', 'admin-list', 'tab-admin-btn', 'char-preview', 'charequip', 'skin-sw', 'hair-sw', 'char-bald', 'char-rot', 'char-pose', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'carsirenrow', 'carsiren', 'tvttl']) els[id] = $(id);
+    for (const id of ['hud', 'win', 'tip', 'dragghost', 'mapwin', 'pause', 'settings', 'controls', 'death', 'title', 'loading', 'cursor', 'vitals', 'clk', 'dayl', 'wx', 'nightw', 'toasts', 'prompt', 'progress', 'proglabel', 'hotbar', 'buildbar', 'fps', 'equip', 'condition', 'gridcol', 'g-loot', 'lootcol', 'loottitle', 'crafttabs', 'craftlist', 'craftdetail', 'tab-inv', 'tab-craft', 'tab-char', 'tab-admin', 'tab-player', 'pcharhost', 'peqhost', 'pinvhost', 'pcondhost', 'chardollcol', 'chareqcol', 'charlookcol', 'condition', 'admin-search', 'admin-list', 'tab-admin-btn', 'char-preview', 'charequip', 'skin-sw', 'hair-sw', 'char-bald', 'char-rot', 'char-pose', 'bigmap', 'mm', 'setbody', 'ctlbody', 'lbar', 'ltxt', 'deathwhy', 'deathstats', 'takeall', 'ver', 'tvwin', 'tvx', 'tvclose', 'tvscreen', 'tvch', 'diffbtns', 'dlab', 'pcwin', 'pcx', 'pcclose', 'pcscreen', 'pcmode', 'pctabs', 'doghud', 'dogtier', 'dogbond', 'dognote', 'carhud', 'carname', 'carkmh', 'carhp', 'carhpv', 'carfuel', 'carfuelv', 'carsirenrow', 'carsiren', 'tvttl']) els[id] = $(id);
     vitalNodes = Array.from(els.vitals.querySelectorAll('.vrow'), row => ({ row, key: row.dataset.k, bar: row.querySelector('i'), value: row.querySelector('b') }));
     els.status = $('status'); els.progressBar = els.progress.querySelector('i');
     els.eqcol = $('eqcol');
@@ -71,9 +71,10 @@
   // logic is duplicated. The old tab buttons are gone; any code asking for 'inv'/'char' lands
   // on this screen instead.
   function setPlayerLayout(on) {
-    if (!playerHomes) playerHomes = ['chardollcol', 'chareqcol', 'gridcol', 'condition'].map(id => ({ el: els[id], home: els[id].parentNode, next: els[id].nextSibling }));
+    if (!playerHomes) playerHomes = ['chardollcol', 'chareqcol', 'charlookcol', 'gridcol', 'condition'].map(id => ({ el: els[id], home: els[id].parentNode, next: els[id].nextSibling }));
     if (on) {
       els.pcharhost.appendChild(els.chardollcol);
+      els.pcharhost.appendChild(els.charlookcol);
       els.peqhost.insertBefore(els.chareqcol, els.pcondhost);
       els.pcondhost.appendChild(els.condition);
       els.pinvhost.appendChild(els.gridcol);
